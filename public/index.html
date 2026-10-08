@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Phòng Chat Nhóm Nội Bộ 💬</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 850px;
+      height: 100vh;
+      max-height: 900px;
+      display: flex;
+      flex-direction: column;
+      background: #1e293b;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      position: relative;
+    }
+    @media (min-width: 768px) {
+      .app-container {
+        height: 92vh;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid #334155;
+      }
+    }
+
+    /* HEADER */
+    header {
+      background: #0f172a;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      font-size: 1.8rem;
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .online-badge {
+      font-size: 0.85rem;
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* MAIN CHAT AREA */
+    .chat-layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+
+    /* MESSAGE BUBBLES */
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+    .msg-row.me {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+    .msg-row.other {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+    .msg-sender {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .msg-bubble {
+      padding: 10px 15px;
+      border-radius: 16px;
+      font-size: 0.96rem;
+      line-height: 1.45;
+      word-break: break-word;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .msg-row.me .msg-bubble {
+      background: #0284c7;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-row.other .msg-bubble {
+      background: #334155;
+      color: #f1f5f9;
+      border-bottom-left-radius: 4px;
+    }
+    .msg-time {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* SYSTEM MESSAGE */
+    .msg-system {
+      align-self: center;
+      background: rgba(51, 65, 85, 0.6);
+      color: #cbd5e1;
+      font-size: 0.82rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin: 4px 0;
+    }
+
+    /* INPUT BAR */
+    .input-bar {
+      padding: 14px 20px;
+      background: #0f172a;
+      border-top: 1px solid #334155;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .input-bar input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 24px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .input-bar input:focus {
+      border-color: #38bdf8;
+    }
+    .btn-send {
+      background: #0284c7;
+      border: none;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-send:hover { background: #0369a1; }
+
+    /* MODAL ĐẶT TÊN */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+    }
+    .modal-box h2 {
+      font-size: 1.5rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+    .modal-box p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+    .modal-box input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      margin-bottom: 18px;
+      outline: none;
+      text-align: center;
+    }
+    .modal-box input:focus {
+      border-color: #38bdf8;
+    }
+    .modal-box button {
+      width: 100%;
+      background: #10b981;
+      border: none;
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .modal-box button:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- MODAL NHẬP TÊN -->
+    <div class="modal-overlay" id="modalName">
+      <div class="modal-box">
+        <div style="font-size: 3rem; margin-bottom: 10px;">👋</div>
+        <h2>Tham Gia Phòng Chat</h2>
+        <p>Đặt biệt danh của bạn để bắt đầu trò chuyện cùng mọi người nhé!</p>
+        <input type="text" id="usernameInput" placeholder="Ví dụ: Hoàng IT, Linh Tester..." maxlength="20" autofocus />
+        <button id="btnJoin">Bắt đầu chém gió 🚀</button>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <span class="brand-icon">💬</span>
+        <div>
+          <div class="brand-title">Nhóm Chat Nội Bộ</div>
+          <div style="font-size: 0.75rem; color: #94a3b8;">Docker Realtime Hub</div>
+        </div>
+      </div>
+      <div class="online-badge">
+        <span class="dot"></span>
+        <span id="onlineCount">1 đang online</span>
+      </div>
+    </header>
+
+    <!-- KHUNG CHAT -->
+    <div class="chat-layout">
+      <div class="chat-messages" id="messagesList">
+        <!-- Tin nhắn sẽ được render ở đây -->
+      </div>
+    </div>
+
+    <!-- THANH GỬI TIN NHẮN -->
+    <div class="input-bar">
+      <input type="text" id="messageInput" placeholder="Nhập tin nhắn... (nhấn Enter để gửi)" autocomplete="off" />
+      <button class="btn-send" id="btnSend">
+        <span>Gửi</span> ✈️
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let myName = '';
+
+    const modalName = document.getElementById('modalName');
+    const usernameInput = document.getElementById('usernameInput');
+    const btnJoin = document.getElementById('btnJoin');
+    const messagesList = document.getElementById('messagesList');
+    const messageInput = document.getElementById('messageInput');
+    const btnSend = document.getElementById('btnSend');
+    const onlineCount = document.getElementById('onlineCount');
+
+    // Tự nhớ tên cũ trong LocalStorage nếu có
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) usernameInput.value = savedName;
+
+    function handleJoin() {
+      const name = usernameInput.value.trim();
+      if (!name) {
+        usernameInput.focus();
+        return;
+      }
+      myName = name;
+      localStorage.setItem('chat_username', myName);
+      modalName.style.display = 'none';
+      socket.emit('join', myName);
+      messageInput.focus();
+    }
+
+    btnJoin.addEventListener('click', handleJoin);
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleJoin();
+    });
+
+    // NHẬN DỮ LIỆU BAN ĐẦU
+    socket.on('init', ({ history, users }) => {
+      messagesList.innerHTML = '';
+      history.forEach(appendMessage);
+      updateUsers(users);
+      scrollToBottom();
+    });
+
+    // NHẬN TIN NHẮN MỚI
+    socket.on('new_message', (msg) => {
+      appendMessage(msg);
+      scrollToBottom();
+    });
+
+    // THÀNH VIÊN VÀO/RA
+    socket.on('user_joined', ({ message, users }) => {
+      appendMessage(message);
+      updateUsers(users);
+      scrollToBottom();
+    });
+
+    socket.on('user_left', ({ message, users }) => {
+      appendMessage(message);
+      updateUsers(users);
+      scrollToBottom();
+    });
+
+    function updateUsers(users) {
+      if (!users) return;
+      onlineCount.innerText = `${users.length} đang online`;
+    }
+
+    function appendMessage(msg) {
+      if (msg.type === 'system') {
+        const sysDiv = document.createElement('div');
+        sysDiv.className = 'msg-system';
+        sysDiv.innerText = `${msg.text} (${msg.time})`;
+        messagesList.appendChild(sysDiv);
+        return;
+      }
+
+      const isMe = msg.sender === myName;
+      const row = document.createElement('div');
+      row.className = `msg-row ${isMe ? 'me' : 'other'}`;
+
+      if (!isMe) {
+        const sender = document.createElement('div');
+        sender.className = 'msg-sender';
+        sender.style.color = msg.color || '#38bdf8';
+        sender.innerText = msg.sender;
+        row.appendChild(sender);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.innerText = msg.text;
+      row.appendChild(bubble);
+
+      const time = document.createElement('div');
+      time.className = 'msg-time';
+      time.innerText = msg.time;
+      row.appendChild(time);
+
+      messagesList.appendChild(row);
+    }
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      socket.emit('send_message', text);
+      messageInput.value = '';
+      messageInput.focus();
+    }
+
+    btnSend.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function scrollToBottom() {
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+  </script>
+</body>
+</html>
