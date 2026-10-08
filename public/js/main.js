@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Khởi tạo các trò chơi
   const shooterGame = new ShooterGame('shooterCanvas');
+  const beatUpGame = new BeatUpGame('beatupCanvas');
   const xiangqiGame = new XiangqiGame();
   const caroGame = new CaroGame();
   const racingGame = new RacingGame('racingCanvas');
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.caroGameInstance = caroGame;
   window.xiangqiGameInstance = xiangqiGame;
+  window.beatUpGameInstance = beatUpGame;
 
   // Game mặc định mở ban đầu
   let currentGameId = 'shooter';
@@ -101,6 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameId === 'shooter') {
       activeGameInstance = shooterGame;
       shooterGame.start();
+    } else if (gameId === 'beatup') {
+      activeGameInstance = beatUpGame;
+      beatUpGame.start();
     } else if (gameId === 'xiangqi') {
       activeGameInstance = xiangqiGame;
     } else if (gameId === 'caro') {

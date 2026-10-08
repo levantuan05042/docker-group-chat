@@ -54,6 +54,9 @@
         <button class="game-tab active" data-game="shooter">
           🔫 Đột Kích (Free Fire)
         </button>
+        <button class="game-tab" data-game="beatup">
+          🥊 Đấm Hình Nhân (Ghép Mặt)
+        </button>
         <button class="game-tab" data-game="xiangqi">
           🎎 Cờ Tướng (PvP & AI)
         </button>
@@ -110,6 +113,55 @@
 
           <p class="game-hints">
             🕹️ W, A, S, D di chuyển • Di chuột/Chạm ngắm • <strong>Click chuột hoặc chạm [BẮN]</strong> để sấy súng • Phím 1, 2, 3 đổi súng • Nhặt <strong>Hòm thính (DROP)</strong> để hồi máu & nhận súng xịn!
+          </p>
+        </div>
+
+        <!-- GAME ĐẤM HÌNH NHÂN (BEAT UP THE DUMMY / GHÉP MẶT XẢ GIẬN) -->
+        <div class="game-screen" id="screen-beatup">
+          <div class="game-header">
+            <div class="game-title-group">
+              <h2>🥊 Đấm Hình Nhân Xả Giận (Ghép Mặt Tùy Ý)</h2>
+            </div>
+            <div class="game-score-board">
+              <span>Đòn đấm: <strong id="beatPunchCount" style="color: #ef4444; font-size: 1.1rem;">0</strong></span>
+              <span>Combo: <strong id="beatCombo" style="color: #f59e0b; font-size: 1.1rem;">x0</strong></span>
+              <span>Vũ khí: <strong id="beatWeaponName" style="color: #38bdf8;">🥊 Đấm Thường</strong></span>
+            </div>
+          </div>
+
+          <!-- Thanh chọn và tải ảnh ghép mặt -->
+          <div class="beatup-toolbar">
+            <div class="beatup-upload-box">
+              <label for="beatFaceInput" class="btn-upload-face">
+                📸 Chọn Ảnh Khuôn Mặt Ghép Vào
+              </label>
+              <input type="file" id="beatFaceInput" accept="image/*" style="display: none;" />
+              <button class="btn-game" id="beatResetFaceBtn" title="Trở về mặt mặc định">🗑️ Bỏ ảnh mặt</button>
+            </div>
+            <div class="beatup-weapons-list">
+              <span style="font-size:0.85rem; color:#94a3b8; font-weight:600;">Vũ khí:</span>
+              <button class="beat-weapon-btn active" data-weapon="fist" title="Nắm đấm cơ bản">🥊 Nắm Đấm</button>
+              <button class="beat-weapon-btn" data-weapon="glove" title="Găng Boxing cực mạnh">🥊 Boxing</button>
+              <button class="beat-weapon-btn" data-weapon="slipper" title="Dép tổ ong huyền thoại siêu chát">🩴 Dép Tổ Ong</button>
+              <button class="beat-weapon-btn" data-weapon="slap" title="Bạt tai thần chưởng">👋 Bạt Tai</button>
+              <button class="beat-weapon-btn" data-weapon="bat" title="Gậy bóng chày sát thương cực khủng">🏏 Gậy Đập</button>
+            </div>
+          </div>
+
+          <!-- Dòng trạng thái hài hước -->
+          <div id="beatDummyStatus" class="beat-status-bar">
+            👊 Click chuột hoặc chạm màn hình liên tục để ĐẤM hình nhân xả giận!
+          </div>
+
+          <!-- Canvas hình nhân lật đật / lò xo -->
+          <canvas id="beatupCanvas" class="game-canvas" width="440" height="460" style="cursor: crosshair;"></canvas>
+
+          <div class="game-controls-bar">
+            <button class="btn-game" id="beatResetGameBtn">🔄 Đấm ván mới</button>
+          </div>
+
+          <p class="game-hints">
+            💡 Tải bất kỳ ảnh mặt nào (bạn bè, sếp, crush...) từ máy tính hoặc điện thoại lên. Click chuột hoặc chạm liên tục vào đầu & mặt hình nhân để đấm, tát và ném dép tổ ong xả stress cực đã!
           </p>
         </div>
 
@@ -404,6 +456,7 @@
   <!-- SCRIPTS -->
   <script src="/js/audio.js"></script>
   <script src="/js/games/shooter.js"></script>
+  <script src="/js/games/beatup.js"></script>
   <script src="/js/games/xiangqi.js"></script>
   <script src="/js/games/caro.js"></script>
   <script src="/js/games/racing.js"></script>
