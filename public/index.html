@@ -185,9 +185,32 @@
           </p>
         </div>
 
+        <!-- 3. GAME ĐUA XE CAO TỐC -->
+        <div class="game-screen" id="screen-racing">
+          <div class="game-header">
+            <div class="game-title-group">
+              <h2>🏎️ Đua Xe Cao Tốc (Highway Turbo)</h2>
+            </div>
+            <div class="game-score-board">
+              <span>Điểm: <strong id="racingScore" style="color: #38bdf8;">0</strong></span>
+              <span>Kỷ lục: <strong id="racingHighScore" style="color: #f59e0b;">0</strong></span>
+            </div>
+          </div>
 
-        <!-- 3. GAME XẾP GẠCH TETRIS -->
+          <canvas id="racingCanvas" class="game-canvas" width="380" height="460"></canvas>
+
+          <div class="game-controls-bar">
+            <button class="btn-game" id="restartRacingBtn">🔄 Chơi lại</button>
+            <button class="btn-game btn-share" id="shareRacingBtn">📢 Khoe điểm vào Chat</button>
+          </div>
+          <p class="game-hints">
+            🕹️ Dùng phím ⬅️ ➡️ hoặc A, D để chuyển làn né xe • Giữ ⬆️ hoặc W để bật Nitro tăng tốc!
+          </p>
+        </div>
+
+        <!-- 4. GAME XẾP GẠCH TETRIS -->
         <div class="game-screen" id="screen-tetris">
+
           <div class="game-header">
             <div class="game-title-group">
               <h2>🧱 Xếp Gạch Arcade (Tetris)</h2>

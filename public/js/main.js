@@ -128,50 +128,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Safe bind helper
+  const bindClick = (id, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
+  };
+
   // 8. TÌM ĐỐI THỦ SIÊU DỄ: Ghép trận tự động & Thách đấu lên Chat
   // Cờ Tướng:
-  document.getElementById('quickMatchXQBtn').addEventListener('click', () => {
-    window.chatClient.startQuickMatch('xiangqi');
-  });
-  document.getElementById('publicChallengeXQBtn').addEventListener('click', () => {
+  bindClick('quickMatchXQBtn', () => window.chatClient.startQuickMatch('xiangqi'));
+  bindClick('publicChallengeXQBtn', () => {
     window.chatClient.sendPublicChallenge('xiangqi');
     alert('Đã gửi kèo solo Cờ Tướng lên phòng Chat! Bạn bè chỉ cần bấm vào là vào bàn ngay!');
   });
-  document.getElementById('restartXQBtn').addEventListener('click', () => xiangqiGame.reset());
+  bindClick('restartXQBtn', () => xiangqiGame.reset());
 
   // Cờ Caro:
-  document.getElementById('quickMatchCaroBtn').addEventListener('click', () => {
-    window.chatClient.startQuickMatch('caro');
-  });
-  document.getElementById('publicChallengeCaroBtn').addEventListener('click', () => {
+  bindClick('quickMatchCaroBtn', () => window.chatClient.startQuickMatch('caro'));
+  bindClick('publicChallengeCaroBtn', () => {
     window.chatClient.sendPublicChallenge('caro');
     alert('Đã gửi kèo solo Cờ Caro lên phòng Chat! Ai bấm vào là vào bàn ngay!');
   });
-  document.getElementById('restartCaroBtn').addEventListener('click', () => caroGame.reset());
+  bindClick('restartCaroBtn', () => caroGame.reset());
 
   // Restart các game khác
-  document.getElementById('restartShooterBtn').addEventListener('click', () => shooterGame.start());
-  document.getElementById('restartRacingBtn').addEventListener('click', () => racingGame.start());
-  document.getElementById('restartTetrisBtn').addEventListener('click', () => tetrisGame.start());
-  document.getElementById('restartSnakeBtn').addEventListener('click', () => snakeGame.start());
-  document.getElementById('restartFlappyBtn').addEventListener('click', () => flappyGame.start());
+  bindClick('restartShooterBtn', () => shooterGame.start());
+  bindClick('restartRacingBtn', () => racingGame.start());
+  bindClick('restartTetrisBtn', () => tetrisGame.start());
+  bindClick('restartSnakeBtn', () => snakeGame.start());
+  bindClick('restartFlappyBtn', () => flappyGame.start());
 
   // Khoe điểm / Kills vào Chat
-  document.getElementById('shareShooterBtn').addEventListener('click', () => {
+  bindClick('shareShooterBtn', () => {
     window.chatClient.shareScore('Đột Kích Sinh Tồn (Free Fire)', `${shooterGame.kills} Kills`);
   });
-  document.getElementById('shareRacingBtn').addEventListener('click', () => {
+  bindClick('shareRacingBtn', () => {
     window.chatClient.shareScore('Đua xe Turbo Highway', racingGame.score);
   });
-  document.getElementById('shareTetrisBtn').addEventListener('click', () => {
+  bindClick('shareTetrisBtn', () => {
     window.chatClient.shareScore('Xếp gạch Tetris', tetrisGame.score);
   });
-  document.getElementById('shareSnakeBtn').addEventListener('click', () => {
+  bindClick('shareSnakeBtn', () => {
     window.chatClient.shareScore('Rắn săn mồi Neon', snakeGame.score);
   });
-  document.getElementById('shareFlappyBtn').addEventListener('click', () => {
+  bindClick('shareFlappyBtn', () => {
     window.chatClient.shareScore('Flappy Bird Cyber', flappyGame.score);
   });
+
 
   // 9. Nút điều khiển cảm ứng ảo trên Điện thoại & Tablet cho game Đột Kích
   const touchMap = {
