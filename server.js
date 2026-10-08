@@ -71,27 +71,79 @@ function createInitialXiangqiBoard() {
   // Đen (r: 0..3)
   const blackBack = ['r_xe', 'r_ma', 'r_tuong', 'r_si', 'r_soai', 'r_si', 'r_tuong', 'r_ma', 'r_xe'];
   for (let c = 0; c < 9; c++) {
-    board[0][c] = { side: 'black', type: blackBack[c].replace('r_', '') };
+    board[0][c] = { side: 'black', type: blackBack[c].replace('r_', ''), isDown: false };
   }
-  board[2][1] = { side: 'black', type: 'phao' };
-  board[2][7] = { side: 'black', type: 'phao' };
+  board[2][1] = { side: 'black', type: 'phao', isDown: false };
+  board[2][7] = { side: 'black', type: 'phao', isDown: false };
   for (let c = 0; c < 9; c += 2) {
-    board[3][c] = { side: 'black', type: 'tot' };
+    board[3][c] = { side: 'black', type: 'tot', isDown: false };
   }
 
   // Đỏ (r: 6..9)
   const redBack = ['xe', 'ma', 'tuong', 'si', 'soai', 'si', 'tuong', 'ma', 'xe'];
   for (let c = 0; c < 9; c++) {
-    board[9][c] = { side: 'red', type: redBack[c] };
+    board[9][c] = { side: 'red', type: redBack[c], isDown: false };
   }
-  board[7][1] = { side: 'red', type: 'phao' };
-  board[7][7] = { side: 'red', type: 'phao' };
+  board[7][1] = { side: 'red', type: 'phao', isDown: false };
+  board[7][7] = { side: 'red', type: 'phao', isDown: false };
   for (let c = 0; c < 9; c += 2) {
-    board[6][c] = { side: 'red', type: 'tot' };
+    board[6][c] = { side: 'red', type: 'tot', isDown: false };
   }
 
   return board;
 }
+
+// Bàn CỜ ÚP (Coup): 15 quân mỗi bên bị úp mặt, chỉ có Tướng ngửa
+function createInitialCoupBoard() {
+  const board = Array(10).fill(null).map(() => Array(9).fill(null));
+
+  // Tướng (Soái) luôn ngửa ở giữa Cung
+  board[0][4] = { side: 'black', type: 'soai', isDown: false, slotType: 'soai' };
+  board[9][4] = { side: 'red', type: 'soai', isDown: false, slotType: 'soai' };
+
+  // 15 quân còn lại
+  const pool = ['xe', 'xe', 'ma', 'ma', 'tuong', 'tuong', 'si', 'si', 'phao', 'phao', 'tot', 'tot', 'tot', 'tot', 'tot'];
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const blackPool = shuffle(pool);
+  const redPool = shuffle(pool);
+
+  const slotPositions = [
+    { r: 0, c: 0, slot: 'xe' }, { r: 0, c: 1, slot: 'ma' }, { r: 0, c: 2, slot: 'tuong' }, { r: 0, c: 3, slot: 'si' },
+    { r: 0, c: 5, slot: 'si' }, { r: 0, c: 6, slot: 'tuong' }, { r: 0, c: 7, slot: 'ma' }, { r: 0, c: 8, slot: 'xe' },
+    { r: 2, c: 1, slot: 'phao' }, { r: 2, c: 7, slot: 'phao' },
+    { r: 3, c: 0, slot: 'tot' }, { r: 3, c: 2, slot: 'tot' }, { r: 3, c: 4, slot: 'tot' }, { r: 3, c: 6, slot: 'tot' }, { r: 3, c: 8, slot: 'tot' }
+  ];
+
+  slotPositions.forEach((pos, idx) => {
+    // Đen (hàng 0..3)
+    board[pos.r][pos.c] = {
+      side: 'black',
+      type: blackPool[idx],
+      isDown: true,
+      slotType: pos.slot
+    };
+    // Đỏ đối xứng (hàng 9..6)
+    const redR = 9 - pos.r;
+    board[redR][pos.c] = {
+      side: 'red',
+      type: redPool[idx],
+      isDown: true,
+      slotType: pos.slot
+    };
+  });
+
+  return board;
+}
+
 
 io.on('connection', (socket) => {
   // 1. Khi người dùng tham gia
@@ -165,18 +217,22 @@ io.on('connection', (socket) => {
   });
 
   // 4. THÁCH ĐẤU CÔNG KHAI TRỰC TIẾP LÊN KHUNG CHAT (1 Chạm Vào Đấu Ngay!)
-  socket.on('send_public_challenge', ({ gameType }) => {
+  socket.on('send_public_challenge', ({ gameType, variant = 'coup' }) => {
     const user = onlineUsers.get(socket.id);
     if (!user) return;
 
     const challengeId = `pub_${Date.now()}_${socket.id}`;
-    const gameLabel = gameType === 'xiangqi' ? 'Cờ Tướng' : 'Cờ Caro';
+    let gameLabel = 'Cờ Caro';
+    if (gameType === 'xiangqi') {
+      gameLabel = variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng';
+    }
     
     publicChallenges.set(challengeId, {
       id: challengeId,
       fromId: socket.id,
       fromName: user.username,
       gameType,
+      variant,
       status: 'open'
     });
 
@@ -221,11 +277,12 @@ io.on('connection', (socket) => {
 
     // Bắt đầu trận đấu
     if (challenge.gameType === 'xiangqi') {
-      startXQGame(challenge.fromId, socket.id, challenger.username, accepter.username);
+      startXQGame(challenge.fromId, socket.id, challenger.username, accepter.username, challenge.variant || 'coup');
     } else {
       startCaroGame(challenge.fromId, socket.id, challenger.username, accepter.username);
     }
   });
+
 
   // 5. TÌM TRẬN NHANH (QUICK MATCHMAKING)
   socket.on('queue_join', ({ gameType }) => {
@@ -374,15 +431,17 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ================= CỜ TƯỚNG (XIANGQI) LOGIC =================
-  function startXQGame(p1Id, p2Id, p1Name, p2Name) {
+  // ================= CỜ TƯỚNG & CỜ ÚP LOGIC =================
+  function startXQGame(p1Id, p2Id, p1Name, p2Name, variant = 'coup') {
     const roomId = `xq_${p1Id}_${p2Id}_${Date.now()}`;
+    const initialBoard = variant === 'coup' ? createInitialCoupBoard() : createInitialXiangqiBoard();
     const room = {
       id: roomId,
       p1: p1Id, p1Name, // Đỏ đi trước
       p2: p2Id, p2Name, // Đen đi sau
-      board: createInitialXiangqiBoard(),
+      board: initialBoard,
       turn: 'red',
+      variant,
       status: 'playing'
     };
     xiangqiRooms.set(roomId, room);
@@ -394,12 +453,14 @@ io.on('connection', (socket) => {
       p1: { id: p1Id, name: p1Name, color: 'red' },
       p2: { id: p2Id, name: p2Name, color: 'black' },
       board: room.board,
+      variant,
       currentTurn: 'red'
     });
 
+    const vName = variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng';
     const msg = {
       type: 'system',
-      text: `🎎 Đại chiến Cờ Tướng giữa [${p1Name}] (Quân Đỏ) và [${p2Name}] (Quân Đen) đã khai cuộc!`,
+      text: `🎴 Đại chiến [${vName}] giữa [${p1Name}] (Quân Đỏ) và [${p2Name}] (Quân Đen) đã khai cuộc!`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     messagesHistory.push(msg);
@@ -420,6 +481,11 @@ io.on('connection', (socket) => {
     const piece = room.board[from.r][from.c];
     if (!piece || piece.side !== myColor) return;
 
+    // Lật mở quân úp nếu còn đang úp
+    if (piece.isDown) {
+      piece.isDown = false;
+    }
+
     const targetPiece = room.board[to.r][to.c];
     room.board[to.r][to.c] = piece;
     room.board[from.r][from.c] = null;
@@ -431,15 +497,15 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('xiangqi_game_over', {
         winner: myColor,
         winnerName,
-        from, to
+        from, to, piece
       });
 
       const winMsg = {
         type: 'badge',
-        badge: '👑 CHIẾU BÍ CỜ TƯỚNG',
-        sender: 'Trọng tài Cờ Tướng',
+        badge: '👑 THẮNG VÁN CỜ',
+        sender: 'Trọng tài Cờ',
         color: '#f59e0b',
-        text: `🎎 Quân ${myColor === 'red' ? 'ĐỎ' : 'ĐEN'} của [${winnerName}] đã trảm Tướng, giành chiến thắng oanh liệt!`,
+        text: `🎉 Quân ${myColor === 'red' ? 'ĐỎ' : 'ĐEN'} của [${winnerName}] đã trảm Tướng, chiến thắng ván cờ!`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       messagesHistory.push(winMsg);
@@ -452,9 +518,11 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('xiangqi_move_made', {
       from,
       to,
+      piece,
       nextTurn: room.turn
     });
   });
+
 
   socket.on('xiangqi_surrender', ({ roomId }) => {
     const room = xiangqiRooms.get(roomId);

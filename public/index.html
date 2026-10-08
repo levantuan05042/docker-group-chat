@@ -113,19 +113,24 @@
           </p>
         </div>
 
-        <!-- 1. GAME CỜ TƯỚNG (XIANGQI) -->
+        <!-- 1. GAME CỜ TƯỚNG & CỜ ÚP (XIANGQI) -->
         <div class="game-screen" id="screen-xiangqi">
           <div class="game-header">
             <div class="game-title-group">
-              <h2>🎎 Cờ Tướng Đại Chiến (Xiangqi)</h2>
+              <h2>🎎 Cờ Tướng & 🎴 Cờ Úp</h2>
             </div>
-            <div>
-              <select id="xiangqiModeSelect" style="background:#1e293b; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-weight:600;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <select id="xiangqiVariantSelect" style="background:#1e293b; color:#facc15; border:1px solid #eab308; padding:6px 10px; border-radius:6px; font-weight:700; cursor:pointer;">
+                <option value="coup">🎴 Cờ Úp Bí Ẩn (Luật VN)</option>
+                <option value="standard">🎎 Cờ Tướng Truyền Thống</option>
+              </select>
+              <select id="xiangqiModeSelect" style="background:#1e293b; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-weight:600; cursor:pointer;">
                 <option value="ai">🤖 Đấu với Máy (AI)</option>
                 <option value="online">🌐 Đấu Online 2 người</option>
               </select>
             </div>
           </div>
+
 
           <!-- Thanh tìm đối thủ siêu dễ -->
           <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center;">

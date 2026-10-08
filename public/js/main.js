@@ -135,13 +135,18 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 8. TÌM ĐỐI THỦ SIÊU DỄ: Ghép trận tự động & Thách đấu lên Chat
-  // Cờ Tướng:
-  bindClick('quickMatchXQBtn', () => window.chatClient.startQuickMatch('xiangqi'));
+  // Cờ Tướng / Cờ Úp:
+  bindClick('quickMatchXQBtn', () => {
+    const variant = (window.xiangqiGameInstance && window.xiangqiGameInstance.variant) || 'coup';
+    window.chatClient.startQuickMatch('xiangqi', variant);
+  });
   bindClick('publicChallengeXQBtn', () => {
-    window.chatClient.sendPublicChallenge('xiangqi');
-    alert('Đã gửi kèo solo Cờ Tướng lên phòng Chat! Bạn bè chỉ cần bấm vào là vào bàn ngay!');
+    const variant = (window.xiangqiGameInstance && window.xiangqiGameInstance.variant) || 'coup';
+    window.chatClient.sendPublicChallenge('xiangqi', variant);
+    alert(`Đã gửi kèo solo ${variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng'} lên phòng Chat! Bạn bè chỉ cần bấm vào là vào bàn ngay!`);
   });
   bindClick('restartXQBtn', () => xiangqiGame.reset());
+
 
   // Cờ Caro:
   bindClick('quickMatchCaroBtn', () => window.chatClient.startQuickMatch('caro'));

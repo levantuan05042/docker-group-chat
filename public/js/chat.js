@@ -218,16 +218,17 @@ class ChatClient {
   }
 
   // Gửi thách đấu công khai lên chat (Ai trong phòng cũng bấm nhận được!)
-  sendPublicChallenge(gameType) {
+  sendPublicChallenge(gameType, variant = 'coup') {
     if (!this.socket) return;
-    this.socket.emit('send_public_challenge', { gameType });
+    this.socket.emit('send_public_challenge', { gameType, variant });
   }
 
   // Tìm trận nhanh (Hệ thống tự ghép)
-  startQuickMatch(gameType) {
+  startQuickMatch(gameType, variant = 'coup') {
     if (!this.socket) return;
-    this.socket.emit('queue_join', { gameType });
+    this.socket.emit('queue_join', { gameType, variant });
   }
+
 
   shareScore(gameName, score) {
     if (!this.socket) return;
