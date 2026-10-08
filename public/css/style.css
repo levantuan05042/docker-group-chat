@@ -632,17 +632,61 @@ canvas.game-canvas {
 
 .xq-status-bar {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 460px;
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+}
+
+.xq-player-tag {
+  display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  max-width: 480px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  padding: 10px 16px;
+  max-width: 460px;
+  padding: 7px 14px;
+  background: #1e293b;
   border-radius: 8px;
-  margin-bottom: 12px;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
+
+.xq-player-tag.top-tag {
+  margin-bottom: 6px;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+}
+
+.xq-player-tag.bottom-tag {
+  margin-top: 6px;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.xq-badge-side {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.xq-badge-red {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+}
+.xq-badge-black {
+  background: #0f172a;
+  color: #94a3b8;
+  border: 1px solid #64748b;
+}
+
 
 .xq-board-wrap {
   background: #78350f;

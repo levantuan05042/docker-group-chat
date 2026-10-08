@@ -1,4 +1,4 @@
-// GAME CỜ TƯỚNG & CỜ ÚP (XIANGQI & CỜ ÚP VIỆT NAM) - CANVAS 100% CHÍNH XÁC
+// GAME CỜ TƯỚNG & CỜ ÚP (XIANGQI & CỜ ÚP VIỆT NAM) - BẢN THÂN LUÔN NẰM Ở PHÍA DƯỚI
 class XiangqiGame {
   constructor() {
     this.canvas = document.getElementById('xiangqiCanvas');
@@ -6,6 +6,12 @@ class XiangqiGame {
     this.statusEl = document.getElementById('xiangqiStatus');
     this.modeEl = document.getElementById('xiangqiModeSelect');
     this.variantEl = document.getElementById('xiangqiVariantSelect');
+    this.sideSelectEl = document.getElementById('xiangqiSideSelect');
+
+    this.turnIndicatorEl = document.getElementById('xqTurnIndicator');
+    this.sideNoteEl = document.getElementById('xqSideNote');
+    this.opponentTagEl = document.getElementById('xqOpponentTag');
+    this.playerTagEl = document.getElementById('xqPlayerTag');
 
     this.width = this.canvas.width;
     this.height = this.canvas.height;
@@ -20,13 +26,14 @@ class XiangqiGame {
 
     this.variant = 'coup'; // 'coup' (Cờ Úp) hoặc 'standard' (Cờ Tướng truyền thống)
     this.mode = 'ai';      // 'ai' hoặc 'online'
-    this.myColor = 'red';  // 'red' (Đỏ) hoặc 'black' (Đen)
+    this.myColor = 'red';  // 'red' (Đỏ) hoặc 'black' (Đen) -> BẢN THÂN LUÔN Ở PHÍA DƯỚI
     this.currentTurn = 'red';
     this.selectedPiece = null;
     this.validMoves = [];
     this.lastMove = null;
     this.isOver = false;
     this.onlineRoomId = null;
+    this.opponentName = 'Máy AI';
 
     this.board = this.createInitialBoard();
 
@@ -42,7 +49,32 @@ class XiangqiGame {
     };
 
     this.setupEvents();
+    this.updateStatusUI();
     this.draw();
+  }
+
+  // Chuyển đổi tọa độ Bàn Cờ <-> Màn hình hiển thị
+  // NGUYÊN TẮC: BẢN THÂN (myColor) LUÔN NẰM Ở PHÍA DƯỚI MÀN HÌNH
+  boardToCanvas(r, c) {
+    const isFlipped = this.myColor === 'black';
+    const displayR = isFlipped ? 9 - r : r;
+    const displayC = isFlipped ? 8 - c : c;
+    return {
+      x: this.padX + displayC * this.stepX,
+      y: this.padY + displayR * this.stepY
+    };
+  }
+
+  canvasToBoard(clickX, clickY) {
+    const displayC = Math.round((clickX - this.padX) / this.stepX);
+    const displayR = Math.round((clickY - this.padY) / this.stepY);
+    const isFlipped = this.myColor === 'black';
+    return {
+      r: isFlipped ? 9 - displayR : displayR,
+      c: isFlipped ? 8 - displayC : displayC,
+      displayR,
+      displayC
+    };
   }
 
   createInitialBoard() {
@@ -50,11 +82,10 @@ class XiangqiGame {
 
     if (this.variant === 'coup') {
       // ===== BÀN CỜ ÚP VIỆT NAM =====
-      // 1. Tướng (Soái) luôn luôn ngửa ở giữa Cung
+      // Tướng (Soái) luôn luôn ngửa ở giữa Cung
       b[0][4] = { side: 'black', type: 'soai', isDown: false, slotType: 'soai' };
       b[9][4] = { side: 'red', type: 'soai', isDown: false, slotType: 'soai' };
 
-      // 15 quân còn lại của mỗi bên
       const pool = ['xe', 'xe', 'ma', 'ma', 'tuong', 'tuong', 'si', 'si', 'phao', 'phao', 'tot', 'tot', 'tot', 'tot', 'tot'];
       const shuffle = (arr) => {
         const a = [...arr];
@@ -76,14 +107,12 @@ class XiangqiGame {
       ];
 
       slots.forEach((pos, idx) => {
-        // Đen
         b[pos.r][pos.c] = {
           side: 'black',
           type: blackPool[idx],
           isDown: true,
           slotType: pos.slot
         };
-        // Đỏ
         const redR = 9 - pos.r;
         b[redR][pos.c] = {
           side: 'red',
@@ -133,6 +162,13 @@ class XiangqiGame {
       });
     }
 
+    if (this.sideSelectEl) {
+      this.sideSelectEl.addEventListener('change', (e) => {
+        this.myColor = e.target.value;
+        this.reset();
+      });
+    }
+
     const handleClickOrTouch = (e) => {
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
@@ -145,16 +181,14 @@ class XiangqiGame {
       const clickX = (clientX - rect.left) * scaleX;
       const clickY = (clientY - rect.top) * scaleY;
 
-      const col = Math.round((clickX - this.padX) / this.stepX);
-      const row = Math.round((clickY - this.padY) / this.stepY);
+      const { r, c, displayR, displayC } = this.canvasToBoard(clickX, clickY);
 
-      if (col >= 0 && col < 9 && row >= 0 && row < 10) {
-        const targetX = this.padX + col * this.stepX;
-        const targetY = this.padY + row * this.stepY;
-        const dist = Math.hypot(clickX - targetX, clickY - targetY);
+      if (displayC >= 0 && displayC < 9 && displayR >= 0 && displayR < 10) {
+        const { x, y } = this.boardToCanvas(r, c);
+        const dist = Math.hypot(clickX - x, clickY - y);
 
         if (dist <= this.pieceRadius * 1.35) {
-          this.handleIntersectionClick(row, col);
+          this.handleIntersectionClick(r, c);
         }
       }
     };
@@ -166,24 +200,34 @@ class XiangqiGame {
   setMode(mode) {
     this.mode = mode;
     this.reset();
-    const vName = this.variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng';
-    if (mode === 'ai') {
-      this.statusEl.innerHTML = `🤖 Chế độ: <strong>${vName} - Đấu với Máy (Bạn cầm quân Đỏ)</strong>`;
-    } else {
-      this.statusEl.innerHTML = `🌐 Đang chờ đối thủ Online chơi <strong>${vName}</strong>...`;
-    }
   }
 
   reset() {
     this.board = this.createInitialBoard();
-    this.currentTurn = 'red';
+    this.currentTurn = 'red'; // ĐỎ LUÔN ĐI TRƯỚC THEO LUẬT CỜ
     this.selectedPiece = null;
     this.validMoves = [];
     this.lastMove = null;
     this.isOver = false;
     this.onlineRoomId = null;
+
+    if (this.mode === 'ai') {
+      this.opponentName = 'Máy AI';
+      if (this.sideSelectEl) this.myColor = this.sideSelectEl.value;
+    }
+
     this.updateStatusUI();
     this.draw();
+
+    // NẾU BẠN CHỌN CẦM ĐEN (ĐI SAU) KHI ĐẤU VỚI MÁY:
+    // Máy (cầm Đỏ) sẽ tự động đi nước cờ đầu tiên!
+    if (this.mode === 'ai' && this.myColor === 'black') {
+      setTimeout(() => {
+        if (!this.isOver && this.currentTurn === 'red') {
+          this.makeAIMove();
+        }
+      }, 500);
+    }
   }
 
   handleIntersectionClick(r, c) {
@@ -196,11 +240,10 @@ class XiangqiGame {
       }
       if (this.currentTurn !== this.myColor) return;
     } else {
-      if (this.currentTurn !== 'red') return; // Lượt máy
+      if (this.currentTurn !== this.myColor) return; // Chưa tới lượt bạn
     }
 
     const clickedPiece = this.board[r][c];
-    const playerSide = this.mode === 'online' ? this.myColor : 'red';
 
     // 1. Nếu ô bấm là nước đi hợp lệ -> Đi cờ
     if (this.selectedPiece && this.validMoves.some(m => m.r === r && m.c === c)) {
@@ -208,8 +251,8 @@ class XiangqiGame {
       return;
     }
 
-    // 2. Chọn quân cờ của mình
-    if (clickedPiece && clickedPiece.side === playerSide) {
+    // 2. Chọn quân cờ của mình (chỉ chọn được quân phe mình)
+    if (clickedPiece && clickedPiece.side === this.myColor) {
       this.selectedPiece = { r, c, piece: clickedPiece };
       this.validMoves = this.getValidMoves(r, c, clickedPiece);
       window.soundFX.playBeep(480, 0.04);
@@ -237,7 +280,6 @@ class XiangqiGame {
     const movingPiece = from.piece;
     const targetPiece = this.board[to.r][to.c];
 
-    // LẬT QUÂN ÚP NẾU CÒN ĐANG ÚP!
     let flipped = false;
     if (movingPiece.isDown) {
       movingPiece.isDown = false;
@@ -251,24 +293,20 @@ class XiangqiGame {
     this.selectedPiece = null;
     this.validMoves = [];
 
-    if (flipped) {
-      window.soundFX.playCoin(); // Âm thanh vui tai khi mở được quân bí ẩn
-    } else {
-      window.soundFX.playChessMove();
-    }
+    if (flipped) window.soundFX.playCoin();
+    else window.soundFX.playChessMove();
     this.draw();
 
-    // Bắt Tướng
     if (targetPiece && targetPiece.type === 'soai') {
-      this.endGame('🎉 Bạn (Quân Đỏ) đã trảm Tướng, chiến thắng ngoạn mục!');
+      this.endGame(`🎉 BẠN (${this.myColor === 'red' ? 'Quân Đỏ' : 'Quân Đen'}) ĐÃ CHIẾN THẮNG MÁY!`);
       window.soundFX.playWin();
       return;
     }
 
-    this.currentTurn = 'black';
+    // Đổi lượt sang máy
+    this.currentTurn = this.myColor === 'red' ? 'black' : 'red';
     this.updateStatusUI();
 
-    // Máy suy nghĩ và đi
     setTimeout(() => {
       if (this.isOver) return;
       this.makeAIMove();
@@ -276,11 +314,13 @@ class XiangqiGame {
   }
 
   makeAIMove() {
+    const aiColor = this.myColor === 'red' ? 'black' : 'red';
     const allMoves = [];
+
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = this.board[r][c];
-        if (p && p.side === 'black') {
+        if (p && p.side === aiColor) {
           const moves = this.getValidMoves(r, c, p);
           for (let m of moves) {
             allMoves.push({ from: { r, c, piece: p }, to: m });
@@ -305,9 +345,7 @@ class XiangqiGame {
         const val = target.isDown ? 30 : (pieceValues[target.type] || 15);
         score += val * 2;
       }
-      // Ưu tiên mở quân úp sớm
       if (move.from.piece.isDown) score += 6;
-      if (move.to.r >= 5) score += 4;
 
       if (score > bestScore) {
         bestScore = score;
@@ -336,16 +374,16 @@ class XiangqiGame {
     this.draw();
 
     if (captured && captured.type === 'soai') {
-      this.endGame('💀 Tướng Đỏ bị bắt! Máy đã chiến thắng!');
+      this.endGame('💀 Tướng của bạn đã bị bắt! Máy chiến thắng!');
       window.soundFX.playCrash();
       return;
     }
 
-    this.currentTurn = 'red';
+    this.currentTurn = this.myColor;
     this.updateStatusUI();
   }
 
-  // LUẬT DI CHUYỂN CỦA CỜ TƯỚNG & CỜ ÚP
+  // LUẬT DI CHUYỂN
   getValidMoves(r, c, piece) {
     const moves = [];
     const side = piece.side;
@@ -357,13 +395,11 @@ class XiangqiGame {
       return !target || target.side !== side;
     };
 
-    // NẾU QUÂN ĐANG ÚP: Đi theo slotType (vị trí xuất phát)
-    // NẾU ĐÃ MỞ: Đi theo type thật
     const activeType = piece.isDown ? piece.slotType : piece.type;
     const isDown = piece.isDown;
 
     switch (activeType) {
-      // 1. XE: Đi thẳng ngang
+      // XE
       case 'xe': {
         const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         for (let [dr, dc] of dirs) {
@@ -381,7 +417,7 @@ class XiangqiGame {
         break;
       }
 
-      // 2. PHÁO: Đi thẳng không ăn quân, ăn nhảy qua 1 quân
+      // PHÁO
       case 'phao': {
         const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         for (let [dr, dc] of dirs) {
@@ -403,7 +439,7 @@ class XiangqiGame {
         break;
       }
 
-      // 3. MÃ: Đi chữ nhật, cản chân mã
+      // MÃ
       case 'ma': {
         const maMoves = [
           { dr: -2, dc: -1, cr: -1, cc: 0 },
@@ -425,8 +461,7 @@ class XiangqiGame {
         break;
       }
 
-      // 4. TƯỢNG: Đi chéo 2 ô, cản mắt tượng
-      // ĐẶC BIỆT CỜ ÚP: Quân Úp ở vị trí Tượng ĐƯỢC PHÉP QUA SÔNG!
+      // TƯỢNG: Quân úp được qua sông
       case 'tuong': {
         const tMoves = [
           { dr: -2, dc: -2, cr: -1, cc: -1 },
@@ -439,15 +474,12 @@ class XiangqiGame {
           const eyeR = r + m.cr, eyeC = c + m.cc;
           if (isInside(nr, nc) && !this.board[eyeR][eyeC] && canLand(nr, nc)) {
             if (isDown) {
-              // Quân úp được qua sông
               moves.push({ r: nr, c: nc });
             } else {
-              // Quân ngửa thật: nếu là cờ chuẩn thì không qua sông
               if (this.variant === 'standard') {
                 if (side === 'red' && nr >= 5) moves.push({ r: nr, c: nc });
                 if (side === 'black' && nr <= 4) moves.push({ r: nr, c: nc });
               } else {
-                // Trong cờ úp, tượng đã mở có thể đi khắp bàn cờ
                 moves.push({ r: nr, c: nc });
               }
             }
@@ -456,23 +488,19 @@ class XiangqiGame {
         break;
       }
 
-      // 5. SĨ: Đi chéo 1 ô
-      // ĐẶC BIỆT CỜ ÚP: Quân Úp ở vị trí Sĩ ĐƯỢC PHÉP RA KHỎI CUNG!
+      // SĨ: Quân úp được ra khỏi cung
       case 'si': {
         const sMoves = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
         for (let [dr, dc] of sMoves) {
           const nr = r + dr, nc = c + dc;
           if (canLand(nr, nc)) {
             if (isDown) {
-              // Quân úp được tự do ra khỏi cung
               moves.push({ r: nr, c: nc });
             } else {
               if (this.variant === 'standard') {
-                // Cờ tướng chuẩn: chỉ đi trong cung
                 const inPalace = side === 'red' ? (nr >= 7 && nr <= 9 && nc >= 3 && nc <= 5) : (nr >= 0 && nr <= 2 && nc >= 3 && nc <= 5);
                 if (inPalace) moves.push({ r: nr, c: nc });
               } else {
-                // Cờ úp: Sĩ đã mở được đi chéo khắp nơi
                 moves.push({ r: nr, c: nc });
               }
             }
@@ -481,7 +509,7 @@ class XiangqiGame {
         break;
       }
 
-      // 6. TƯỚNG (SOÁI): Đi thẳng 1 ô trong cung
+      // TƯỚNG (SOÁI)
       case 'soai': {
         const gMoves = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         for (let [dr, dc] of gMoves) {
@@ -492,7 +520,7 @@ class XiangqiGame {
         break;
       }
 
-      // 7. TỐT: Chưa qua sông đi thẳng, qua sông đi thẳng và ngang
+      // TỐT
       case 'tot': {
         const forward = side === 'red' ? -1 : 1;
         if (canLand(r + forward, c)) moves.push({ r: r + forward, c });
@@ -508,31 +536,70 @@ class XiangqiGame {
     return moves;
   }
 
+  // CẬP NHẬT CÁC NOTE RÕ RÀNG VỀ PHE, VỊ TRÍ VÀ LƯỢT ĐI
   updateStatusUI() {
     if (this.isOver) return;
+
+    const isMyTurn = this.currentTurn === this.myColor;
+    const isRed = this.myColor === 'red';
+    const opponentSide = isRed ? 'black' : 'red';
     const vName = this.variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng';
-    if (this.mode === 'ai') {
-      const isMyTurn = this.currentTurn === 'red';
-      this.statusEl.innerHTML = isMyTurn ? 
-        `🎯 [${vName}] Lượt của bạn (Quân Đỏ)` : 
-        `⏳ [${vName}] Máy đang suy nghĩ (Quân Đen)...`;
+
+    // 1. Tag Đối thủ (Phía TRÊN)
+    if (this.opponentTagEl) {
+      this.opponentTagEl.innerHTML = `
+        <span>👤 Phía TRÊN: <strong>${this.opponentName}</strong></span>
+        <span class="xq-badge-side ${opponentSide === 'red' ? 'xq-badge-red' : 'xq-badge-black'}">
+          ${opponentSide === 'red' ? '🔴 QUÂN ĐỎ (Đi trước)' : '⚫ QUÂN ĐEN (Đi sau)'}
+        </span>
+      `;
+    }
+
+    // 2. Tag Người chơi bản thân (Phía DƯỚI)
+    if (this.playerTagEl) {
+      const myName = (window.currentUser && window.currentUser.username) || 'BẠN (Bản thân)';
+      this.playerTagEl.innerHTML = `
+        <span>👤 Phía DƯỚI: <strong>${myName}</strong></span>
+        <span class="xq-badge-side ${isRed ? 'xq-badge-red' : 'xq-badge-black'}">
+          ${isRed ? '🔴 QUÂN ĐỎ (Đi trước)' : '⚫ QUÂN ĐEN (Đi sau)'}
+        </span>
+      `;
+    }
+
+    // 3. Trạng thái lượt đi trung tâm
+    if (this.turnIndicatorEl) {
+      this.turnIndicatorEl.innerHTML = isMyTurn ? 
+        `<span style="color: #10b981; font-weight: 800;">🟢 ĐẾN LƯỢT BẠN ĐI!</span>` : 
+        `<span style="color: #f59e0b; font-weight: 800;">⏳ ĐANG ĐỢI ĐỐI THỦ ĐI...</span>`;
+    }
+
+    if (this.sideNoteEl) {
+      this.sideNoteEl.innerHTML = `
+        👉 Chế độ: <strong>${vName}</strong> • Bạn cầm <strong>${isRed ? '🔴 QUÂN ĐỎ' : '⚫ QUÂN ĐEN'}</strong> 
+        (Quân của bạn luôn nằm ở <strong>PHÍA DƯỚI</strong>).
+      `;
     }
   }
 
   endGame(msg) {
     this.isOver = true;
-    this.statusEl.innerHTML = `<strong>${msg}</strong>`;
+    if (this.turnIndicatorEl) {
+      this.turnIndicatorEl.innerHTML = `<span style="color:#ef4444; font-weight:800;">🏁 VÁN CỜ KẾT THÚC</span>`;
+    }
+    if (this.sideNoteEl) {
+      this.sideNoteEl.innerHTML = `<strong>${msg}</strong>`;
+    }
   }
 
   // ================= VẼ BÀN CỜ =================
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // 1. Mặt bàn cờ gỗ ấm
+    // 1. Mặt bàn cờ gỗ
     this.ctx.fillStyle = '#fef08a';
     this.ctx.fillRect(0, 0, this.width, this.height);
 
-    // Viền gỗ ngoài cùng
+    // Khung viền gỗ ngoài cùng
     this.ctx.strokeStyle = '#854d0e';
     this.ctx.lineWidth = 6;
     this.ctx.strokeRect(3, 3, this.width - 6, this.height - 6);
@@ -606,20 +673,18 @@ class XiangqiGame {
 
     // 7. Highlight nước đi trước
     if (this.lastMove) {
-      const fromX = this.padX + this.lastMove.from.c * this.stepX;
-      const fromY = this.padY + this.lastMove.from.r * this.stepY;
-      const toX = this.padX + this.lastMove.to.c * this.stepX;
-      const toY = this.padY + this.lastMove.to.r * this.stepY;
+      const pFrom = this.boardToCanvas(this.lastMove.from.r, this.lastMove.from.c);
+      const pTo = this.boardToCanvas(this.lastMove.to.r, this.lastMove.to.c);
 
       this.ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
-      this.ctx.beginPath(); this.ctx.arc(fromX, fromY, 12, 0, Math.PI * 2); this.ctx.fill();
+      this.ctx.beginPath(); this.ctx.arc(pFrom.x, pFrom.y, 12, 0, Math.PI * 2); this.ctx.fill();
 
       this.ctx.strokeStyle = '#eab308';
       this.ctx.lineWidth = 2;
-      this.ctx.strokeRect(toX - 22, toY - 22, 44, 44);
+      this.ctx.strokeRect(pTo.x - 22, pTo.y - 22, 44, 44);
     }
 
-    // 8. Vẽ các quân cờ
+    // 8. Vẽ các quân cờ (tọa độ hiển thị xoay theo góc nhìn của người chơi)
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const piece = this.board[r][c];
@@ -632,22 +697,21 @@ class XiangqiGame {
 
     // 9. Gợi ý nước đi
     for (const m of this.validMoves) {
-      const mx = this.padX + m.c * this.stepX;
-      const my = this.padY + m.r * this.stepY;
+      const pos = this.boardToCanvas(m.r, m.c);
       const target = this.board[m.r][m.c];
 
       if (target) {
         this.ctx.strokeStyle = '#ef4444';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.arc(mx, my, this.pieceRadius + 3, 0, Math.PI * 2);
+        this.ctx.arc(pos.x, pos.y, this.pieceRadius + 3, 0, Math.PI * 2);
         this.ctx.stroke();
       } else {
         this.ctx.fillStyle = '#10b981';
         this.ctx.shadowBlur = 8;
         this.ctx.shadowColor = '#10b981';
         this.ctx.beginPath();
-        this.ctx.arc(mx, my, 7, 0, Math.PI * 2);
+        this.ctx.arc(pos.x, pos.y, 7, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.shadowBlur = 0;
       }
@@ -655,8 +719,7 @@ class XiangqiGame {
   }
 
   drawPiece(r, c, piece, isSelected) {
-    const x = this.padX + c * this.stepX;
-    const y = this.padY + r * this.stepY;
+    const { x, y } = this.boardToCanvas(r, c);
     const radius = this.pieceRadius;
     const isRed = piece.side === 'red';
 
@@ -679,19 +742,16 @@ class XiangqiGame {
 
       this.ctx.shadowColor = 'transparent';
 
-      // Viền phe Đỏ / Đen
       this.ctx.strokeStyle = isRed ? '#ef4444' : '#38bdf8';
       this.ctx.lineWidth = 2.5;
       this.ctx.stroke();
 
-      // Vòng tròn vàng kim loại bên trong
       this.ctx.strokeStyle = '#facc15';
       this.ctx.lineWidth = 1;
       this.ctx.beginPath();
       this.ctx.arc(x, y, radius - 3.5, 0, Math.PI * 2);
       this.ctx.stroke();
 
-      // Chữ "ÚP" phong cách cổ điển
       this.ctx.fillStyle = '#fef08a';
       this.ctx.font = 'bold 15px "Segoe UI", sans-serif';
       this.ctx.textAlign = 'center';
@@ -711,7 +771,6 @@ class XiangqiGame {
 
       this.ctx.shadowColor = 'transparent';
 
-      // Viền quân cờ
       this.ctx.strokeStyle = isRed ? '#dc2626' : '#1e293b';
       this.ctx.lineWidth = 2.5;
       this.ctx.stroke();
@@ -722,7 +781,6 @@ class XiangqiGame {
       this.ctx.arc(x, y, radius - 3, 0, Math.PI * 2);
       this.ctx.stroke();
 
-      // Chữ Hán
       const meta = this.pieceMeta[piece.type];
       const char = isRed ? meta.red : meta.black;
 
@@ -732,13 +790,11 @@ class XiangqiGame {
       this.ctx.textBaseline = 'middle';
       this.ctx.fillText(char, x, y - 2);
 
-      // Phụ đề tiếng Việt
       this.ctx.font = 'bold 8px sans-serif';
       this.ctx.fillStyle = isRed ? '#dc2626' : '#475569';
       this.ctx.fillText(meta.vn, x, y + 12);
     }
 
-    // Viền phát sáng khi chọn
     if (isSelected) {
       this.ctx.strokeStyle = '#38bdf8';
       this.ctx.lineWidth = 3.5;
@@ -764,8 +820,9 @@ class XiangqiGame {
     this.ctx.lineWidth = 1.2;
 
     for (const m of marks) {
-      const cx = this.padX + m.c * this.stepX;
-      const cy = this.padY + m.r * this.stepY;
+      const pos = this.boardToCanvas(m.r, m.c);
+      const cx = pos.x;
+      const cy = pos.y;
       const d = 3, len = 6;
 
       if (!m.noLeft) {
@@ -799,15 +856,13 @@ class XiangqiGame {
     this.onlineRoomId = data.roomId;
     this.myColor = (window.currentUser && window.currentUser.id === data.p1.id) ? 'red' : 'black';
     this.currentTurn = data.currentTurn;
+    this.opponentName = this.myColor === 'red' ? data.p2.name : data.p1.name;
     this.isOver = false;
     this.selectedPiece = null;
     this.validMoves = [];
     this.lastMove = null;
 
-    const opponentName = this.myColor === 'red' ? data.p2.name : data.p1.name;
-    const colorLabel = this.myColor === 'red' ? 'ĐỎ' : 'ĐEN';
-    const vName = this.variant === 'coup' ? 'Cờ Úp' : 'Cờ Tướng';
-    this.statusEl.innerHTML = `⚔️ [${vName}] Đấu với <strong>${opponentName}</strong> | Bạn là <strong>${colorLabel}</strong> | Lượt: <strong>${this.currentTurn === 'red' ? 'ĐỎ' : 'ĐEN'}</strong>`;
+    this.updateStatusUI();
     this.draw();
   }
 
@@ -819,13 +874,8 @@ class XiangqiGame {
     this.currentTurn = data.nextTurn;
 
     window.soundFX.playChessMove();
+    this.updateStatusUI();
     this.draw();
-
-    const isMyTurn = this.currentTurn === this.myColor;
-    const colorLabel = this.myColor === 'red' ? 'ĐỎ' : 'ĐEN';
-    this.statusEl.innerHTML = isMyTurn ? 
-      `🎯 Lượt của bạn (${colorLabel})!` : 
-      `⏳ Lượt đối thủ (${this.currentTurn === 'red' ? 'ĐỎ' : 'ĐEN'})...`;
   }
 
   onOnlineGameOver(data) {
@@ -839,10 +889,10 @@ class XiangqiGame {
 
     const isWinner = data.winner === this.myColor;
     if (isWinner) {
-      this.statusEl.innerHTML = `🏆 <strong>BẠN ĐÃ CHIẾN THẮNG TRẬN CỜ!</strong> 🎉`;
+      this.endGame('🏆 BẠN ĐÃ CHIẾN THẮNG VÁN CỜ! 🎉');
       window.soundFX.playWin();
     } else {
-      this.statusEl.innerHTML = `💀 <strong>${data.winnerName} đã trảm Tướng chiến thắng!</strong>`;
+      this.endGame(`💀 ${data.winnerName} đã trảm Tướng chiến thắng!`);
       window.soundFX.playCrash();
     }
   }

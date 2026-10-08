@@ -124,6 +124,10 @@
                 <option value="coup">🎴 Cờ Úp Bí Ẩn (Luật VN)</option>
                 <option value="standard">🎎 Cờ Tướng Truyền Thống</option>
               </select>
+              <select id="xiangqiSideSelect" style="background:#1e293b; color:#38bdf8; border:1px solid #0284c7; padding:6px 10px; border-radius:6px; font-weight:600; cursor:pointer;" title="Chọn phe của bạn khi chơi với Máy">
+                <option value="red">🔴 Bạn cầm ĐỎ (Ở Dưới - Đi trước)</option>
+                <option value="black">⚫ Bạn cầm ĐEN (Ở Dưới - Đi sau)</option>
+              </select>
               <select id="xiangqiModeSelect" style="background:#1e293b; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-weight:600; cursor:pointer;">
                 <option value="ai">🤖 Đấu với Máy (AI)</option>
                 <option value="online">🌐 Đấu Online 2 người</option>
@@ -131,28 +135,48 @@
             </div>
           </div>
 
-
           <!-- Thanh tìm đối thủ siêu dễ -->
-          <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center;">
             <button class="btn-quick-match" id="quickMatchXQBtn">⚡ Tự Động Ghép Đối Thủ</button>
             <button class="btn-public-challenge" id="publicChallengeXQBtn">📢 Thách Đấu Lên Kênh Chat</button>
           </div>
 
-          <div class="xq-status-bar" id="xiangqiStatus">
-            🎯 Lượt bạn đi (Quân Đỏ)
+          <!-- Tag Đối Thủ ở Phía Trên Bàn Cờ -->
+          <div class="xq-player-tag top-tag" id="xqOpponentTag">
+            <span>👤 Phía TRÊN: <strong>Đối thủ (Máy AI)</strong></span>
+            <span class="xq-badge-side xq-badge-black" id="xqOpponentBadge">⚫ QUÂN ĐEN (Đi sau)</span>
           </div>
 
+          <!-- Bảng thông tin ván đấu chi tiết -->
+          <div class="xq-status-bar" id="xiangqiStatus">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span>🔴 <strong>Quân ĐỎ luôn đi trước</strong></span>
+              <span id="xqTurnIndicator" style="color: #10b981; font-weight: bold;">🟢 ĐẾN LƯỢT BẠN ĐI!</span>
+            </div>
+            <div style="font-size:0.85rem; color:#94a3b8;" id="xqSideNote">
+              👉 Bạn đang cầm <strong>QUÂN ĐỎ</strong> (Nằm ở phía dưới màn hình của bạn).
+            </div>
+          </div>
+
+          <!-- Bàn Cờ Canvas -->
           <div class="xq-board-wrap" style="padding: 0; background: transparent; border: none; box-shadow: none;">
             <canvas id="xiangqiCanvas" width="460" height="510" style="display:block; border-radius:10px; max-width:100%; height:auto; box-shadow: 0 12px 30px rgba(0,0,0,0.7); cursor:pointer;"></canvas>
+          </div>
+
+          <!-- Tag Người Chơi (Bản thân) ở Phía Dưới Bàn Cờ -->
+          <div class="xq-player-tag bottom-tag" id="xqPlayerTag">
+            <span>👤 Phía DƯỚI: <strong>BẠN (Bản thân)</strong></span>
+            <span class="xq-badge-side xq-badge-red" id="xqPlayerBadge">🔴 QUÂN ĐỎ (Đi trước)</span>
           </div>
 
           <div class="game-controls-bar">
             <button class="btn-game" id="restartXQBtn">🔄 Ván mới</button>
           </div>
           <p class="game-hints">
-            💡 Bấm vào quân cờ để xem các chấm xanh gợi ý nước đi! Bấm [Tự Động Ghép Đối Thủ] để hệ thống ghép cặp ngay.
+            💡 Bàn cờ tự động xoay góc nhìn: <strong>Quân của BẠN luôn nằm ở phía DƯỚI</strong>, quân của đối thủ luôn ở phía TRÊN!
           </p>
         </div>
+
 
         <!-- 2. GAME CỜ CARO -->
         <div class="game-screen" id="screen-caro">
