@@ -1,4 +1,4 @@
-// CHAT & SOCKET.IO LOGIC
+// CHAT & SOCKET.IO LOGIC - HỖ TRỢ GHÉP TRẬN TỰ ĐỘNG & THÁCH ĐẤU SIÊU DỄ
 class ChatClient {
   constructor() {
     this.socket = null;
@@ -19,9 +19,16 @@ class ChatClient {
     // Challenge Modal
     this.challengeModal = document.getElementById('challengeModal');
     this.challengerNameSpan = document.getElementById('challengerNameSpan');
+    this.challengeGameLabel = document.getElementById('challengeGameLabel');
     this.acceptChallengeBtn = document.getElementById('acceptChallengeBtn');
     this.declineChallengeBtn = document.getElementById('declineChallengeBtn');
-    this.pendingChallengerId = null;
+    this.pendingChallenge = null;
+
+    // Matchmaking Modal
+    this.matchmakingModal = document.getElementById('matchmakingModal');
+    this.matchmakingText = document.getElementById('matchmakingText');
+    this.cancelMatchBtn = document.getElementById('cancelMatchBtn');
+    this.currentQueuingGame = null;
 
     this.initSocket();
     this.setupEvents();
@@ -31,10 +38,9 @@ class ChatClient {
     this.socket = io();
     window.chatSocket = this.socket;
 
-    // Lấy tên đã lưu hoặc gợi ý tên mới
     let savedName = localStorage.getItem('chat_username');
     if (!savedName) {
-      savedName = 'Player_' + Math.floor(100 + Math.random() * 900);
+      savedName = 'GameThủ_' + Math.floor(100 + Math.random() * 900);
       localStorage.setItem('chat_username', savedName);
     }
 
@@ -65,20 +71,34 @@ class ChatClient {
       this.updateUsersList(data.users);
     });
 
-    // Caro Challenge Events
-    this.socket.on('caro_received_challenge', (data) => {
-      this.pendingChallengerId = data.challengerId;
+    // 1. Nhận lời mời thách đấu đích danh
+    this.socket.on('received_direct_challenge', (data) => {
+      this.pendingChallenge = data;
       this.challengerNameSpan.innerText = data.challengerName;
+      if (this.challengeGameLabel) this.challengeGameLabel.innerText = data.gameLabel;
       this.challengeModal.classList.add('open');
       window.soundFX.playCoin();
     });
 
-    this.socket.on('caro_challenge_declined', (data) => {
+    this.socket.on('challenge_declined', (data) => {
       alert(`${data.name} đã từ chối lời mời thách đấu.`);
     });
 
+    // 2. Trạng thái hàng chờ tìm trận
+    this.socket.on('queue_waiting', (data) => {
+      this.currentQueuingGame = data.gameType;
+      const name = data.gameType === 'xiangqi' ? 'Cờ Tướng' : 'Cờ Caro';
+      this.matchmakingText.innerHTML = `Đang tìm đối thủ chơi <strong>${name}</strong>...<br><span style="font-size:0.85rem; color:#94a3b8">Hệ thống sẽ tự ghép ngay khi có người sẵn sàng</span>`;
+      this.matchmakingModal.classList.add('open');
+    });
+
+    this.socket.on('match_error', (data) => {
+      alert(data.message);
+    });
+
+    // 3. Sự kiện Cờ Caro Online
     this.socket.on('caro_game_start', (data) => {
-      // Tự động chuyển qua tab Cờ Caro
+      this.matchmakingModal.classList.remove('open');
       if (window.switchGameTab) window.switchGameTab('caro');
       if (window.caroGameInstance) {
         window.caroGameInstance.onOnlineGameStart(data);
@@ -86,22 +106,38 @@ class ChatClient {
     });
 
     this.socket.on('caro_move_made', (data) => {
-      if (window.caroGameInstance) {
-        window.caroGameInstance.onOnlineMoveMade(data);
-      }
+      if (window.caroGameInstance) window.caroGameInstance.onOnlineMoveMade(data);
     });
 
     this.socket.on('caro_game_over', (data) => {
-      if (window.caroGameInstance) {
-        window.caroGameInstance.onOnlineGameOver(data);
-      }
+      if (window.caroGameInstance) window.caroGameInstance.onOnlineGameOver(data);
     });
 
     this.socket.on('caro_opponent_disconnected', (data) => {
       alert(data.text);
-      if (window.caroGameInstance) {
-        window.caroGameInstance.endGame(data.text);
+      if (window.caroGameInstance) window.caroGameInstance.endGame(data.text);
+    });
+
+    // 4. Sự kiện Cờ Tướng Online
+    this.socket.on('xiangqi_game_start', (data) => {
+      this.matchmakingModal.classList.remove('open');
+      if (window.switchGameTab) window.switchGameTab('xiangqi');
+      if (window.xiangqiGameInstance) {
+        window.xiangqiGameInstance.onOnlineGameStart(data);
       }
+    });
+
+    this.socket.on('xiangqi_move_made', (data) => {
+      if (window.xiangqiGameInstance) window.xiangqiGameInstance.onOnlineMoveMade(data);
+    });
+
+    this.socket.on('xiangqi_game_over', (data) => {
+      if (window.xiangqiGameInstance) window.xiangqiGameInstance.onOnlineGameOver(data);
+    });
+
+    this.socket.on('xiangqi_opponent_disconnected', (data) => {
+      alert(data.text);
+      if (window.xiangqiGameInstance) window.xiangqiGameInstance.endGame(data.text);
     });
   }
 
@@ -122,25 +158,38 @@ class ChatClient {
     // Challenge Modal actions
     this.acceptChallengeBtn.addEventListener('click', () => {
       this.challengeModal.classList.remove('open');
-      if (this.pendingChallengerId) {
-        this.socket.emit('caro_respond_challenge', {
-          challengerId: this.pendingChallengerId,
+      if (this.pendingChallenge) {
+        this.socket.emit('respond_direct_challenge', {
+          challengerId: this.pendingChallenge.challengerId,
+          gameType: this.pendingChallenge.gameType,
           accept: true
         });
-        this.pendingChallengerId = null;
+        this.pendingChallenge = null;
       }
     });
 
     this.declineChallengeBtn.addEventListener('click', () => {
       this.challengeModal.classList.remove('open');
-      if (this.pendingChallengerId) {
-        this.socket.emit('caro_respond_challenge', {
-          challengerId: this.pendingChallengerId,
+      if (this.pendingChallenge) {
+        this.socket.emit('respond_direct_challenge', {
+          challengerId: this.pendingChallenge.challengerId,
+          gameType: this.pendingChallenge.gameType,
           accept: false
         });
-        this.pendingChallengerId = null;
+        this.pendingChallenge = null;
       }
     });
+
+    // Matchmaking Cancel
+    if (this.cancelMatchBtn) {
+      this.cancelMatchBtn.addEventListener('click', () => {
+        this.matchmakingModal.classList.remove('open');
+        if (this.currentQueuingGame) {
+          this.socket.emit('queue_leave', { gameType: this.currentQueuingGame });
+          this.currentQueuingGame = null;
+        }
+      });
+    }
 
     // Click profile để đổi tên
     this.userNameDisplay.parentElement.addEventListener('click', () => {
@@ -168,10 +217,22 @@ class ChatClient {
     this.chatInput.focus();
   }
 
+  // Gửi thách đấu công khai lên chat (Ai trong phòng cũng bấm nhận được!)
+  sendPublicChallenge(gameType) {
+    if (!this.socket) return;
+    this.socket.emit('send_public_challenge', { gameType });
+  }
+
+  // Tìm trận nhanh (Hệ thống tự ghép)
+  startQuickMatch(gameType) {
+    if (!this.socket) return;
+    this.socket.emit('queue_join', { gameType });
+  }
+
   shareScore(gameName, score) {
     if (!this.socket) return;
     this.socket.emit('share_score', { gameName, score });
-    alert(`Đã chia sẻ ${score} điểm game "${gameName}" vào phòng chat! 🚀`);
+    alert(`Đã chia sẻ thành tích [${score}] game "${gameName}" vào phòng chat! 🚀`);
   }
 
   renderMessages(messages) {
@@ -192,6 +253,23 @@ class ChatClient {
         <div class="msg-badge-tag">${msg.badge}</div>
         <div><strong>${msg.sender}:</strong> ${msg.text}</div>
       `;
+    } else if (msg.type === 'challenge_card') {
+      // THẺ THÁCH ĐẤU TƯƠNG TÁC NGAY TRONG CHAT!
+      const isMyChallenge = this.currentUser && this.currentUser.id === msg.senderId;
+      el.className = 'msg-challenge-card';
+      el.innerHTML = `
+        <div class="challenge-card-header">
+          <span style="font-size: 1.3rem;">⚔️</span>
+          <strong>Lời Thách Đấu ${msg.gameLabel}!</strong>
+        </div>
+        <p style="font-size: 0.88rem; margin: 6px 0;">${msg.text}</p>
+        <div style="margin-top: 8px;">
+          ${!isMyChallenge ? 
+            `<button class="btn-accept-challenge-chat" onclick="window.chatClient.acceptPublicChallenge('${msg.challengeId}')">⚡ NHẬN LỜI THÁCH ĐẤU NGAY</button>` : 
+            `<span style="font-size:0.8rem; color:#94a3b8;">(Kèo của bạn - Đang đợi đối thủ vào nhận...)</span>`
+          }
+        </div>
+      `;
     } else {
       const isSelf = this.currentUser && this.currentUser.username === msg.sender;
       el.className = `msg-item ${isSelf ? 'self' : 'other'}`;
@@ -206,6 +284,11 @@ class ChatClient {
 
     this.messagesList.appendChild(el);
     if (scroll) this.scrollToBottom();
+  }
+
+  acceptPublicChallenge(challengeId) {
+    if (!this.socket) return;
+    this.socket.emit('accept_public_challenge', { challengeId });
   }
 
   scrollToBottom() {
@@ -227,19 +310,27 @@ class ChatClient {
           <div class="user-avatar-small" style="background-color: ${u.color}">
             ${(u.username[0] || 'U').toUpperCase()}
           </div>
-          <span style="font-size: 0.9rem; font-weight: 500;">
-            ${this.escapeHtml(u.username)} ${isSelf ? '<span style="color:#38bdf8">(Bạn)</span>' : ''}
-          </span>
+          <div>
+            <div style="font-size: 0.9rem; font-weight: 600;">
+              ${this.escapeHtml(u.username)} ${isSelf ? '<span style="color:#38bdf8">(Bạn)</span>' : ''}
+            </div>
+            <div style="font-size: 0.72rem; color: #10b981;">● Đang online</div>
+          </div>
         </div>
-        ${!isSelf ? `<button class="btn-challenge" onclick="window.chatClient.sendCaroChallenge('${u.id}')">⚔️ Đấu Cờ</button>` : ''}
+        ${!isSelf ? `
+          <div style="display:flex; gap: 4px;">
+            <button class="btn-challenge" onclick="window.chatClient.sendDirectChallenge('${u.id}', 'xiangqi')" title="Thách đấu Cờ Tướng">🎎 Cờ Tướng</button>
+            <button class="btn-challenge btn-challenge-caro" onclick="window.chatClient.sendDirectChallenge('${u.id}', 'caro')" title="Thách đấu Cờ Caro">⭕ Caro</button>
+          </div>
+        ` : ''}
       `;
       this.drawerList.appendChild(row);
     });
   }
 
-  sendCaroChallenge(targetSocketId) {
-    this.socket.emit('caro_send_challenge', { targetSocketId });
-    alert('Đã gửi lời mời thách đấu Cờ Caro! Vui lòng chờ đối thủ đồng ý...');
+  sendDirectChallenge(targetSocketId, gameType) {
+    this.socket.emit('send_direct_challenge', { targetSocketId, gameType });
+    alert(`Đã gửi lời mời thách đấu! Vui lòng chờ đối thủ bấm đồng ý...`);
   }
 
   escapeHtml(str) {

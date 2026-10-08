@@ -615,6 +615,298 @@ canvas.game-canvas {
   background: #e11d48;
 }
 
+.btn-challenge-caro {
+  background: #0284c7;
+}
+.btn-challenge-caro:hover {
+  background: #0369a1;
+}
+
+/* ================== CỜ TƯỚNG (XIANGQI) STYLES ================== */
+.xq-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.xq-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.xq-board-wrap {
+  background: #78350f;
+  padding: 10px;
+  border-radius: 12px;
+  border: 4px solid #b45309;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.xq-board {
+  display: grid;
+  grid-template-columns: repeat(9, 42px);
+  grid-template-rows: repeat(10, 42px);
+  background: #fde68a;
+  border: 2px solid #78350f;
+  position: relative;
+  user-select: none;
+}
+
+.xq-cell {
+  width: 42px;
+  height: 42px;
+  border-right: 1px solid #b45309;
+  border-bottom: 1px solid #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Sông Sở Hà - Hán Giới */
+.xq-cell.river-top {
+  border-bottom: 2px dashed #92400e;
+}
+.xq-cell.river-bottom {
+  border-top: 2px dashed #92400e;
+}
+
+/* Cung Tướng */
+.xq-cell.in-palace {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.xq-cell.selected {
+  background: rgba(56, 189, 248, 0.35);
+  box-shadow: inset 0 0 0 2px #38bdf8;
+}
+
+/* Quân cờ tướng */
+.xq-piece {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.1s ease;
+}
+
+.xq-piece:hover {
+  transform: scale(1.1);
+}
+
+.xq-piece.piece-red {
+  background: radial-gradient(circle, #fef2f2 40%, #fecaca 100%);
+  border: 2.5px solid #dc2626;
+  color: #b91c1c;
+}
+
+.xq-piece.piece-black {
+  background: radial-gradient(circle, #f8fafc 40%, #cbd5e1 100%);
+  border: 2.5px solid #1e293b;
+  color: #0f172a;
+}
+
+.xq-char {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.xq-sub {
+  font-size: 0.55rem;
+  line-height: 1;
+  font-weight: bold;
+}
+
+/* Chấm gợi ý nước đi */
+.xq-hint-dot {
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  pointer-events: none;
+}
+
+.xq-hint-capture {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px dashed #ef4444;
+  animation: pulse 1s infinite;
+  pointer-events: none;
+}
+
+/* ================== THẺ THÁCH ĐẤU TRONG CHAT ================== */
+.msg-challenge-card {
+  align-self: center;
+  width: 90%;
+  max-width: 360px;
+  background: linear-gradient(135deg, #1e1b4b, #311042);
+  border: 2px solid #8b5cf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.35);
+  animation: fadeIn 0.25s ease-out;
+  text-align: center;
+}
+
+.challenge-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #c084fc;
+  font-size: 1.05rem;
+}
+
+.btn-accept-challenge-chat {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+  transition: transform 0.15s;
+}
+
+.btn-accept-challenge-chat:hover {
+  transform: scale(1.05);
+}
+
+/* Button Tìm Trận Nhanh & Mời Bạn */
+.btn-quick-match {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-quick-match:hover {
+  background: #7c3aed;
+}
+
+.btn-public-challenge {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-public-challenge:hover {
+  background: #be123c;
+}
+
+/* ================== MOBILE TOUCH CONTROLS ================== */
+.mobile-controls-bar {
+  display: none;
+  margin-top: 14px;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.touch-btn {
+  background: #1e293b;
+  border: 2px solid #38bdf8;
+  color: white;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+}
+.touch-btn:active {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.touch-btn-action {
+  background: #ef4444;
+  border-color: #f87171;
+  width: 60px;
+  height: 60px;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.touch-btn-action:active {
+  background: #b91c1c;
+}
+
+/* MOBILE BOTTOM NAVIGATION BAR */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #0f172a;
+  border-top: 1px solid var(--border-color);
+  z-index: 60;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.nav-bottom-item {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  gap: 3px;
+}
+
+.nav-bottom-item.active {
+  color: #38bdf8;
+}
+
+.nav-bottom-item span.icon {
+  font-size: 1.3rem;
+}
+
 /* Chat Input Area */
 .chat-footer {
   padding: 12px 16px;
@@ -677,7 +969,7 @@ canvas.game-canvas {
   justify-content: center;
 }
 
-/* MODAL THÁCH ĐẤU */
+/* MODALS */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -712,6 +1004,21 @@ canvas.game-canvas {
   justify-content: center;
 }
 
+/* Spinner for Matchmaking */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #334155;
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -727,17 +1034,105 @@ canvas.game-canvas {
   50% { transform: translateY(-3px); }
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .main-wrapper.mode-split {
-    flex-direction: column;
+/* ================== RESPONSIVE FOR LAPTOP, TABLET, PHONE ================== */
+@media (max-width: 1024px) {
+  .xq-board {
+    grid-template-columns: repeat(9, 36px);
+    grid-template-rows: repeat(10, 36px);
   }
+  .xq-cell {
+    width: 36px;
+    height: 36px;
+  }
+  .xq-piece {
+    width: 32px;
+    height: 32px;
+  }
+  .xq-char {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 56px; /* space for bottom nav */
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+  }
+
+  .mobile-controls-bar {
+    display: flex;
+  }
+
+  .layout-switch {
+    display: none; /* Hide layout switcher on mobile, use bottom nav instead */
+  }
+
+  .main-wrapper {
+    height: calc(100vh - 117px);
+  }
+
+  /* Default on mobile: Show current active tab */
   .main-wrapper.mode-split .game-section {
     flex: 1;
     border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    display: flex;
   }
   .main-wrapper.mode-split .chat-section {
+    display: none;
+  }
+
+  .main-wrapper.mobile-show-chat .game-section {
+    display: none !important;
+  }
+  .main-wrapper.mobile-show-chat .chat-section {
+    display: flex !important;
     flex: 1;
   }
+
+  .main-wrapper.mobile-show-game .chat-section {
+    display: none !important;
+  }
+  .main-wrapper.mobile-show-game .game-section {
+    display: flex !important;
+    flex: 1;
+  }
+
+  /* Bàn cờ gọn lại vừa màn hình điện thoại */
+  .xq-board {
+    grid-template-columns: repeat(9, 32px);
+    grid-template-rows: repeat(10, 32px);
+  }
+  .xq-cell {
+    width: 32px;
+    height: 32px;
+  }
+  .xq-piece {
+    width: 28px;
+    height: 28px;
+  }
+  .xq-char {
+    font-size: 0.85rem;
+  }
+  .xq-sub {
+    display: none;
+  }
+
+  .caro-grid {
+    grid-template-columns: repeat(15, 23px);
+    grid-template-rows: repeat(15, 23px);
+  }
+  .caro-cell {
+    width: 23px;
+    height: 23px;
+    font-size: 0.9rem;
+  }
+
+  canvas.game-canvas {
+    max-width: 100%;
+    height: auto;
+  }
 }
+
