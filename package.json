@@ -1,6 +1,7 @@
 {
-  "name": "docker-group-chat",
+  "name": "game-chat-hub",
   "version": "1.0.0",
+  "description": "Nền tảng tích hợp Chat nhóm thời gian thực và Minigames (Đua xe, Cờ Caro, Xếp gạch, Rắn săn mồi)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
