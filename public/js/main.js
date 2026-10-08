@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.chatClient = new ChatClient();
 
   // Initialize Games
+  const shooterGame = new ShooterGame('shooterCanvas');
   const racingGame = new RacingGame('racingCanvas');
   const tetrisGame = new TetrisGame('tetrisCanvas');
   const snakeGame = new SnakeGame('snakeCanvas');
@@ -12,10 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.caroGameInstance = caroGame;
 
-  // Active game reference
-  let currentGameId = 'racing';
-  let activeGameInstance = racingGame;
-  racingGame.start();
+  // Active game reference (mặc định mở Đột Kích)
+  let currentGameId = 'shooter';
+  let activeGameInstance = shooterGame;
+  shooterGame.start();
+
 
   // Layout switcher
   const mainWrapper = document.getElementById('mainWrapper');
@@ -66,7 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
       activeGameInstance.isRunning = false;
     }
 
-    if (gameId === 'racing') {
+    if (gameId === 'shooter') {
+      activeGameInstance = shooterGame;
+      shooterGame.start();
+    } else if (gameId === 'racing') {
       activeGameInstance = racingGame;
       racingGame.start();
     } else if (gameId === 'caro') {
@@ -92,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Restart Buttons
+  document.getElementById('restartShooterBtn').addEventListener('click', () => shooterGame.start());
   document.getElementById('restartRacingBtn').addEventListener('click', () => racingGame.start());
   document.getElementById('restartTetrisBtn').addEventListener('click', () => tetrisGame.start());
   document.getElementById('restartSnakeBtn').addEventListener('click', () => snakeGame.start());
@@ -99,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('restartCaroBtn').addEventListener('click', () => caroGame.reset());
 
   // Share score buttons
+  document.getElementById('shareShooterBtn').addEventListener('click', () => {
+    window.chatClient.shareScore('Đột Kích Sinh Tồn (Free Fire)', `${shooterGame.kills} Kills`);
+  });
   document.getElementById('shareRacingBtn').addEventListener('click', () => {
     window.chatClient.shareScore('Đua xe Turbo Highway', racingGame.score);
   });
@@ -112,3 +121,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.chatClient.shareScore('Flappy Bird Cyber', flappyGame.score);
   });
 });
+

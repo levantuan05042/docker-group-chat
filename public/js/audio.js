@@ -102,6 +102,63 @@ class SoundFX {
     } catch(e) {}
   }
 
+  // Combat SFX
+  playShoot(type = 'rifle') {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      
+      if (type === 'shotgun') {
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.18);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else {
+        // Rifle / AK
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.09);
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    } catch(e) {}
+  }
+
+  playExplosion() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 0.45);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch(e) {}
+  }
+
+  playReload() {
+    this.playBeep(320, 0.08, 'triangle');
+    setTimeout(() => this.playBeep(480, 0.12, 'triangle'), 120);
+  }
+
   toggleMute() {
     this.muted = !this.muted;
     return this.muted;
@@ -109,3 +166,4 @@ class SoundFX {
 }
 
 window.soundFX = new SoundFX();
+

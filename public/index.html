@@ -51,7 +51,10 @@
     <section class="game-section">
       <!-- Game Tabs Navigation -->
       <nav class="game-tabs-bar">
-        <button class="game-tab active" data-game="racing">
+        <button class="game-tab active" data-game="shooter">
+          🔫 Đột Kích (Free Fire)
+        </button>
+        <button class="game-tab" data-game="racing">
           🏎️ Đua Xe Turbo
         </button>
         <button class="game-tab" data-game="caro">
@@ -70,8 +73,34 @@
 
       <div class="game-viewport">
 
+        <!-- 0. GAME ĐỘT KÍCH SINH TỒN (FREE FIRE) -->
+        <div class="game-screen active" id="screen-shooter">
+          <div class="game-header">
+            <div class="game-title-group">
+              <h2>🔫 Đột Kích Sinh Tồn (Cyber Strike / Free Fire)</h2>
+            </div>
+            <div class="game-score-board">
+              <span id="shooterHp" style="font-weight: bold;">100 HP | 50 Giáp</span>
+              <span>Súng: <strong id="shooterWeapon" style="color: #38bdf8;">⚡ AK-47 Sấy</strong></span>
+              <span>Kills: <strong id="shooterKills" style="color: #ef4444;">0</strong></span>
+              <span>Kỷ lục: <strong id="shooterHighKills" style="color: #f59e0b;">0</strong></span>
+            </div>
+          </div>
+
+          <canvas id="shooterCanvas" class="game-canvas" width="440" height="460"></canvas>
+
+          <div class="game-controls-bar">
+            <button class="btn-game" id="restartShooterBtn">🔄 Chơi lại</button>
+            <button class="btn-game btn-share" id="shareShooterBtn">📢 Khoe Kills vào Chat</button>
+          </div>
+          <p class="game-hints">
+            🕹️ W, A, S, D di chuyển • Di chuột ngắm • <strong>Click hoặc Giữ chuột trái</strong> để sấy súng • Phím 1, 2, 3 đổi súng • Nhặt <strong>Hòm thính (DROP)</strong> để hồi máu & nhận súng xịn!
+          </p>
+        </div>
+
         <!-- 1. GAME ĐUA XE -->
-        <div class="game-screen active" id="screen-racing">
+        <div class="game-screen" id="screen-racing">
+
           <div class="game-header">
             <div class="game-title-group">
               <h2>🏎️ Đua Xe Cao Tốc (Highway Turbo)</h2>
@@ -260,6 +289,7 @@
 
   <!-- SCRIPTS -->
   <script src="/js/audio.js"></script>
+  <script src="/js/games/shooter.js"></script>
   <script src="/js/games/racing.js"></script>
   <script src="/js/games/caro.js"></script>
   <script src="/js/games/tetris.js"></script>
