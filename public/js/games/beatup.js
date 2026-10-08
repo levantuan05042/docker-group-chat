@@ -53,11 +53,225 @@ class BeatUpGame {
     this.weaponBtns = document.querySelectorAll('.beat-weapon-btn');
 
     this.isRunning = false;
+
+    // Bộ căn chỉnh khuôn mặt (Face Cropper)
+    this.cropModal = document.getElementById('beatCropModal');
+    this.cropCanvas = document.getElementById('cropCanvas');
+    this.cropCtx = this.cropCanvas ? this.cropCanvas.getContext('2d') : null;
+    this.cropZoomSlider = document.getElementById('cropZoomSlider');
+    this.confirmCropBtn = document.getElementById('confirmCropBtn');
+    this.cancelCropBtn = document.getElementById('cancelCropBtn');
+
+    this.cropState = {
+      rawImg: null,
+      x: 0,
+      y: 0,
+      scale: 1,
+      isDragging: false,
+      lastMouseX: 0,
+      lastMouseY: 0
+    };
+
     this.initEvents();
+    this.initCropperEvents();
+  }
+
+  initCropperEvents() {
+    if (!this.cropCanvas || !this.cropCtx) return;
+
+    // Kéo di chuyển ảnh trong vòng tròn
+    const startDrag = (cx, cy) => {
+      this.cropState.isDragging = true;
+      this.cropState.lastMouseX = cx;
+      this.cropState.lastMouseY = cy;
+      this.cropCanvas.style.cursor = 'grabbing';
+    };
+
+    const doDrag = (cx, cy) => {
+      if (!this.cropState.isDragging) return;
+      const dx = cx - this.cropState.lastMouseX;
+      const dy = cy - this.cropState.lastMouseY;
+      this.cropState.x += dx;
+      this.cropState.y += dy;
+      this.cropState.lastMouseX = cx;
+      this.cropState.lastMouseY = cy;
+      this.drawCropView();
+    };
+
+    const stopDrag = () => {
+      this.cropState.isDragging = false;
+      this.cropCanvas.style.cursor = 'grab';
+    };
+
+    // Chuột
+    this.cropCanvas.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => doDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', stopDrag);
+
+    // Cảm ứng điện thoại / tablet
+    this.cropCanvas.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches[0]) {
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    this.cropCanvas.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches[0]) {
+        doDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    this.cropCanvas.addEventListener('touchend', stopDrag);
+
+    // Zoom slider
+    if (this.cropZoomSlider) {
+      this.cropZoomSlider.addEventListener('input', (e) => {
+        this.cropState.scale = parseFloat(e.target.value);
+        this.drawCropView();
+      });
+    }
+
+    // Nút xác nhận ghép mặt
+    if (this.confirmCropBtn) {
+      this.confirmCropBtn.addEventListener('click', () => {
+        this.applyCroppedFace();
+      });
+    }
+
+    // Nút hủy
+    if (this.cancelCropBtn) {
+      this.cancelCropBtn.addEventListener('click', () => {
+        if (this.cropModal) this.cropModal.style.display = 'none';
+      });
+    }
+  }
+
+  openCropper(img) {
+    this.cropState.rawImg = img;
+
+    // Đưa tâm ảnh về giữa canvas 300x300
+    const cw = this.cropCanvas.width;
+    const ch = this.cropCanvas.height;
+    const baseScale = Math.max(200 / img.width, 200 / img.height);
+    this.cropState.scale = baseScale;
+    this.cropState.x = cw / 2;
+    this.cropState.y = ch / 2;
+
+    if (this.cropZoomSlider) {
+      this.cropZoomSlider.value = baseScale;
+      this.cropZoomSlider.min = (baseScale * 0.4).toFixed(2);
+      this.cropZoomSlider.max = (baseScale * 3.5).toFixed(2);
+      this.cropZoomSlider.step = ((baseScale * 3.1) / 50).toFixed(3);
+    }
+
+    if (this.cropModal) this.cropModal.style.display = 'flex';
+    this.drawCropView();
+  }
+
+  drawCropView() {
+    if (!this.cropCtx || !this.cropState.rawImg) return;
+    const ctx = this.cropCtx;
+    const w = this.cropCanvas.width;
+    const h = this.cropCanvas.height;
+    const img = this.cropState.rawImg;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Vẽ ảnh gốc đang di chuyển/phóng to
+    ctx.save();
+    ctx.translate(this.cropState.x, this.cropState.y);
+    ctx.scale(this.cropState.scale, this.cropState.scale);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    ctx.restore();
+
+    // 2. Phủ lớp mờ bóng đêm bên ngoài vòng tròn
+    const circleRadius = 90; // Đường kính 180px
+    const cx = w / 2;
+    const cy = h / 2;
+
+    ctx.save();
+    // Tạo mặt nạ vùng ngoài vòng tròn
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.beginPath();
+    ctx.rect(0, 0, w, h);
+    ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2, true);
+    ctx.fill();
+
+    // 3. Vòng tròn chọn mặt với viền phát sáng hồng/vàng
+    ctx.strokeStyle = '#ec4899';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Viền nét đứt bên trong
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, circleRadius - 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 4. Hồng tâm chữ thập ở giữa để căn chuẩn sống mũi / tâm mặt
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 15, cy); ctx.lineTo(cx + 15, cy);
+    ctx.moveTo(cx, cy - 15); ctx.lineTo(cx, cy + 15);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  applyCroppedFace() {
+    if (!this.cropState.rawImg) return;
+
+    // Xuất ra canvas tròn 180x180
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = 180;
+    outCanvas.height = 180;
+    const outCtx = outCanvas.getContext('2d');
+
+    const circleRadius = 90;
+    const cx = this.cropCanvas.width / 2;
+    const cy = this.cropCanvas.height / 2;
+
+    // Vị trí của ảnh so với tâm vòng tròn
+    const relX = this.cropState.x - cx;
+    const relY = this.cropState.y - cy;
+
+    outCtx.save();
+    // Cắt mặt tròn
+    outCtx.beginPath();
+    outCtx.arc(90, 90, 90, 0, Math.PI * 2);
+    outCtx.clip();
+
+    outCtx.translate(90 + relX, 90 + relY);
+    outCtx.scale(this.cropState.scale, this.cropState.scale);
+    outCtx.drawImage(
+      this.cropState.rawImg,
+      -this.cropState.rawImg.width / 2,
+      -this.cropState.rawImg.height / 2
+    );
+    outCtx.restore();
+
+    // Lưu vào customFaceImg
+    const finalImg = new Image();
+    finalImg.onload = () => {
+      this.customFaceImg = finalImg;
+      this.hasCustomFace = true;
+      this.dummy.bruises = [];
+      if (this.dummyStatusEl) {
+        this.dummyStatusEl.innerHTML = '😎 <strong>Đã căn chỉnh & ghép mặt tròn hoàn hảo! Hãy đấm xả giận đi!</strong>';
+      }
+      if (this.cropModal) this.cropModal.style.display = 'none';
+    };
+    finalImg.src = outCanvas.toDataURL('image/png');
   }
 
   initEvents() {
-    // 1. Tải ảnh từ máy / điện thoại
+    // 1. Tải ảnh từ máy / điện thoại -> Mở modal vòng tròn căn chỉnh mặt
     if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
@@ -67,12 +281,7 @@ class BeatUpGame {
         reader.onload = (event) => {
           const img = new Image();
           img.onload = () => {
-            this.customFaceImg = img;
-            this.hasCustomFace = true;
-            this.dummy.bruises = []; // Reset vết bầm khi đổi mặt mới
-            if (this.dummyStatusEl) {
-              this.dummyStatusEl.innerText = '😎 Đã dán ảnh khuôn mặt lên hình nhân! Hãy đấm xả giận đi!';
-            }
+            this.openCropper(img);
           };
           img.src = event.target.result;
         };
