@@ -65,6 +65,15 @@ const createInitialBoard = (): XBoard => {
   return b;
 };
 
+// Tọa độ hình học chuẩn xác của bàn cờ 10 hàng x 9 cột trong SVG viewBox (0 0 540 600)
+const X0 = 40;
+const Y0 = 40;
+const DX = 57.5;      // 40 + 8 * 57.5 = 500 (cột 0 đến cột 8)
+const DY = 57.777778; // 40 + 9 * 57.777778 = 560 (hàng 0 đến hàng 9)
+
+const colX = (c: number) => X0 + c * DX;
+const rowY = (r: number) => Y0 + r * DY;
+
 export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) => {
   const [board, setBoard] = useState<XBoard>(createInitialBoard);
   const [turn, setTurn] = useState<Side>('red');
@@ -295,6 +304,34 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     playSound('click');
   };
 
+  // Vẽ hoa thị (góc chữ thập) chuẩn cờ tướng
+  const renderCrossMark = (cx: number, cy: number, hasLeft = true, hasRight = true) => {
+    const d = 4.5;
+    const len = 7;
+    const stroke = '#784318';
+    const sw = 1.2;
+    return (
+      <g stroke={stroke} strokeWidth={sw}>
+        {hasLeft && (
+          <>
+            <line x1={cx - d} y1={cy - d} x2={cx - d - len} y2={cy - d} />
+            <line x1={cx - d} y1={cy - d} x2={cx - d} y2={cy - d - len} />
+            <line x1={cx - d} y1={cy + d} x2={cx - d - len} y2={cy + d} />
+            <line x1={cx - d} y1={cy + d} x2={cx - d} y2={cy + d + len} />
+          </>
+        )}
+        {hasRight && (
+          <>
+            <line x1={cx + d} y1={cy - d} x2={cx + d + len} y2={cy - d} />
+            <line x1={cx + d} y1={cy - d} x2={cx + d} y2={cy - d - len} />
+            <line x1={cx + d} y1={cy + d} x2={cx + d + len} y2={cy + d} />
+            <line x1={cx + d} y1={cy + d} x2={cx + d} y2={cy + d + len} />
+          </>
+        )}
+      </g>
+    );
+  };
+
   return (
     <div className="game-wrapper xiangqi-real-wrapper">
       <div className="game-top-bar">
@@ -314,104 +351,231 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         </div>
       </div>
 
-      {/* BÀN CỜ TƯỚNG CHUẨN THỰC TẾ GỖ MUN (10 HÀNG x 9 CỘT GIAO ĐIỂM) */}
+      {/* BÀN CỜ TƯỚNG CHUẨN THỰC TẾ: TẤT CẢ VẼ CHÍNH XÁC 100% TRÊN SVG NGUYÊN BẢN */}
       <div className="xiangqi-real-board-container">
         <div className="xiangqi-table-wood">
-          {/* Lớp nền SVG vẽ bàn cờ chuẩn, dòng sông, cung tướng */}
           <svg className="xiangqi-svg-board" viewBox="0 0 540 600">
-            {/* Viền ngoài bàn cờ */}
-            <rect x="20" y="20" width="500" height="560" fill="#e7b579" stroke="#5c3818" strokeWidth="4" />
-            <rect x="28" y="28" width="484" height="544" fill="none" stroke="#7c4a20" strokeWidth="1.5" />
+            <defs>
+              {/* Bóng đổ 3D cho quân cờ gỗ */}
+              <filter id="pieceShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.55" />
+              </filter>
+              <filter id="glowGold" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#f59e0b" floodOpacity="0.85" />
+              </filter>
 
-            {/* 10 Đường ngang */}
+              {/* Gradient gỗ ngà sang trọng cho quân Đỏ */}
+              <radialGradient id="redPieceWood" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#fffaf0" />
+                <stop offset="45%" stopColor="#fed7aa" />
+                <stop offset="85%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#b45309" />
+              </radialGradient>
+
+              {/* Gradient gỗ mun đá cẩm thạch cho quân Đen */}
+              <radialGradient id="blackPieceWood" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="45%" stopColor="#e2e8f0" />
+                <stop offset="85%" stopColor="#94a3b8" />
+                <stop offset="100%" stopColor="#475569" />
+              </radialGradient>
+
+              {/* Gradient nền bàn cờ gỗ Hoàng Đàn */}
+              <linearGradient id="boardWoodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f3c68f" />
+                <stop offset="50%" stopColor="#e5ad6d" />
+                <stop offset="100%" stopColor="#d29555" />
+              </linearGradient>
+            </defs>
+
+            {/* 1. KHUNG VÀ NỀN BÀN CỜ GỖ */}
+            <rect x="10" y="10" width="520" height="580" rx="12" fill="url(#boardWoodGrad)" stroke="#4a2810" strokeWidth="6" />
+            <rect x="22" y="22" width="496" height="556" rx="6" fill="none" stroke="#7a421b" strokeWidth="2" />
+
+            {/* 2. CÁC ĐƯỜNG KẺ NGANG (10 hàng: r = 0..9) */}
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(r => (
               <line
-                key={`h-${r}`}
-                x1="35"
-                y1={35 + r * 58.8}
-                x2="505"
-                y2={35 + r * 58.8}
-                stroke="#683d16"
+                key={`line-h-${r}`}
+                x1={colX(0)}
+                y1={rowY(r)}
+                x2={colX(8)}
+                y2={rowY(r)}
+                stroke="#633815"
                 strokeWidth="1.8"
               />
             ))}
 
-            {/* 9 Đường dọc nửa trên (Hàng 0-4) */}
+            {/* 3. CÁC ĐƯỜNG KẺ DỌC NỬA TRÊN (Hàng 0-4) */}
             {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(c => (
               <line
-                key={`vt-${c}`}
-                x1={35 + c * 58.75}
-                y1="35"
-                x2={35 + c * 58.75}
-                y2={35 + 4 * 58.8}
-                stroke="#683d16"
+                key={`line-vt-${c}`}
+                x1={colX(c)}
+                y1={rowY(0)}
+                x2={colX(c)}
+                y2={rowY(4)}
+                stroke="#633815"
                 strokeWidth="1.8"
               />
             ))}
 
-            {/* 9 Đường dọc nửa dưới (Hàng 5-9) */}
+            {/* 4. CÁC ĐƯỜNG KẺ DỌC NỬA DƯỚI (Hàng 5-9) */}
             {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(c => (
               <line
-                key={`vb-${c}`}
-                x1={35 + c * 58.75}
-                y1={35 + 5 * 58.8}
-                x2={35 + c * 58.75}
-                y2={35 + 9 * 58.8}
-                stroke="#683d16"
+                key={`line-vb-${c}`}
+                x1={colX(c)}
+                y1={rowY(5)}
+                x2={colX(c)}
+                y2={rowY(9)}
+                stroke="#633815"
                 strokeWidth="1.8"
               />
             ))}
 
-            {/* 2 Đường dọc biên chạy xuyên qua sông */}
-            <line x1="35" y1="35" x2="35" y2="564.2" stroke="#683d16" strokeWidth="2" />
-            <line x1="505" y1="35" x2="505" y2="564.2" stroke="#683d16" strokeWidth="2" />
+            {/* Hai đường dọc biên chạy xuyên qua sông */}
+            <line x1={colX(0)} y1={rowY(4)} x2={colX(0)} y2={rowY(5)} stroke="#633815" strokeWidth="2" />
+            <line x1={colX(8)} y1={rowY(4)} x2={colX(8)} y2={rowY(5)} stroke="#633815" strokeWidth="2" />
 
-            {/* Cung Tướng Đen (chữ X hàng 0-2, cột 3-5) */}
-            <line x1={35 + 3 * 58.75} y1="35" x2={35 + 5 * 58.75} y2={35 + 2 * 58.8} stroke="#683d16" strokeWidth="1.5" />
-            <line x1={35 + 5 * 58.75} y1="35" x2={35 + 3 * 58.75} y2={35 + 2 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+            {/* 5. CUNG TƯỚNG (CỬU CUNG) NỬA TRÊN (Phe Đen: hàng 0-2, cột 3-5) */}
+            <line x1={colX(3)} y1={rowY(0)} x2={colX(5)} y2={rowY(2)} stroke="#633815" strokeWidth="1.6" />
+            <line x1={colX(5)} y1={rowY(0)} x2={colX(3)} y2={rowY(2)} stroke="#633815" strokeWidth="1.6" />
 
-            {/* Cung Tướng Đỏ (chữ X hàng 7-9, cột 3-5) */}
-            <line x1={35 + 3 * 58.75} y1={35 + 7 * 58.8} x2={35 + 5 * 58.75} y2={35 + 9 * 58.8} stroke="#683d16" strokeWidth="1.5" />
-            <line x1={35 + 5 * 58.75} y1={35 + 7 * 58.8} x2={35 + 3 * 58.75} y2={35 + 9 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+            {/* 6. CUNG TƯỚNG (CỬU CUNG) NỬA DƯỚI (Phe Đỏ: hàng 7-9, cột 3-5) */}
+            <line x1={colX(3)} y1={rowY(7)} x2={colX(5)} y2={rowY(9)} stroke="#633815" strokeWidth="1.6" />
+            <line x1={colX(5)} y1={rowY(7)} x2={colX(3)} y2={rowY(9)} stroke="#633815" strokeWidth="1.6" />
 
-            {/* Chữ Sông: Sở Hà - Hán Giới */}
-            <text x="135" y="306" fill="#84481d" fontSize="22" fontWeight="bold" fontFamily="serif" textAnchor="middle">楚　河</text>
-            <text x="405" y="306" fill="#84481d" fontSize="22" fontWeight="bold" fontFamily="serif" textAnchor="middle">漢　界</text>
+            {/* 7. HOA THỊ (DẤU CHỮ THẬP CHUẨN CỜ TƯỚNG) TẠI VỊ TRÍ PHÁO & TỐT */}
+            {/* Pháo Đen hàng 2 */}
+            {renderCrossMark(colX(1), rowY(2))}
+            {renderCrossMark(colX(7), rowY(2))}
+
+            {/* Tốt Đen hàng 3 */}
+            {renderCrossMark(colX(0), rowY(3), false, true)}
+            {renderCrossMark(colX(2), rowY(3))}
+            {renderCrossMark(colX(4), rowY(3))}
+            {renderCrossMark(colX(6), rowY(3))}
+            {renderCrossMark(colX(8), rowY(3), true, false)}
+
+            {/* Binh Đỏ hàng 6 */}
+            {renderCrossMark(colX(0), rowY(6), false, true)}
+            {renderCrossMark(colX(2), rowY(6))}
+            {renderCrossMark(colX(4), rowY(6))}
+            {renderCrossMark(colX(6), rowY(6))}
+            {renderCrossMark(colX(8), rowY(6), true, false)}
+
+            {/* Pháo Đỏ hàng 7 */}
+            {renderCrossMark(colX(1), rowY(7))}
+            {renderCrossMark(colX(7), rowY(7))}
+
+            {/* 8. SÔNG SỞ HÀ - HÁN GIỚI NẰM CHÍNH GIỮA */}
+            <text x={colX(2)} y="307" fill="#753e16" fontSize="23" fontWeight="bold" fontFamily="serif" textAnchor="middle">楚　河</text>
+            <text x={colX(6)} y="307" fill="#753e16" fontSize="23" fontWeight="bold" fontFamily="serif" textAnchor="middle">漢　界</text>
+
+            {/* 9. LỚP QUÂN CỜ & TƯƠNG TÁC TẠI CÁC GIAO ĐIỂM (KHÔNG THỂ LỆCH TÍ NÀO) */}
+            {board.map((row, r) =>
+              row.map((cell, c) => {
+                const cx = colX(c);
+                const cy = rowY(r);
+                const isSelected = selected && selected[0] === r && selected[1] === c;
+                const isValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
+                const isLastFrom = lastMove && lastMove.from[0] === r && lastMove.from[1] === c;
+                const isLastTo = lastMove && lastMove.to[0] === r && lastMove.to[1] === c;
+
+                return (
+                  <g
+                    key={`point-${r}-${c}`}
+                    onClick={() => handlePointClick(r, c)}
+                    style={{ cursor: cell || isValid ? 'pointer' : 'default' }}
+                  >
+                    {/* Vùng chạm/click nhạy xung quanh giao điểm */}
+                    <circle cx={cx} cy={cy} r="25" fill="transparent" />
+
+                    {/* Đánh dấu nước đi vừa đi (Nước trước) */}
+                    {(isLastFrom || isLastTo) && (
+                      <rect
+                        x={cx - 16}
+                        y={cy - 16}
+                        width="32"
+                        height="32"
+                        rx="6"
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="2.5"
+                        strokeDasharray="4 3"
+                        opacity="0.85"
+                      />
+                    )}
+
+                    {/* Vòng hào quang khi quân cờ được chọn */}
+                    {isSelected && (
+                      <g filter="url(#glowGold)">
+                        <circle cx={cx} cy={cy} r="26.5" fill="rgba(245, 158, 11, 0.25)" />
+                        <circle cx={cx} cy={cy} r="26.5" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="6 3" />
+                      </g>
+                    )}
+
+                    {/* Điểm gợi ý nước đi hợp lệ vào ô trống */}
+                    {isValid && !cell && (
+                      <g>
+                        <circle cx={cx} cy={cy} r="16" fill="rgba(16, 185, 129, 0.2)" />
+                        <circle cx={cx} cy={cy} r="7.5" fill="#10b981" stroke="#ecfdf5" strokeWidth="2.5" />
+                      </g>
+                    )}
+
+                    {/* Điểm gợi ý ăn quân đối phương */}
+                    {isValid && cell && (
+                      <circle cx={cx} cy={cy} r="26" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" strokeWidth="3" strokeDasharray="5 3" />
+                    )}
+
+                    {/* QUÂN CỜ 3D KHẮC GỖ CỔ ĐIỂN CHUẨN ĐƯỢC ĐẶT CHÍNH XÁC TẠI GIAO ĐIỂM */}
+                    {cell && (
+                      <g filter="url(#pieceShadow)">
+                        {/* Thân quân cờ gỗ 3D */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r="22.5"
+                          fill={cell.side === 'red' ? 'url(#redPieceWood)' : 'url(#blackPieceWood)'}
+                          stroke={cell.side === 'red' ? '#9a3412' : '#334155'}
+                          strokeWidth="2"
+                        />
+                        {/* Viền vát khắc lõm 3D bên trong */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r="18.5"
+                          fill="none"
+                          stroke={cell.side === 'red' ? 'rgba(154, 52, 18, 0.35)' : 'rgba(51, 65, 85, 0.35)'}
+                          strokeWidth="1"
+                          strokeDasharray="3 2"
+                        />
+                        <circle
+                          cx={cx}
+                          cy={cy - 1}
+                          r="20.5"
+                          fill="none"
+                          stroke="rgba(255, 255, 255, 0.55)"
+                          strokeWidth="1"
+                        />
+                        {/* Chữ Hán thư pháp khắc chìm */}
+                        <text
+                          x={cx}
+                          y={cy + 7.5}
+                          textAnchor="middle"
+                          fill={cell.side === 'red' ? '#dc2626' : '#0f172a'}
+                          fontSize="21"
+                          fontWeight="bold"
+                          fontFamily="'Noto Serif SC', 'KaiTi', 'STKaiti', serif"
+                          style={{ userSelect: 'none', pointerEvents: 'none' }}
+                        >
+                          {cell.label}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })
+            )}
           </svg>
-
-          {/* Lớp điểm tương tác và quân cờ 3D đặt trực tiếp tại các giao điểm */}
-          <div className="xiangqi-intersections-grid">
-            {board.map((row, r) => (
-              <div key={r} className="xiangqi-i-row">
-                {row.map((cell, c) => {
-                  const isSelected = selected && selected[0] === r && selected[1] === c;
-                  const isValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
-                  const isFrom = lastMove && lastMove.from[0] === r && lastMove.from[1] === c;
-                  const isTo = lastMove && lastMove.to[0] === r && lastMove.to[1] === c;
-
-                  return (
-                    <div
-                      key={c}
-                      className={`xiangqi-point ${isSelected ? 'point-selected' : ''} ${isValid ? 'point-valid' : ''} ${isFrom || isTo ? 'point-last' : ''}`}
-                      onClick={() => handlePointClick(r, c)}
-                    >
-                      {/* Gợi ý nước đi nếu ô trống */}
-                      {isValid && !cell && <div className="xiangqi-move-marker" />}
-
-                      {/* Quân cờ 3D khắc gỗ */}
-                      {cell && (
-                        <div className={`real-xpiece real-xpiece-${cell.side} ${isSelected ? 'xpiece-active' : ''}`}>
-                          <div className="xpiece-bevel">
-                            <span className="xpiece-text">{cell.label}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -331,126 +331,23 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  overflow: auto;
+  overflow: hidden;
+  padding: 6px;
 }
 
 .xiangqi-table-wood {
   position: relative;
-  width: min(540px, 92vw, calc(100vh - 160px) * 0.9);
-  height: min(600px, calc(92vw * 1.11), calc(100vh - 160px));
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0,0,0,0.6);
-  border-radius: 8px;
+  width: min(540px, 94vw, calc((100vh - 175px) * 540 / 600));
+  aspect-ratio: 540 / 600;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85), inset 0 0 15px rgba(0,0,0,0.6);
+  border-radius: 12px;
   user-select: none;
 }
 
 .xiangqi-svg-board {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-}
-
-.xiangqi-intersections-grid {
-  position: absolute;
-  top: 5.8%;
-  left: 6.4%;
-  right: 6.4%;
-  bottom: 5.8%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.xiangqi-i-row {
-  display: flex;
-  justify-content: space-between;
-  height: 10%;
-  align-items: center;
-}
-
-.xiangqi-point {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.point-selected {
-  background: radial-gradient(circle, rgba(250, 204, 21, 0.5) 0%, transparent 70%);
-}
-
-.point-valid {
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%);
-}
-
-.point-last {
-  box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.8);
-  border-radius: 50%;
-}
-
-.xiangqi-move-marker {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-}
-
-/* QUÂN CỜ 3D KHẮC GỖ CỔ ĐIỂN */
-.real-xpiece {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.5);
-  border: 2px solid;
-  transition: transform 0.12s;
-  cursor: pointer;
-}
-
-.real-xpiece:hover {
-  transform: scale(1.15);
-}
-
-.xpiece-active {
-  transform: scale(1.2);
-  box-shadow: 0 0 16px #facc15 !important;
-}
-
-.real-xpiece-red {
-  background: radial-gradient(circle at 35% 30%, #fff7ed, #fed7aa, #d97706);
-  border-color: #b45309;
-}
-
-.real-xpiece-red .xpiece-text {
-  color: #dc2626;
-  text-shadow: 0 1px 1px #fff;
-}
-
-.real-xpiece-black {
-  background: radial-gradient(circle at 35% 30%, #ffffff, #e2e8f0, #475569);
-  border-color: #334155;
-}
-
-.real-xpiece-black .xpiece-text {
-  color: #0f172a;
-  text-shadow: 0 1px 1px #fff;
-}
-
-.xpiece-bevel {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px dashed rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
 }
 
 .xpiece-text {
