@@ -16,6 +16,7 @@ export interface ChatMessage {
   avatar: string;
   message: string;
   gameTag: string;
+  targetUserId?: number | null;
   createdAt: string;
 }
 
@@ -31,6 +32,9 @@ export interface GameRoom {
   guestUserId: number | null;
   guestUsername: string | null;
   guestFullName: string | null;
+  invitedUserId?: number | null;
+  invitedUsername?: string | null;
+  invitedFullName?: string | null;
   hostScore: number;
   guestScore: number;
   status: 'WAITING' | 'PLAYING' | 'FINISHED';

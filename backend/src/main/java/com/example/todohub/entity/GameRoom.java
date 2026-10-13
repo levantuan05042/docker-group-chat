@@ -34,6 +34,14 @@ public class GameRoom {
     @Column(length = 100)
     private String guestFullName;
 
+    private Long invitedUserId;
+
+    @Column(length = 50)
+    private String invitedUsername;
+
+    @Column(length = 100)
+    private String invitedFullName;
+
     @Column(nullable = false)
     private int hostScore = 0; // Tỷ số chủ phòng
 
@@ -98,6 +106,15 @@ public class GameRoom {
 
     public String getGuestFullName() { return guestFullName; }
     public void setGuestFullName(String guestFullName) { this.guestFullName = guestFullName; }
+
+    public Long getInvitedUserId() { return invitedUserId; }
+    public void setInvitedUserId(Long invitedUserId) { this.invitedUserId = invitedUserId; }
+
+    public String getInvitedUsername() { return invitedUsername; }
+    public void setInvitedUsername(String invitedUsername) { this.invitedUsername = invitedUsername; }
+
+    public String getInvitedFullName() { return invitedFullName; }
+    public void setInvitedFullName(String invitedFullName) { this.invitedFullName = invitedFullName; }
 
     public int getHostScore() { return hostScore; }
     public void setHostScore(int hostScore) { this.hostScore = hostScore; }

@@ -32,6 +32,19 @@ public class ChatService {
         return chatMessageRepository.save(chat);
     }
 
+    public ChatMessage sendPrivateInvite(Long userId, String username, String fullName, String avatar, String message, String gameTag, Long targetUserId) {
+        ChatMessage chat = new ChatMessage(
+                userId,
+                username,
+                fullName,
+                avatar,
+                message != null ? message.trim() : "",
+                gameTag
+        );
+        chat.setTargetUserId(targetUserId);
+        return chatMessageRepository.save(chat);
+    }
+
     public List<ChatMessage> getRecentMessages() {
         List<ChatMessage> list = chatMessageRepository.findTop60ByOrderByIdDesc();
         Collections.reverse(list); // Trả về theo thứ tự thời gian tăng dần từ cũ đến mới

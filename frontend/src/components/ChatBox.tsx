@@ -27,7 +27,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
 
   const loadMessages = async () => {
     try {
-      const data = await fetchChatMessages();
+      const data = await fetchChatMessages(currentUser.id);
       setMessages(data);
     } catch (e) {
       // Ignore polling errors
@@ -38,7 +38,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
     loadMessages();
     const interval = setInterval(loadMessages, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser.id]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,8 +88,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {currentRoomCode && (
-            <button className="btn btn-primary btn-sm" onClick={onInviteRoom} title="Mời mọi người vào phòng">
-              📢 Mời Chat
+            <button className="btn btn-primary btn-sm" onClick={onInviteRoom} title="Mời người chơi vào phòng">
+              👥 Mời Bạn
             </button>
           )}
           <span className="room-tag">🏷️ {currentGame}</span>
@@ -102,23 +102,47 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         ) : (
           messages.map(msg => {
             const isMe = msg.userId === currentUser.id;
-            const isSystem = msg.gameTag === 'Hệ Thống' || msg.gameTag === 'Thách Đấu';
+            const isTargeted = msg.targetUserId != null;
+            const isForMe = msg.targetUserId === currentUser.id;
+            const isFromMe = msg.userId === currentUser.id;
+
+            // Nếu tin nhắn riêng tư mà không phải gửi cho mình và không phải do mình gửi -> ẩn
+            if (isTargeted && !isForMe && !isFromMe) {
+              return null;
+            }
+
+            const isSystem = msg.gameTag === 'Hệ Thống' || msg.gameTag === 'Thách Đấu' || msg.gameTag === 'Thách Đấu Riêng';
             const roomCode = extractRoomCode(msg.message);
 
+            // Tin nhắn mời riêng tư hoặc hệ thống
             if (isSystem) {
+              const isPrivateInvite = msg.gameTag === 'Thách Đấu Riêng';
               return (
-                <div key={msg.id} className="system-msg" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div
+                  key={msg.id}
+                  className="system-msg"
+                  style={{
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    background: isPrivateInvite ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.1)',
+                    border: isPrivateInvite ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(99, 102, 241, 0.2)'
+                  }}
+                >
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span className="system-icon">{msg.gameTag === 'Thách Đấu' ? '⚔️' : '📢'}</span>
-                    <span>{msg.message}</span>
+                    <span className="system-icon">{isPrivateInvite ? '🔒' : (msg.gameTag === 'Thách Đấu' ? '⚔️' : '📢')}</span>
+                    <span style={{ fontWeight: isPrivateInvite ? 600 : 400, color: isPrivateInvite ? '#fca5a5' : '#cbd5e1' }}>
+                      {isPrivateInvite && isForMe && '🎯 [LỜI MỜI RIÊNG DÀNH CHO BẠN]: '}
+                      {isPrivateInvite && isFromMe && '🔒 [BẠN ĐÃ GỬI LỜI MỜI RIÊNG]: '}
+                      {msg.message}
+                    </span>
                   </div>
-                  {roomCode && onJoinRoom && (
+                  {roomCode && onJoinRoom && isForMe && (
                     <button
                       className="btn btn-primary btn-sm"
-                      style={{ marginTop: '6px', alignSelf: 'flex-end', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                      style={{ marginTop: '8px', alignSelf: 'flex-end', background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}
                       onClick={() => onJoinRoom(roomCode)}
                     >
-                      ⚔️ Tham Gia Phòng [{roomCode}] Ngay
+                      ⚔️ Chấp Nhận &amp; Vào Phòng [{roomCode}] Ngay
                     </button>
                   )}
                 </div>
@@ -153,26 +177,29 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
         <div ref={endRef} />
       </div>
 
-      <div className="emoji-quick-bar">
-        {EMOJIS.map(em => (
-          <button key={em} type="button" className="emoji-btn" onClick={() => addEmoji(em)}>
-            {em}
-          </button>
-        ))}
-      </div>
+      <div className="chatbox-footer">
+        <div className="emoji-bar">
+          {EMOJIS.map(em => (
+            <button key={em} className="emoji-btn" onClick={() => addEmoji(em)} type="button">
+              {em}
+            </button>
+          ))}
+        </div>
 
-      <form className="chat-input-bar" onSubmit={handleSend}>
-        <input
-          type="text"
-          className="chat-input"
-          placeholder="Nhập tin nhắn giao lưu, thách đấu..."
-          value={inputVal}
-          onChange={e => setInputVal(e.target.value)}
-        />
-        <button type="submit" className="chat-send-btn" disabled={!inputVal.trim() || sending}>
-          Gửi
-        </button>
-      </form>
+        <form onSubmit={handleSend} className="chat-input-form">
+          <input
+            type="text"
+            className="chat-input"
+            placeholder="Nhập tin nhắn..."
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            disabled={sending}
+          />
+          <button type="submit" className="chat-send-btn" disabled={!inputVal.trim() || sending}>
+            {sending ? '...' : 'Gửi'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

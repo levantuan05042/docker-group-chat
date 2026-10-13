@@ -23,8 +23,26 @@ public class ChatController {
     }
 
     @GetMapping("/chat/messages")
-    public ResponseEntity<List<ChatMessage>> getMessages() {
-        return ResponseEntity.ok(chatService.getRecentMessages());
+    public ResponseEntity<List<ChatMessage>> getMessages(@RequestParam(required = false) Long userId) {
+        List<ChatMessage> list = chatService.getRecentMessages();
+        if (userId != null) {
+            list = list.stream().filter(m -> m.getTargetUserId() == null || m.getTargetUserId().equals(userId) || m.getUserId().equals(userId)).toList();
+        }
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        var safeList = users.stream().map(u -> Map.of(
+                "id", u.getId(),
+                "username", u.getUsername(),
+                "fullName", u.getFullName() != null ? u.getFullName() : u.getUsername(),
+                "avatar", u.getAvatar() != null ? u.getAvatar() : "🎮",
+                "score", u.getScore(),
+                "wins", u.getWins()
+        )).toList();
+        return ResponseEntity.ok(safeList);
     }
 
     @PostMapping("/chat/messages")

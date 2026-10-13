@@ -10,7 +10,8 @@ import {
   fetchGameRoom,
   syncGameRoom,
   fetchWaitingRooms,
-  sendChatMessage
+  fetchUsers,
+  inviteUserToRoom
 } from './api';
 import { playSound, triggerConfetti } from './utils/effects';
 import { CaroGame } from './components/CaroGame';
@@ -53,6 +54,12 @@ export default function App() {
   const [waitingRooms, setWaitingRooms] = useState<GameRoom[]>([]);
   const [inputRoomCode, setInputRoomCode] = useState('');
 
+  // User Selection & Private Invite State
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [usersList, setUsersList] = useState<User[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+
   const prevGuestRef = useRef<number | null | undefined>(null);
 
   // Show dynamic Toast notification
@@ -86,6 +93,7 @@ export default function App() {
           latest.hostScore !== currentRoom.hostScore ||
           latest.guestScore !== currentRoom.guestScore ||
           latest.guestUserId !== currentRoom.guestUserId ||
+          latest.invitedUserId !== currentRoom.invitedUserId ||
           latest.status !== currentRoom.status
         ) {
           setCurrentRoom(latest);
@@ -96,7 +104,7 @@ export default function App() {
     }, 1200);
 
     return () => clearInterval(interval);
-  }, [currentRoom?.roomCode, currentRoom?.gameState, currentRoom?.guestUserId, currentRoom?.hostScore, currentRoom?.guestScore]);
+  }, [currentRoom?.roomCode, currentRoom?.gameState, currentRoom?.guestUserId, currentRoom?.hostScore, currentRoom?.guestScore, currentRoom?.invitedUserId]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +139,22 @@ export default function App() {
     showToast('info', 'Bạn đã đăng xuất khỏi hệ thống.');
   };
 
-  // Create Room
+  // Tải danh sách người chơi và mở popup mời
+  const loadUsersAndOpenInviteModal = async () => {
+    try {
+      setInviteLoading(true);
+      const users = await fetchUsers();
+      setUsersList(users);
+      setUserSearchQuery('');
+      setInviteModalOpen(true);
+    } catch (e) {
+      showToast('error', 'Không thể tải danh sách người chơi!');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  // Tạo Phòng (KHÔNG tự động spam tin nhắn công khai vào chat)
   const handleCreateRoom = async (gameType: GameType) => {
     if (!currentUser) return;
     try {
@@ -145,14 +168,43 @@ export default function App() {
       prevGuestRef.current = null;
       setActiveGame(gameType);
       setRoomModalOpen(false);
-      playSound('win');
-      showToast('success', `Tạo phòng thành công! Mã phòng: [${room.roomCode}]. Đã tự động gửi lời mời vào Chat! 📢`);
+      playSound('click');
+      showToast('success', `Đã tạo phòng [${room.roomCode}]. Hãy chọn người bạn muốn mời cùng chơi!`);
+
+      // Mở popup danh sách người chơi để lựa chọn
+      loadUsersAndOpenInviteModal();
     } catch (err: any) {
       showToast('error', err.message || 'Không thể tạo phòng!');
     }
   };
 
-  // Join Room
+  // Mời 1 người chơi cụ thể (Chỉ người đó mới thấy trên chat và được vào phòng)
+  const handleInviteSpecificUser = async (targetUser: User) => {
+    if (!currentRoom || !currentUser) return;
+    try {
+      const updated = await inviteUserToRoom(
+        currentRoom.roomCode,
+        targetUser.id,
+        targetUser.username,
+        targetUser.fullName || targetUser.username
+      );
+      setCurrentRoom(updated);
+      setInviteModalOpen(false);
+      playSound('win');
+      showToast('success', `🎉 Đã gửi lời mời riêng cho ${targetUser.fullName || targetUser.username}! Chỉ người này mới thấy trong Chat và được vào phòng.`);
+    } catch (e: any) {
+      showToast('error', e.message || 'Gửi lời mời thất bại!');
+    }
+  };
+
+  // Mở phòng tự do (Không chỉ định ai, ai nhập đúng mã đều vào được)
+  const handleMakeRoomPublic = () => {
+    setInviteModalOpen(false);
+    playSound('click');
+    showToast('info', `Phòng [${currentRoom?.roomCode}] đang mở tự do! Bất kỳ ai nhập đúng mã phòng đều có thể tham gia.`);
+  };
+
+  // Join Room (Kiểm tra lời mời riêng và kiểm tra phòng đã đủ người)
   const handleJoinRoom = async (code: string) => {
     if (!currentUser) return;
     const cleanCode = code.trim().toUpperCase();
@@ -171,6 +223,7 @@ export default function App() {
       playSound('move');
       showToast('success', `Đã tham gia phòng [${room.roomCode}]! Đối đầu trực tiếp với ${room.hostFullName} ⚔️`);
     } catch (err: any) {
+      playSound('error');
       showToast('error', err.message || 'Không thể tham gia phòng!');
     }
   };
@@ -187,30 +240,10 @@ export default function App() {
     }
   };
 
-  // Invite to Chat
-  const handleInviteToChat = async () => {
-    if (!currentUser || !currentRoom) return;
-    try {
-      const msg = `⚔️ [THÁCH ĐẤU]: ${currentUser.fullName || currentUser.username} đang mở phòng [${currentRoom.roomCode}] trò ${currentRoom.gameType.toUpperCase()}! Bấm vào để chiến ngay!`;
-      await sendChatMessage(
-        currentUser.id,
-        currentUser.username,
-        currentUser.fullName || currentUser.username,
-        currentUser.avatar || '🎮',
-        msg,
-        'Thách Đấu'
-      );
-      showToast('success', 'Đã phát lời mời thách đấu vào phòng Chat! 📢');
-    } catch (e) {
-      showToast('error', 'Lỗi khi gửi lời mời!');
-    }
-  };
-
   // Record Game Win to MySQL and update match score
   const handleGameWin = async (gameName: string, bonus: number) => {
     if (!currentUser) return;
 
-    // Cập nhật điểm cá nhân
     try {
       const res = await reportGameWin(currentUser.id, gameName, bonus);
       setCurrentUser(prev => prev ? { ...prev, score: res.score, wins: res.wins } : null);
@@ -219,7 +252,6 @@ export default function App() {
       console.error(e);
     }
 
-    // Cập nhật Tỷ số trận đấu nếu đang trong phòng
     if (currentRoom) {
       const isHost = currentRoom.hostUserId === currentUser.id;
       const newHostScore = isHost ? currentRoom.hostScore + 1 : currentRoom.hostScore;
@@ -394,6 +426,14 @@ export default function App() {
 
   const isHost = currentRoom && currentRoom.hostUserId === currentUser.id;
 
+  // Lọc người chơi theo ô tìm kiếm
+  const filteredUsers = usersList.filter(u => {
+    if (u.id === currentUser.id) return false;
+    if (!userSearchQuery.trim()) return true;
+    const q = userSearchQuery.toLowerCase();
+    return (u.fullName && u.fullName.toLowerCase().includes(q)) || u.username.toLowerCase().includes(q);
+  });
+
   return (
     <div className="app-wrapper">
       {/* Toast Notification Container */}
@@ -415,7 +455,7 @@ export default function App() {
             <p>
               {currentRoom ? (
                 <span style={{ color: '#34d399', fontWeight: 600 }}>
-                  🟢 ĐANG TRONG PHÒNG ĐẤU: [{currentRoom.roomCode}]
+                  🟢 PHÒNG [{currentRoom.roomCode}] {currentRoom.invitedFullName ? `• Lời mời riêng: ${currentRoom.invitedFullName}` : '• Tự do'}
                 </span>
               ) : (
                 <span>🤖 Chế Độ Luyện Tập (Chơi với AI)</span>
@@ -476,21 +516,23 @@ export default function App() {
 
             <div className="scoreboard-vs">
               <span style={{ fontSize: '12px', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {currentRoom.guestUserId ? '⚡ ĐỐI KHÁNG TRỰC TIẾP ⚡' : '⏳ ĐANG ĐỢI KHÁCH...'}
+                {currentRoom.guestUserId
+                  ? '⚡ ĐỐI KHÁNG TRỰC TIẾP ⚡'
+                  : (currentRoom.invitedFullName ? `🔒 ĐỢI [${currentRoom.invitedFullName}] VÀO...` : '⏳ ĐANG ĐỢI KHÁCH...')}
               </span>
             </div>
 
             <div className={`player-side ${!isHost && currentRoom.guestUserId ? 'my-side-active' : ''}`}>
               <span className="p-score">{currentRoom.guestScore}</span>
-              <span className="p-name">{currentRoom.guestFullName || '(Chờ đối thủ)'}</span>
+              <span className="p-name">{currentRoom.guestFullName || (currentRoom.invitedFullName ? `(${currentRoom.invitedFullName})` : '(Chờ đối thủ)')}</span>
               <span className="p-badge">{!isHost && currentRoom.guestUserId ? 'Bạn (Khách)' : 'Khách Đấu'}</span>
             </div>
           </div>
 
           <div className="room-controls">
-            {!currentRoom.guestUserId && (
-              <button className="btn btn-primary btn-sm" onClick={handleInviteToChat} title="Gửi lời mời công khai vào khung chat">
-                📢 Mời Vào Chat
+            {isHost && !currentRoom.guestUserId && (
+              <button className="btn btn-primary btn-sm" onClick={loadUsersAndOpenInviteModal} title="Chọn người chơi bạn muốn mời vào phòng">
+                👥 {currentRoom.invitedFullName ? 'Đổi Người Mời' : 'Chọn Người Mời'}
               </button>
             )}
             <button
@@ -637,10 +679,98 @@ export default function App() {
             currentGame={getGameTitle(activeGame)}
             currentRoomCode={currentRoom?.roomCode}
             onJoinRoom={handleJoinRoom}
-            onInviteRoom={handleInviteToChat}
+            onInviteRoom={loadUsersAndOpenInviteModal}
           />
         )}
       </main>
+
+      {/* POPUP: CHỌN NGƯỜI CHƠI ĐỂ MỜI ĐẤU (CHỈ NGƯỜI ĐƯỢC CHỌN MỚI THẤY & VÀO ĐƯỢC) */}
+      {inviteModalOpen && currentRoom && (
+        <div className="modal-overlay" onClick={() => setInviteModalOpen(false)}>
+          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2>👥 MỜI NGƯỜI CHƠI VÀO PHÒNG [{currentRoom.roomCode}]</h2>
+              <button className="btn btn-secondary btn-sm" onClick={() => setInviteModalOpen(false)}>✕</button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: '1.5' }}>
+              Hãy chọn người bạn muốn thách đấu. <strong>Chỉ người được mời mới thấy thông báo trên Chat và chỉ người đó mới có quyền tham gia phòng này.</strong>
+            </p>
+
+            {/* Ô tìm kiếm người chơi */}
+            <div style={{ marginBottom: '14px' }}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="🔍 Tìm kiếm theo tên hoặc username..."
+                value={userSearchQuery}
+                onChange={e => setUserSearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            {/* Danh sách người chơi */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', marginBottom: '16px' }}>
+              {inviteLoading ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Đang tải danh sách người chơi...</p>
+              ) : filteredUsers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Không tìm thấy người chơi nào khác.
+                  </p>
+                </div>
+              ) : (
+                filteredUsers.map(u => (
+                  <div
+                    key={u.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 14px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '24px' }}>{u.avatar || '🎮'}</span>
+                      <div>
+                        <strong style={{ fontSize: '13.5px', color: '#f8fafc' }}>{u.fullName || u.username}</strong>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          @{u.username} • ⭐ {u.score} điểm • 🏆 {u.wins} thắng
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleInviteSpecificUser(u)}
+                      style={{ padding: '6px 14px', fontSize: '12px' }}
+                    >
+                      ⚔️ Mời Đấu
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Tùy chọn mở phòng tự do */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleMakeRoomPublic}
+                title="Ai nhập đúng mã phòng đều có thể vào chơi"
+              >
+                🌐 Mở Phòng Tự Do (Ai Có Mã Đều Vào Được)
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setInviteModalOpen(false)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL HƯỚNG DẪN CÁCH DÙNG SIÊU DỄ HIỂU */}
       {helpModalOpen && (
@@ -654,14 +784,15 @@ export default function App() {
             <div className="help-content-list" style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
               <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '10px' }}>
                 <h4 style={{ color: '#38bdf8', marginBottom: '4px' }}>1️⃣ Chơi Tự Luyện (Một Mình Với Máy / AI)</h4>
-                <p>Mặc định khi đăng nhập, bạn có thể chọn bất kỳ trò chơi nào trên thanh tab và đánh ngay với Máy (AI). Không cần phải chờ đợi ai.</p>
+                <p>Mặc định khi đăng nhập, bạn có thể chọn bất kỳ trò chơi nào trên thanh tab và đánh ngay với Máy (AI). Có 3 độ khó: 🟢 Bình thường, 🟡 Khó, 🔴 Siêu khó 🔥.</p>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '10px' }}>
-                <h4 style={{ color: '#34d399', marginBottom: '4px' }}>2️⃣ Đấu Online Với Bạn Bè (Thời Gian Thực)</h4>
-                <p>• Bấm <strong>"+ Tạo Phòng"</strong> ở góc trên ➔ Chọn trò chơi bạn muốn mở.</p>
-                <p>• Hệ thống sẽ cấp một mã phòng (ví dụ: <code>ROOM-4398</code>) và tự động phát lời mời thách đấu vào phòng Chat.</p>
-                <p>• Bạn bè của bạn chỉ cần bấm nút <strong>[⚔️ Tham gia phòng ngay]</strong> trong Chat hoặc nhập mã phòng là 2 người cùng vào đấu.</p>
+                <h4 style={{ color: '#34d399', marginBottom: '4px' }}>2️⃣ Tạo Phòng &amp; Mời Người Chơi Riêng</h4>
+                <p>• Bấm <strong>"+ Tạo Phòng"</strong> ➔ Chọn trò chơi muốn mở.</p>
+                <p>• Hệ thống mở popup danh sách người dùng (có ô tìm kiếm) ➔ Chọn bạn bè để mời riêng.</p>
+                <p>• Chỉ người được bạn mời mới thấy thông báo trên Chat và chỉ người đó mới có quyền vào phòng!</p>
+                <p>• Hoặc bạn có thể chọn <em>"Mở phòng tự do"</em> để bất kỳ ai có mã phòng đều vào được (khi đủ 2 người sẽ tự động khóa).</p>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '10px' }}>
@@ -688,7 +819,7 @@ export default function App() {
               <button className="btn btn-secondary btn-sm" onClick={() => setRoomModalOpen(false)}>✕</button>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Chọn trò chơi bạn muốn mở phòng. Hệ thống sẽ tự động phát tin nhắn thách đấu vào phòng Chat để người khác vào chơi ngay!
+              Chọn trò chơi bạn muốn mở phòng. Sau khi tạo, bạn có thể tìm kiếm và chọn người bạn muốn mời vào chơi!
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -733,7 +864,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setJoinModalOpen(false)}>
           <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>🚪 VÀO PHÒNG ĐẤU ONLINE</h2>
+              <h2>🚪 VÀO PHÒNG ĐẤU BẰNG MÃ</h2>
               <button className="btn btn-secondary btn-sm" onClick={() => setJoinModalOpen(false)}>✕</button>
             </div>
 
@@ -770,7 +901,9 @@ export default function App() {
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <div>
                       <strong style={{ color: '#38bdf8' }}>[{r.roomCode}]</strong> • Trò: <span style={{ color: '#fbbf24', fontWeight: 600 }}>{r.gameType.toUpperCase()}</span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Chủ phòng: {r.hostFullName}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Chủ: {r.hostFullName} {r.invitedFullName && <span style={{ color: '#f87171' }}>• Lời mời riêng cho: {r.invitedFullName}</span>}
+                      </div>
                     </div>
                     <button className="btn btn-primary btn-sm" onClick={() => handleJoinRoom(r.roomCode)}>
                       Vào Chiến ⚔️

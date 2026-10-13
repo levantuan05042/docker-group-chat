@@ -87,6 +87,10 @@ public class UserService {
         return userRepository.findTop20ByOrderByScoreDesc();
     }
 
+    public List<User> getAllUsers() {
+        return userRepository.findTop50ByOrderByIdDesc();
+    }
+
     public User getById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng!"));

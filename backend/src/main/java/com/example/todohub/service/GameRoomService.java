@@ -39,11 +39,25 @@ public class GameRoomService {
             throw new IllegalArgumentException("Phòng này đã đủ 2 người chơi!");
         }
 
+        // Kiểm tra phòng riêng tư (lời mời riêng)
+        if (room.getInvitedUserId() != null && !room.getInvitedUserId().equals(guestUserId)) {
+            String target = room.getInvitedFullName() != null ? room.getInvitedFullName() : "người khác";
+            throw new IllegalArgumentException("Phòng này là lời mời riêng dành cho " + target + "! Bạn không có quyền tham gia.");
+        }
+
         room.setGuestUserId(guestUserId);
         room.setGuestUsername(guestUsername);
         room.setGuestFullName(guestFullName);
         room.setStatus("PLAYING");
 
+        return roomRepository.save(room);
+    }
+
+    public GameRoom setInvitedUser(String roomCode, Long targetUserId, String targetUsername, String targetFullName) {
+        GameRoom room = getRoom(roomCode);
+        room.setInvitedUserId(targetUserId);
+        room.setInvitedUsername(targetUsername);
+        room.setInvitedFullName(targetFullName);
         return roomRepository.save(room);
     }
 

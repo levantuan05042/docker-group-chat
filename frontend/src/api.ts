@@ -25,10 +25,33 @@ export async function registerUser(username: string, password: string, fullName:
   return data;
 }
 
-export async function fetchChatMessages(): Promise<ChatMessage[]> {
-  const res = await fetch(`${API_BASE}/chat/messages`);
+export async function fetchUsers(): Promise<User[]> {
+  const res = await fetch(`${API_BASE}/users`);
+  if (!res.ok) throw new Error('Không thể tải danh sách người chơi!');
+  return res.json();
+}
+
+export async function fetchChatMessages(userId?: number): Promise<ChatMessage[]> {
+  const url = userId ? `${API_BASE}/chat/messages?userId=${userId}` : `${API_BASE}/chat/messages`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Không thể tải tin nhắn!');
   return res.json();
+}
+
+export async function inviteUserToRoom(
+  roomCode: string,
+  targetUserId: number,
+  targetUsername: string,
+  targetFullName: string
+): Promise<GameRoom> {
+  const res = await fetch(`${API_BASE}/rooms/${roomCode}/invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetUserId, targetUsername, targetFullName })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gửi lời mời thất bại!');
+  return data;
 }
 
 export async function sendChatMessage(

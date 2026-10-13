@@ -29,6 +29,9 @@ public class ChatMessage {
     @Column(length = 50)
     private String gameTag = "Phòng Chung";
 
+    @Column(name = "target_user_id")
+    private Long targetUserId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -64,6 +67,9 @@ public class ChatMessage {
 
     public String getGameTag() { return gameTag; }
     public void setGameTag(String gameTag) { this.gameTag = gameTag; }
+
+    public Long getTargetUserId() { return targetUserId; }
+    public void setTargetUserId(Long targetUserId) { this.targetUserId = targetUserId; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

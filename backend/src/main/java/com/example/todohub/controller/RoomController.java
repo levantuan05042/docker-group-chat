@@ -30,10 +30,24 @@ public class RoomController {
             String hostFullName = (String) body.getOrDefault("hostFullName", hostUsername);
 
             GameRoom room = roomService.createRoom(gameType, hostUserId, hostUsername, hostFullName);
+            return ResponseEntity.ok(room);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
-            // Gửi tin nhắn mời công khai vào phòng Chat
-            String inviteMsg = "⚔️ [LỜI MỜI THÁCH ĐẤU]: " + hostFullName + " vừa tạo phòng [" + room.getRoomCode() + "] trò " + gameType.toUpperCase() + "! Bấm để vào chiến ngay!";
-            chatService.sendMessage(hostUserId, hostUsername, hostFullName, "🎯", inviteMsg, "Thách Đấu");
+    @PostMapping("/{code}/invite")
+    public ResponseEntity<?> inviteUser(@PathVariable String code, @RequestBody Map<String, Object> body) {
+        try {
+            Long targetUserId = Long.valueOf(body.get("targetUserId").toString());
+            String targetUsername = (String) body.get("targetUsername");
+            String targetFullName = (String) body.getOrDefault("targetFullName", targetUsername);
+
+            GameRoom room = roomService.setInvitedUser(code, targetUserId, targetUsername, targetFullName);
+
+            // Gửi lời mời RIÊNG TƯ (chỉ targetUserId và host mới thấy trong Chat)
+            String inviteMsg = "⚔️ [LỜI MỜI RIÊNG]: " + room.getHostFullName() + " mời bạn vào thách đấu phòng [" + room.getRoomCode() + "] trò " + room.getGameType().toUpperCase() + "! Bấm để vào chiến ngay!";
+            chatService.sendPrivateInvite(room.getHostUserId(), room.getHostUsername(), room.getHostFullName(), "🎯", inviteMsg, "Thách Đấu Riêng", targetUserId);
 
             return ResponseEntity.ok(room);
         } catch (Exception e) {
