@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.log
+
+# Environment & OS
+.DS_Store
+Thumbs.db

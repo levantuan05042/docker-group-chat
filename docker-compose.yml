@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # 1. DATABASE TIER: MySQL 8.0
+  mysql:
+    image: mysql:8.0
+    container_name: todohub-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: tododb
+      MYSQL_USER: todouser
+      MYSQL_PASSWORD: todopassword
+    ports:
+      # Map ra port 3307 bên ngoài để tránh trùng nếu máy bạn đang chạy sẵn MySQL local ở 3306
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - todohub-network
+
+  # 2. BACKEND TIER: Java Spring Boot 3
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: todohub-backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tododb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: todouser
+      SPRING_DATASOURCE_PASSWORD: todopassword
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - todohub-network
+
+  # 3. FRONTEND TIER: React TypeScript (TSX) + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: todohub-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - todohub-network
+
+networks:
+  todohub-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
