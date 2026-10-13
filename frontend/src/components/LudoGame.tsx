@@ -6,147 +6,179 @@ interface LudoGameProps {
   showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
 }
 
-type Team = 'red' | 'blue' | 'green' | 'yellow';
+type Team = 'red' | 'green' | 'yellow' | 'blue';
 
 interface Horse {
   id: number;
   team: Team;
-  step: number; // -1: trong chuồng, 0..51: trên đường đua, 52..56: về đích
+  pos: number; // -1: trong chuồng, 0..51: đường đua chính, 52..57: đường về đích, 58: đã về đích
 }
 
+// 52 vị trí tọa độ (r, c) trên lưới 15x15 của bàn cờ Cá Ngựa chuẩn thế giới
+const MAIN_TRACK_COORDS: [number, number][] = [
+  // Nhánh trái đi lên (Red xuất phát ở ô 1: (6, 1))
+  [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+  [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+  [0, 7], // Đỉnh
+  [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], // Nhánh trên đi xuống
+  [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14], // Nhánh phải (Green xuất phát ở ô 14: (8, 13))
+  [7, 14], // Phải cùng
+  [8, 14], [8, 13], [8, 12], [8, 11], [8, 10], [8, 9], // Nhánh phải đi vào
+  [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8], // Nhánh dưới đi xuống (Yellow xuất phát)
+  [14, 7], // Đáy
+  [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6], // Nhánh dưới đi lên
+  [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0], // Nhánh trái (Blue xuất phát)
+  [7, 0] // Trái cùng
+];
 
-const TEAM_NAMES: Record<Team, { name: string; color: string; icon: string }> = {
-  red: { name: 'Đội Đỏ', color: '#ef4444', icon: '🔴' },
-  blue: { name: 'Đội Xanh', color: '#3b82f6', icon: '🔵' },
-  green: { name: 'Đội Lá', color: '#10b981', icon: '🟢' },
-  yellow: { name: 'Đội Vàng', color: '#f59e0b', icon: '🟡' }
+// Điểm xuất chuồng (start index trên MAIN_TRACK_COORDS)
+const START_INDEX: Record<Team, number> = {
+  red: 1,
+  green: 14,
+  yellow: 27,
+  blue: 40
+};
+
+// Tọa độ đường lên đích (chuồng đích từ 1 đến 6) cho 4 đội
+const HOME_STAIRS_COORDS: Record<Team, [number, number][]> = {
+  red: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]],
+  green: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],
+  yellow: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]],
+  blue: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]]
+};
+
+const TEAM_CONFIG: Record<Team, { name: string; color: string; bg: string; icon: string }> = {
+  red: { name: 'Đỏ', color: '#ef4444', bg: '#f87171', icon: '🔴' },
+  green: { name: 'Lá', color: '#10b981', bg: '#34d399', icon: '🟢' },
+  yellow: { name: 'Vàng', color: '#f59e0b', bg: '#fbbf24', icon: '🟡' },
+  blue: { name: 'Xanh', color: '#3b82f6', bg: '#60a5fa', icon: '🔵' }
 };
 
 export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
   const [dice, setDice] = useState<number>(6);
   const [isRolling, setIsRolling] = useState<boolean>(false);
   const [currentTurn, setCurrentTurn] = useState<Team>('red');
-  const [canRoll, setCanRoll] = useState<boolean>(true);
   const [hasRolled, setHasRolled] = useState<boolean>(false);
   const [winner, setWinner] = useState<string | null>(null);
 
-  // 2 quân ngựa cho mỗi đội (đơn giản, nhanh, vui nhộn)
+  // Mỗi đội 2 ngựa chiến
   const [horses, setHorses] = useState<Horse[]>([
-    { id: 1, team: 'red', step: -1 },
-    { id: 2, team: 'red', step: -1 },
-    { id: 3, team: 'blue', step: -1 },
-    { id: 4, team: 'blue', step: -1 },
-    { id: 5, team: 'green', step: -1 },
-    { id: 6, team: 'green', step: -1 },
-    { id: 7, team: 'yellow', step: -1 },
-    { id: 8, team: 'yellow', step: -1 },
+    { id: 1, team: 'red', pos: -1 },
+    { id: 2, team: 'red', pos: -1 },
+    { id: 3, team: 'green', pos: -1 },
+    { id: 4, team: 'green', pos: -1 },
+    { id: 5, team: 'yellow', pos: -1 },
+    { id: 6, team: 'yellow', pos: -1 },
+    { id: 7, team: 'blue', pos: -1 },
+    { id: 8, team: 'blue', pos: -1 }
   ]);
 
-  const teams: Team[] = ['red', 'blue', 'green', 'yellow'];
+  const teams: Team[] = ['red', 'green', 'yellow', 'blue'];
 
   const rollDice = () => {
-    if (!canRoll || isRolling || winner) return;
+    if (hasRolled || isRolling || winner) return;
 
     setIsRolling(true);
     playSound('dice');
 
-    let rolls = 0;
+    let count = 0;
     const interval = setInterval(() => {
-      const rand = Math.floor(Math.random() * 6) + 1;
-      setDice(rand);
-      rolls++;
-      if (rolls > 8) {
+      setDice(Math.floor(Math.random() * 6) + 1);
+      count++;
+      if (count > 8) {
         clearInterval(interval);
         const finalVal = Math.floor(Math.random() * 6) + 1;
         setDice(finalVal);
         setIsRolling(false);
-        setCanRoll(false);
         setHasRolled(true);
 
-        // Kiểm tra xem đội hiện tại có nước đi hợp lệ nào không
-        const currentHorses = horses.filter(h => h.team === currentTurn);
+        // Kiểm tra nước đi
+        const myHorses = horses.filter(h => h.team === currentTurn);
         const canDeploy = finalVal === 6 || finalVal === 1;
-        const hasMovableHorse = currentHorses.some(h => (h.step === -1 && canDeploy) || (h.step >= 0 && h.step < 56));
+        const canMoveAny = myHorses.some(h => (h.pos === -1 && canDeploy) || (h.pos >= 0 && h.pos + finalVal <= 58));
 
-        if (!hasMovableHorse) {
-          showToast('info', `${TEAM_NAMES[currentTurn].name} không có nước đi phù hợp! Chuyển lượt.`);
+        if (!canMoveAny) {
+          showToast('info', `Đội ${TEAM_CONFIG[currentTurn].name} không có nước đi! Chuyển lượt.`);
           setTimeout(nextTurn, 1000);
         }
       }
     }, 60);
   };
 
-  const moveHorse = (horse: Horse) => {
+  const handleHorseClick = (horse: Horse) => {
     if (!hasRolled || horse.team !== currentTurn || winner) return;
 
     const canDeploy = dice === 6 || dice === 1;
 
-    // Xuất chuồng
-    if (horse.step === -1) {
+    // 1. Xuất chuồng
+    if (horse.pos === -1) {
       if (!canDeploy) {
         playSound('error');
-        showToast('error', 'Cần lắc được 1 hoặc 6 để xuất chuồng!');
+        showToast('error', 'Cần lắc được 1 hoặc 6 để xuất quân khỏi chuồng!');
         return;
       }
-      const updated = horses.map(h => h.id === horse.id ? { ...h, step: 0 } : h);
+
+      const updated = horses.map(h => h.id === horse.id ? { ...h, pos: 0 } : h);
       setHorses(updated);
       playSound('move');
-      showToast('success', `${TEAM_NAMES[currentTurn].name} đã xuất chuồng một chú ngựa chiến! 🐎`);
-      finishMove(dice === 6);
+      showToast('success', `Đội ${TEAM_CONFIG[currentTurn].name} đã xuất chuồng ngựa chiến! 🐎`);
+      finishAction(dice === 6);
       return;
     }
 
-    // Di chuyển trên đường đua
-    const nextStep = horse.step + dice;
-    if (nextStep > 56) {
+    // 2. Di chuyển trên đường đua
+    const nextPos = horse.pos + dice;
+    if (nextPos > 58) {
       playSound('error');
-      showToast('error', 'Số bước vượt quá đích! Không thể đi.');
+      showToast('error', 'Số bước xúc xắc vượt quá đích!');
       return;
     }
 
-    // Kiểm tra đá ngựa đối thủ
-    let kickedOpponent = false;
+    // Tính toán đá ngựa đối thủ trên vòng đua chính
+    let kicked = false;
+    const myRealTrackIndex = (START_INDEX[horse.team] + nextPos) % 52;
+
     const updated = horses.map(h => {
       if (h.id === horse.id) {
-        return { ...h, step: nextStep };
+        return { ...h, pos: nextPos };
       }
-      // Nếu ô trùng và khác đội -> đá về chuồng
-      if (h.team !== horse.team && h.step === nextStep && nextStep < 52) {
-        kickedOpponent = true;
-        return { ...h, step: -1 };
+      // Nếu ngựa khác đội ở cùng ô trên vòng đua chính (< 52)
+      if (h.team !== horse.team && h.pos >= 0 && h.pos < 52 && nextPos < 52) {
+        const otherRealIdx = (START_INDEX[h.team] + h.pos) % 52;
+        if (otherRealIdx === myRealTrackIndex) {
+          kicked = true;
+          return { ...h, pos: -1 }; // Bị đá văng về chuồng!
+        }
       }
       return h;
     });
 
     setHorses(updated);
 
-    if (kickedOpponent) {
+    if (kicked) {
       playSound('capture');
-      showToast('success', `💥 Tuyệt vời! ${TEAM_NAMES[currentTurn].name} đã ĐÁ NGỰA đối thủ văng về chuồng!`);
+      showToast('success', `💥 ĐÁ NGỰA! Đội ${TEAM_CONFIG[currentTurn].name} đã đá văng ngựa đối thủ về chuồng!`);
     } else {
       playSound('move');
     }
 
-    // Kiểm tra về đích
-    if (nextStep >= 56) {
-      const myFinished = updated.filter(h => h.team === currentTurn && h.step >= 56);
-      if (myFinished.length >= 2) {
-        setWinner(TEAM_NAMES[currentTurn].name);
-        playSound('win');
-        triggerConfetti();
-        showToast('success', `🎉 VÔ ĐỊCH! ${TEAM_NAMES[currentTurn].name} đã đưa toàn bộ ngựa về đích an toàn!`);
-        onWin('Cờ Cá Ngựa', 60);
-        return;
-      }
+    // Kiểm tra vô địch (cả 2 ngựa về đích pos 58)
+    const myFinished = updated.filter(h => h.team === currentTurn && h.pos >= 58);
+    if (myFinished.length >= 2) {
+      setWinner(TEAM_CONFIG[currentTurn].name);
+      playSound('win');
+      triggerConfetti();
+      showToast('success', `🎉 VÔ ĐỊCH! Đội ${TEAM_CONFIG[currentTurn].name} đã đưa toàn bộ ngựa về đích an toàn!`);
+      onWin('Cờ Cá Ngựa', 80);
+      return;
     }
 
-    finishMove(dice === 6);
+    finishAction(dice === 6);
   };
 
-  const finishMove = (bonusRoll: boolean) => {
+  const finishAction = (bonusRoll: boolean) => {
     if (bonusRoll) {
-      showToast('info', 'Lắc được 6! Bạn được thêm 1 lượt lắc tiếp theo! 🎲');
-      setCanRoll(true);
+      showToast('info', 'Lắc được 6! Bạn được lắc thêm 1 lượt! 🎲');
       setHasRolled(false);
     } else {
       nextTurn();
@@ -157,36 +189,52 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
     const curIdx = teams.indexOf(currentTurn);
     const nxt = teams[(curIdx + 1) % teams.length];
     setCurrentTurn(nxt);
-    setCanRoll(true);
     setHasRolled(false);
   };
 
   const resetGame = () => {
     setHorses([
-      { id: 1, team: 'red', step: -1 },
-      { id: 2, team: 'red', step: -1 },
-      { id: 3, team: 'blue', step: -1 },
-      { id: 4, team: 'blue', step: -1 },
-      { id: 5, team: 'green', step: -1 },
-      { id: 6, team: 'green', step: -1 },
-      { id: 7, team: 'yellow', step: -1 },
-      { id: 8, team: 'yellow', step: -1 },
+      { id: 1, team: 'red', pos: -1 },
+      { id: 2, team: 'red', pos: -1 },
+      { id: 3, team: 'green', pos: -1 },
+      { id: 4, team: 'green', pos: -1 },
+      { id: 5, team: 'yellow', pos: -1 },
+      { id: 6, team: 'yellow', pos: -1 },
+      { id: 7, team: 'blue', pos: -1 },
+      { id: 8, team: 'blue', pos: -1 }
     ]);
     setCurrentTurn('red');
-    setCanRoll(true);
     setHasRolled(false);
     setWinner(null);
     playSound('click');
   };
 
+  // Tìm ngựa tại ô tọa độ (r, c)
+  const getHorseAt = (r: number, c: number): Horse | undefined => {
+    return horses.find(h => {
+      if (h.pos < 0) return false;
+      if (h.pos < 52) {
+        const realIdx = (START_INDEX[h.team] + h.pos) % 52;
+        const [tr, tc] = MAIN_TRACK_COORDS[realIdx];
+        return tr === r && tc === c;
+      }
+      if (h.pos >= 52 && h.pos <= 57) {
+        const stairIdx = h.pos - 52;
+        const [sr, sc] = HOME_STAIRS_COORDS[h.team][stairIdx];
+        return sr === r && sc === c;
+      }
+      return false;
+    });
+  };
+
   return (
-    <div className="game-wrapper ludo-container">
+    <div className="game-wrapper ludo-real-wrapper">
       <div className="game-top-bar">
         <div className="game-status-badge">
           {winner ? (
-            <span className="win-announce">🏆 Đội Chiến Thắng: <strong>{winner}</strong></span>
+            <span className="win-announce">🏆 Vô Địch: <strong>Đội {winner}</strong></span>
           ) : (
-            <span>Đang đến lượt: <strong style={{ color: TEAM_NAMES[currentTurn].color }}>{TEAM_NAMES[currentTurn].name} {TEAM_NAMES[currentTurn].icon}</strong></span>
+            <span>Lượt đi: <strong style={{ color: TEAM_CONFIG[currentTurn].color }}>Đội {TEAM_CONFIG[currentTurn].name} {TEAM_CONFIG[currentTurn].icon}</strong></span>
           )}
         </div>
 
@@ -195,50 +243,147 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
         </div>
       </div>
 
-      {/* Control Lắc Xúc Xắc */}
-      <div className="ludo-control-box">
-        <button
-          className={`dice-btn ${isRolling ? 'rolling' : ''}`}
-          onClick={rollDice}
-          disabled={!canRoll || isRolling || !!winner}
-        >
-          <span className="dice-val">🎲 {dice}</span>
-          <span className="dice-lbl">{canRoll ? 'Nhấn để Lắc Xúc Xắc' : 'Hãy chọn một quân ngựa để di chuyển'}</span>
-        </button>
-      </div>
-
-      {/* 4 Chuồng Ngựa */}
-      <div className="ludo-stables-grid">
-        {teams.map(t => {
-          const tInfo = TEAM_NAMES[t];
-          const teamHorses = horses.filter(h => h.team === t);
-          const isTurn = currentTurn === t;
-
-          return (
-            <div key={t} className={`stable-card stable-${t} ${isTurn ? 'turn-active' : ''}`}>
-              <div className="stable-header">
-                <h4>{tInfo.icon} {tInfo.name}</h4>
-                {isTurn && <span className="turn-tag">ĐANG ĐẾN LƯỢT</span>}
-              </div>
-
-              <div className="horses-row">
-                {teamHorses.map(h => (
-                  <button
-                    key={h.id}
-                    className={`horse-btn ${h.step === -1 ? 'in-stable' : h.step >= 56 ? 'finished' : 'racing'} ${hasRolled && isTurn ? 'clickable' : ''}`}
-                    onClick={() => moveHorse(h)}
-                    disabled={!hasRolled || !isTurn}
-                  >
-                    <span className="horse-icon">🐎</span>
-                    <span className="horse-pos">
-                      {h.step === -1 ? 'Trong Chuồng' : h.step >= 56 ? 'Đã Về Đích 🏁' : `Ô ${h.step}/56`}
-                    </span>
-                  </button>
-                ))}
-              </div>
+      <div className="ludo-main-arena">
+        {/* BÀN CỜ CÁ NGỰA THỰC TẾ 15x15 CHUẨN QUỐC TẾ */}
+        <div className="ludo-authentic-board">
+          {/* 4 CHUỒNG NGỰA Ở 4 GÓC */}
+          <div className="ludo-corner-yard yard-red">
+            <span className="yard-title">🔴 Chuồng Đỏ</span>
+            <div className="yard-horses">
+              {horses.filter(h => h.team === 'red' && h.pos === -1).map(h => (
+                <button
+                  key={h.id}
+                  className={`yard-horse-btn ${currentTurn === 'red' && hasRolled ? 'can-deploy' : ''}`}
+                  onClick={() => handleHorseClick(h)}
+                >
+                  🐎
+                </button>
+              ))}
             </div>
-          );
-        })}
+          </div>
+
+          <div className="ludo-corner-yard yard-green">
+            <span className="yard-title">🟢 Chuồng Lá</span>
+            <div className="yard-horses">
+              {horses.filter(h => h.team === 'green' && h.pos === -1).map(h => (
+                <button
+                  key={h.id}
+                  className={`yard-horse-btn ${currentTurn === 'green' && hasRolled ? 'can-deploy' : ''}`}
+                  onClick={() => handleHorseClick(h)}
+                >
+                  🐎
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="ludo-corner-yard yard-yellow">
+            <span className="yard-title">🟡 Chuồng Vàng</span>
+            <div className="yard-horses">
+              {horses.filter(h => h.team === 'yellow' && h.pos === -1).map(h => (
+                <button
+                  key={h.id}
+                  className={`yard-horse-btn ${currentTurn === 'yellow' && hasRolled ? 'can-deploy' : ''}`}
+                  onClick={() => handleHorseClick(h)}
+                >
+                  🐎
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="ludo-corner-yard yard-blue">
+            <span className="yard-title">🔵 Chuồng Xanh</span>
+            <div className="yard-horses">
+              {horses.filter(h => h.team === 'blue' && h.pos === -1).map(h => (
+                <button
+                  key={h.id}
+                  className={`yard-horse-btn ${currentTurn === 'blue' && hasRolled ? 'can-deploy' : ''}`}
+                  onClick={() => handleHorseClick(h)}
+                >
+                  🐎
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ĐÍCH ĐẾN Ở TÂM BÀN CỜ */}
+          <div className="ludo-center-finish">
+            <span>🏁 ĐÍCH</span>
+          </div>
+
+          {/* CÁC Ô TRÊN ĐƯỜNG ĐUA 15x15 */}
+          {Array(15).fill(0).map((_, r) => (
+            <div key={r} className="ludo-board-row">
+              {Array(15).fill(0).map((_, c) => {
+                // Kiểm tra xem ô có thuộc 4 góc chuồng không
+                const isCorner =
+                  (r < 6 && c < 6) ||
+                  (r < 6 && c > 8) ||
+                  (r > 8 && c < 6) ||
+                  (r > 8 && c > 8) ||
+                  (r >= 6 && r <= 8 && c >= 6 && c <= 8);
+
+                if (isCorner) {
+                  return <div key={c} className="ludo-cell cell-invisible" />;
+                }
+
+                const horseOnCell = getHorseAt(r, c);
+                const isRedStart = r === 6 && c === 1;
+                const isGreenStart = r === 1 && c === 8;
+                const isYellowStart = r === 8 && c === 13;
+                const isBlueStart = r === 13 && c === 6;
+
+                const isRedStair = r === 7 && c >= 1 && c <= 5;
+                const isGreenStair = c === 7 && r >= 1 && r <= 5;
+                const isYellowStair = r === 7 && c >= 9 && c <= 13;
+                const isBlueStair = c === 7 && r >= 9 && r <= 13;
+
+                return (
+                  <div
+                    key={c}
+                    className={`ludo-cell ${isRedStart || isRedStair ? 'track-red' : ''} ${isGreenStart || isGreenStair ? 'track-green' : ''} ${isYellowStart || isYellowStair ? 'track-yellow' : ''} ${isBlueStart || isBlueStair ? 'track-blue' : ''}`}
+                  >
+                    {horseOnCell && (
+                      <button
+                        className={`board-horse-piece piece-${horseOnCell.team} ${hasRolled && horseOnCell.team === currentTurn ? 'can-move' : ''}`}
+                        onClick={() => handleHorseClick(horseOnCell)}
+                      >
+                        🐎
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* BẢNG ĐIỀU KHIỂN XÚC XẮC THỰC TẾ BÊN CẠNH */}
+        <div className="ludo-side-control">
+          <div className={`ludo-dice-3d ${isRolling ? 'rolling' : ''}`} onClick={rollDice}>
+            <span className="dice-number">{dice}</span>
+            <span className="dice-pips">{'🎲'.repeat(1)}</span>
+          </div>
+
+          <button
+            className="btn btn-primary dice-action-btn"
+            onClick={rollDice}
+            disabled={hasRolled || isRolling || !!winner}
+          >
+            {hasRolled ? '👉 Nhấp quân ngựa để đi' : '🎲 Lắc Xúc Xắc'}
+          </button>
+
+          <div className="ludo-guide-card">
+            <h4>Luật chơi:</h4>
+            <ul>
+              <li>🎲 Lắc ra <strong>1</strong> hoặc <strong>6</strong>: Được xuất chuồng.</li>
+              <li>⚡ Lắc ra <strong>6</strong>: Được thêm 1 lượt lắc.</li>
+              <li>💥 <strong>Đá ngựa:</strong> Đi vào ô đối thủ sẽ đá họ về chuồng!</li>
+              <li>🏁 Cả 2 ngựa về đích: <strong>Vô Địch</strong>.</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );

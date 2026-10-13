@@ -7,7 +7,7 @@ interface XiangqiGameProps {
 }
 
 type Side = 'red' | 'black';
-type XPieceType = 'k' | 'a' | 'e' | 'r' | 'c' | 'h' | 'p'; // king, advisor, elephant, rook, cannon, horse, pawn
+type XPieceType = 'k' | 'a' | 'e' | 'r' | 'c' | 'h' | 'p';
 
 interface XPiece {
   type: XPieceType;
@@ -31,7 +31,7 @@ const createPiece = (type: XPieceType, side: Side): XPiece => {
   };
 };
 
-const createInitialXiangqiBoard = (): XBoard => {
+const createInitialBoard = (): XBoard => {
   const b: XBoard = Array(10).fill(null).map(() => Array(9).fill(null));
 
   // Black (Hàng 0-3)
@@ -66,12 +66,15 @@ const createInitialXiangqiBoard = (): XBoard => {
 };
 
 export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) => {
-  const [board, setBoard] = useState<XBoard>(createInitialXiangqiBoard);
+  const [board, setBoard] = useState<XBoard>(createInitialBoard);
   const [turn, setTurn] = useState<Side>('red');
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(true);
+  const [lastMove, setLastMove] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
+
+  const inBoard = (nr: number, nc: number) => nr >= 0 && nr <= 9 && nc >= 0 && nc <= 8;
 
   const getValidMoves = (r: number, c: number, b: XBoard): [number, number][] => {
     const piece = b[r][c];
@@ -79,11 +82,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     const moves: [number, number][] = [];
     const side = piece.side;
 
-    const inBoard = (nr: number, nc: number) => nr >= 0 && nr <= 9 && nc >= 0 && nc <= 8;
-
-
     if (piece.type === 'r') {
-      // Xe
       const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
       dirs.forEach(([dr, dc]) => {
         let nr = r + dr, nc = c + dc;
@@ -98,18 +97,14 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         }
       });
     } else if (piece.type === 'c') {
-      // Pháo
       const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
       dirs.forEach(([dr, dc]) => {
         let nr = r + dr, nc = c + dc;
         let jumped = false;
         while (inBoard(nr, nc)) {
           if (!jumped) {
-            if (!b[nr][nc]) {
-              moves.push([nr, nc]);
-            } else {
-              jumped = true; // Gặp ngòi pháo
-            }
+            if (!b[nr][nc]) moves.push([nr, nc]);
+            else jumped = true;
           } else {
             if (b[nr][nc]) {
               if (b[nr][nc]?.side !== side) moves.push([nr, nc]);
@@ -120,7 +115,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         }
       });
     } else if (piece.type === 'h') {
-      // Mã (có cản chân mã)
       const hMoves = [
         { dr: -2, dc: -1, br: -1, bc: 0 },
         { dr: -2, dc: 1, br: -1, bc: 0 },
@@ -135,13 +129,10 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         const nr = r + m.dr, nc = c + m.dc;
         const blockR = r + m.br, blockC = c + m.bc;
         if (inBoard(nr, nc) && !b[blockR][blockC]) {
-          if (!b[nr][nc] || b[nr][nc]?.side !== side) {
-            moves.push([nr, nc]);
-          }
+          if (!b[nr][nc] || b[nr][nc]?.side !== side) moves.push([nr, nc]);
         }
       });
     } else if (piece.type === 'p') {
-      // Tốt
       const fDir = side === 'red' ? -1 : 1;
       const crossedRiver = side === 'red' ? r <= 4 : r >= 5;
       if (inBoard(r + fDir, c) && (!b[r + fDir][c] || b[r + fDir][c]?.side !== side)) {
@@ -155,7 +146,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         });
       }
     } else if (piece.type === 'k' || piece.type === 'a') {
-      // Tướng & Sĩ trong Cung (Red: 7..9, 3..5 | Black: 0..2, 3..5)
       const minR = side === 'red' ? 7 : 0;
       const maxR = side === 'red' ? 9 : 2;
       const dirs = piece.type === 'k' ? [[0, 1], [0, -1], [1, 0], [-1, 0]] : [[1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -166,7 +156,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         }
       });
     } else if (piece.type === 'e') {
-      // Tượng (đi chữ điền, không qua sông, cản mắt tượng)
       const minR = side === 'red' ? 5 : 0;
       const maxR = side === 'red' ? 9 : 4;
       const eMoves = [[2, 2], [2, -2], [-2, 2], [-2, -2]];
@@ -182,7 +171,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     return moves;
   };
 
-  const handleCellClick = (r: number, c: number) => {
+  const handlePointClick = (r: number, c: number) => {
     if (winner) return;
     if (vsAI && turn === 'black') return;
 
@@ -215,6 +204,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     newBoard[tr][tc] = piece;
     newBoard[sr][sc] = null;
     setBoard(newBoard);
+    setLastMove({ from: [sr, sc], to: [tr, tc] });
 
     if (target) {
       playSound('capture');
@@ -223,8 +213,8 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         setWinner(winSide);
         playSound('win');
         triggerConfetti();
-        showToast('success', `🎉 Tướng đối phương đã bị bắt! ${winSide} chiến thắng vinh quang!`);
-        if (piece.side === 'red' || !vsAI) onWin('Cờ Tướng', 50);
+        showToast('success', `🎉 Tướng đối phương đã bị bắt! ${winSide} chiến thắng vang dội!`);
+        if (piece.side === 'red' || !vsAI) onWin('Cờ Tướng', 60);
         return;
       }
     } else {
@@ -257,7 +247,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
               else if (target.type === 'h') score = 40;
               else score = 15;
             }
-            score += tr; // Tấn công về phía đỏ
+            score += tr;
             list.push({ sr: r, sc: c, tr, tc, score });
           });
         }
@@ -278,13 +268,14 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     newBoard[chosen.tr][chosen.tc] = piece;
     newBoard[chosen.sr][chosen.sc] = null;
     setBoard(newBoard);
+    setLastMove({ from: [chosen.sr, chosen.sc], to: [chosen.tr, chosen.tc] });
 
     if (target) {
       playSound('capture');
       if (target.type === 'k') {
         setWinner('Phe Đen (Máy)');
         playSound('error');
-        showToast('error', 'Máy đã bắt mất Tướng của bạn! Bạn đã thua.');
+        showToast('error', 'Máy đã chiếu bí bắt Tướng của bạn!');
         return;
       }
     } else {
@@ -295,22 +286,23 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
   };
 
   const resetGame = () => {
-    setBoard(createInitialXiangqiBoard());
+    setBoard(createInitialBoard());
     setTurn('red');
     setSelected(null);
     setValidMoves([]);
     setWinner(null);
+    setLastMove(null);
     playSound('click');
   };
 
   return (
-    <div className="game-wrapper xiangqi-container">
+    <div className="game-wrapper xiangqi-real-wrapper">
       <div className="game-top-bar">
         <div className="game-status-badge">
           {winner ? (
             <span className="win-announce">🏆 Thắng cuộc: <strong>{winner}</strong></span>
           ) : (
-            <span>Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ 帥' : 'Phe Đen 將'}</strong> {vsAI && turn === 'black' && '(Máy suy nghĩ...)'}</span>
+            <span>Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ (帥)' : 'Phe Đen (將)'}</strong> {vsAI && turn === 'black' && '(Máy suy nghĩ...)'}</span>
           )}
         </div>
 
@@ -322,31 +314,104 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
         </div>
       </div>
 
-      <div className="xiangqi-board-board">
-        <div className="xiangqi-grid">
-          {board.map((row, r) => (
-            <div key={r} className={`xiangqi-row ${r === 4 ? 'river-top' : ''} ${r === 5 ? 'river-bottom' : ''}`}>
-              {row.map((cell, c) => {
-                const isSelected = selected && selected[0] === r && selected[1] === c;
-                const isValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
+      {/* BÀN CỜ TƯỚNG CHUẨN THỰC TẾ GỖ MUN (10 HÀNG x 9 CỘT GIAO ĐIỂM) */}
+      <div className="xiangqi-real-board-container">
+        <div className="xiangqi-table-wood">
+          {/* Lớp nền SVG vẽ bàn cờ chuẩn, dòng sông, cung tướng */}
+          <svg className="xiangqi-svg-board" viewBox="0 0 540 600">
+            {/* Viền ngoài bàn cờ */}
+            <rect x="20" y="20" width="500" height="560" fill="#e7b579" stroke="#5c3818" strokeWidth="4" />
+            <rect x="28" y="28" width="484" height="544" fill="none" stroke="#7c4a20" strokeWidth="1.5" />
 
-                return (
-                  <div
-                    key={c}
-                    className={`xiangqi-cell ${isSelected ? 'selected' : ''} ${isValid ? 'valid' : ''}`}
-                    onClick={() => handleCellClick(r, c)}
-                  >
-                    {cell && (
-                      <div className={`xiangqi-piece piece-${cell.side}`}>
-                        <span className="piece-chinese">{cell.label}</span>
-                      </div>
-                    )}
-                    {isValid && !cell && <div className="xiangqi-dot" />}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+            {/* 10 Đường ngang */}
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(r => (
+              <line
+                key={`h-${r}`}
+                x1="35"
+                y1={35 + r * 58.8}
+                x2="505"
+                y2={35 + r * 58.8}
+                stroke="#683d16"
+                strokeWidth="1.8"
+              />
+            ))}
+
+            {/* 9 Đường dọc nửa trên (Hàng 0-4) */}
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(c => (
+              <line
+                key={`vt-${c}`}
+                x1={35 + c * 58.75}
+                y1="35"
+                x2={35 + c * 58.75}
+                y2={35 + 4 * 58.8}
+                stroke="#683d16"
+                strokeWidth="1.8"
+              />
+            ))}
+
+            {/* 9 Đường dọc nửa dưới (Hàng 5-9) */}
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(c => (
+              <line
+                key={`vb-${c}`}
+                x1={35 + c * 58.75}
+                y1={35 + 5 * 58.8}
+                x2={35 + c * 58.75}
+                y2={35 + 9 * 58.8}
+                stroke="#683d16"
+                strokeWidth="1.8"
+              />
+            ))}
+
+            {/* 2 Đường dọc biên chạy xuyên qua sông */}
+            <line x1="35" y1="35" x2="35" y2="564.2" stroke="#683d16" strokeWidth="2" />
+            <line x1="505" y1="35" x2="505" y2="564.2" stroke="#683d16" strokeWidth="2" />
+
+            {/* Cung Tướng Đen (chữ X hàng 0-2, cột 3-5) */}
+            <line x1={35 + 3 * 58.75} y1="35" x2={35 + 5 * 58.75} y2={35 + 2 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+            <line x1={35 + 5 * 58.75} y1="35" x2={35 + 3 * 58.75} y2={35 + 2 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+
+            {/* Cung Tướng Đỏ (chữ X hàng 7-9, cột 3-5) */}
+            <line x1={35 + 3 * 58.75} y1={35 + 7 * 58.8} x2={35 + 5 * 58.75} y2={35 + 9 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+            <line x1={35 + 5 * 58.75} y1={35 + 7 * 58.8} x2={35 + 3 * 58.75} y2={35 + 9 * 58.8} stroke="#683d16" strokeWidth="1.5" />
+
+            {/* Chữ Sông: Sở Hà - Hán Giới */}
+            <text x="135" y="306" fill="#84481d" fontSize="22" fontWeight="bold" fontFamily="serif" textAnchor="middle">楚　河</text>
+            <text x="405" y="306" fill="#84481d" fontSize="22" fontWeight="bold" fontFamily="serif" textAnchor="middle">漢　界</text>
+          </svg>
+
+          {/* Lớp điểm tương tác và quân cờ 3D đặt trực tiếp tại các giao điểm */}
+          <div className="xiangqi-intersections-grid">
+            {board.map((row, r) => (
+              <div key={r} className="xiangqi-i-row">
+                {row.map((cell, c) => {
+                  const isSelected = selected && selected[0] === r && selected[1] === c;
+                  const isValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
+                  const isFrom = lastMove && lastMove.from[0] === r && lastMove.from[1] === c;
+                  const isTo = lastMove && lastMove.to[0] === r && lastMove.to[1] === c;
+
+                  return (
+                    <div
+                      key={c}
+                      className={`xiangqi-point ${isSelected ? 'point-selected' : ''} ${isValid ? 'point-valid' : ''} ${isFrom || isTo ? 'point-last' : ''}`}
+                      onClick={() => handlePointClick(r, c)}
+                    >
+                      {/* Gợi ý nước đi nếu ô trống */}
+                      {isValid && !cell && <div className="xiangqi-move-marker" />}
+
+                      {/* Quân cờ 3D khắc gỗ */}
+                      {cell && (
+                        <div className={`real-xpiece real-xpiece-${cell.side} ${isSelected ? 'xpiece-active' : ''}`}>
+                          <div className="xpiece-bevel">
+                            <span className="xpiece-text">{cell.label}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
