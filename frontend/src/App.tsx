@@ -459,29 +459,66 @@ export default function App() {
         ))}
       </div>
 
-      {/* TOP NAVBAR: THANH ĐIỀU HƯỚNG CHÍNH */}
+      {/* TOP NAVBAR: THANH ĐIỀU HƯỚNG HIỆN ĐẠI, TINH GỌN (TẤT CẢ TRONG 1 THANH) */}
       <header className="hub-navbar glass-panel">
         <div className="brand-section">
-          <span className="brand-logo-glow">{currentUser.avatar || '🕹️'}</span>
-          <div className="brand-heading">
-            <h1>GAMECHAT HUB</h1>
-            <p>
-              {currentRoom ? (
-                <span style={{ color: '#34d399', fontWeight: 600 }}>
-                  🟢 PHÒNG [{currentRoom.roomCode}] {currentRoom.invitedFullName ? `• Lời mời riêng: ${currentRoom.invitedFullName}` : '• Tự do'}
-                </span>
-              ) : (
-                <span>🤖 Chế Độ Luyện Tập (Chơi với AI)</span>
-              )}
-            </p>
+          <div className="brand-logo-pill">
+            <span className="brand-icon">{currentUser.avatar || '🎮'}</span>
+            <div className="brand-text-block">
+              <span className="brand-title">GameHub</span>
+              <span className="brand-user">@{currentUser.username}</span>
+            </div>
+          </div>
+          <div className="user-score-badge" title="Điểm số tích lũy">
+            ⭐ {currentUser.score}
           </div>
         </div>
 
-        <div className="user-status-bar">
-          <button className="btn btn-secondary btn-sm" onClick={() => setHelpModalOpen(true)} title="Xem hướng dẫn cách chơi">
-            ❓ Hướng Dẫn
+        {/* BỘ CHỌN TRÒ CHƠI DẠNG SEGMENTED PILL GỌN GÀNG TRÊN THANH ĐIỀU HƯỚNG */}
+        <nav className="game-nav-segmented">
+          <button
+            className={`game-nav-btn ${activeGame === 'caro' ? 'active' : ''}`}
+            onClick={() => { setActiveGame('caro'); playSound('click'); }}
+            title="Cờ Ca-ro 15x15"
+          >
+            <span className="nav-icon">⭕</span> <span className="nav-label">Ca-ro</span>
           </button>
 
+          <button
+            className={`game-nav-btn ${activeGame === 'chess' ? 'active' : ''}`}
+            onClick={() => { setActiveGame('chess'); playSound('click'); }}
+            title="Cờ Vua Tiêu Chuẩn"
+          >
+            <span className="nav-icon">♔</span> <span className="nav-label">Cờ Vua</span>
+          </button>
+
+          <button
+            className={`game-nav-btn ${activeGame === 'xiangqi' ? 'active' : ''}`}
+            onClick={() => { setActiveGame('xiangqi'); playSound('click'); }}
+            title="Cờ Tướng Sở Hà"
+          >
+            <span className="nav-icon">帥</span> <span className="nav-label">Cờ Tướng</span>
+          </button>
+
+          <button
+            className={`game-nav-btn ${activeGame === 'ludo' ? 'active' : ''}`}
+            onClick={() => { setActiveGame('ludo'); playSound('click'); }}
+            title="Cờ Cá Ngựa 15x15"
+          >
+            <span className="nav-icon">🐎</span> <span className="nav-label">Cá Ngựa</span>
+          </button>
+
+          <button
+            className={`game-nav-btn ${activeGame === '2048' ? 'active' : ''}`}
+            onClick={() => { setActiveGame('2048'); playSound('click'); }}
+            title="2048 Arcade"
+          >
+            <span className="nav-icon">🔢</span> <span className="nav-label">2048</span>
+          </button>
+        </nav>
+
+        {/* CÁC NÚT THAO TÁC TIỆN ÍCH */}
+        <div className="hub-actions">
           {!currentRoom && (
             <>
               <button className="btn btn-primary btn-sm" onClick={() => setRoomModalOpen(true)}>
@@ -493,150 +530,89 @@ export default function App() {
             </>
           )}
 
-          <div className="score-badge" title="Điểm tích lũy trên MySQL">⭐ {currentUser.score}</div>
-          <div className="wins-badge" title="Số trận thắng">🏆 {currentUser.wins}</div>
-
-          <button className="btn btn-secondary btn-sm" onClick={openLeaderboard} title="Xem cao thủ">
-            🥇 BXH
+          <button className="btn btn-secondary btn-sm" onClick={openLeaderboard} title="Bảng xếp hạng">
+            🏆 BXH
           </button>
 
-          <button className="btn btn-danger btn-sm" onClick={handleLogout} title="Đăng xuất">
+          <button className="btn btn-secondary btn-sm" onClick={() => setHelpModalOpen(true)} title="Hướng dẫn">
+            ❓
+          </button>
+
+          {/* CHUYỂN ĐỔI CHẾ ĐỘ XEM: GAME + CHAT / TOÀN MÀN HÌNH */}
+          <div className="view-mode-selector">
+            <button
+              className={`mode-btn ${viewMode === 'split' ? 'active' : ''}`}
+              onClick={() => setViewMode('split')}
+              title="Vừa chơi vừa chat song song"
+            >
+              🔀
+            </button>
+            <button
+              className={`mode-btn ${viewMode === 'game' ? 'active' : ''}`}
+              onClick={() => setViewMode('game')}
+              title="Toàn màn hình Bàn cờ"
+            >
+              🎮
+            </button>
+            <button
+              className={`mode-btn ${viewMode === 'chat' ? 'active' : ''}`}
+              onClick={() => setViewMode('chat')}
+              title="Toàn màn hình Phòng Chat"
+            >
+              💬
+            </button>
+          </div>
+
+          <button className="btn btn-logout btn-sm" onClick={handleLogout} title="Đăng xuất">
             Thoát
           </button>
         </div>
       </header>
 
-      {/* MATCH CENTER SCOREBOARD: HIỂN THỊ KHI ĐANG TRONG PHÒNG ONLINE */}
-      {currentRoom ? (
-        <div className="room-scoreboard-banner glass-panel">
-          <div className="room-code-badge">
-            <span>PHÒNG:</span> <strong>{currentRoom.roomCode}</strong>
+      {/* THANH THÔNG TIN TRẬN ĐẤU (CHỈ HIỂN THỊ KHI ĐANG TRONG PHÒNG ONLINE) */}
+      {currentRoom && (
+        <div className="room-match-strip glass-panel">
+          <div className="strip-left">
+            <span className="strip-tag">PHÒNG ONLINE</span>
+            <strong className="room-code-text">{currentRoom.roomCode}</strong>
             <button
-              className="copy-code-btn"
-              onClick={() => { navigator.clipboard.writeText(currentRoom.roomCode); showToast('info', 'Đã sao chép mã phòng vào clipboard!'); }}
+              className="strip-copy-btn"
+              onClick={() => { navigator.clipboard.writeText(currentRoom.roomCode); showToast('info', 'Đã sao chép mã phòng!'); }}
               title="Sao chép mã phòng"
             >
-              📋 Sao chép
+              📋
             </button>
           </div>
 
-          <div className="match-scoreboard-display">
-            <div className={`player-side ${isHost ? 'my-side-active' : ''}`}>
-              <span className="p-badge">{isHost ? 'Bạn (Chủ Phòng)' : 'Chủ Phòng'}</span>
-              <span className="p-name">{currentRoom.hostFullName}</span>
-              <span className="p-score">{currentRoom.hostScore}</span>
+          <div className="strip-center">
+            <div className={`strip-player ${isHost ? 'active-player' : ''}`}>
+              <span className="p-title">{isHost ? 'Bạn (Chủ)' : 'Chủ'}</span>
+              <span className="p-fullname">{currentRoom.hostFullName}</span>
+              <span className="p-score-pill">{currentRoom.hostScore}</span>
             </div>
-
-            <div className="scoreboard-vs">
-              <span style={{ fontSize: '12px', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {currentRoom.guestUserId
-                  ? '⚡ ĐỐI KHÁNG TRỰC TIẾP ⚡'
-                  : (currentRoom.invitedFullName ? `🔒 ĐỢI [${currentRoom.invitedFullName}] VÀO...` : '⏳ ĐANG ĐỢI KHÁCH...')}
-              </span>
-            </div>
-
-            <div className={`player-side ${!isHost && currentRoom.guestUserId ? 'my-side-active' : ''}`}>
-              <span className="p-score">{currentRoom.guestScore}</span>
-              <span className="p-name">{currentRoom.guestFullName || (currentRoom.invitedFullName ? `(${currentRoom.invitedFullName})` : '(Chờ đối thủ)')}</span>
-              <span className="p-badge">{!isHost && currentRoom.guestUserId ? 'Bạn (Khách)' : 'Khách Đấu'}</span>
+            <span className="strip-vs">VS</span>
+            <div className={`strip-player ${!isHost && currentRoom.guestUserId ? 'active-player' : ''}`}>
+              <span className="p-score-pill">{currentRoom.guestScore}</span>
+              <span className="p-fullname">{currentRoom.guestFullName || (currentRoom.invitedFullName ? `(${currentRoom.invitedFullName})` : 'Đang đợi...')}</span>
+              <span className="p-title">{!isHost && currentRoom.guestUserId ? 'Bạn (Khách)' : 'Khách'}</span>
             </div>
           </div>
 
-          <div className="room-controls">
+          <div className="strip-right">
             {isHost && !currentRoom.guestUserId && (
-              <button className="btn btn-primary btn-sm" onClick={loadUsersAndOpenInviteModal} title="Chọn người chơi bạn muốn mời vào phòng">
-                👥 {currentRoom.invitedFullName ? 'Đổi Người Mời' : 'Chọn Người Mời'}
+              <button className="btn btn-primary btn-sm" onClick={loadUsersAndOpenInviteModal}>
+                👥 Mời Bạn
               </button>
             )}
             <button
               className="btn btn-danger btn-sm"
-              onClick={() => { setCurrentRoom(null); showToast('info', 'Bạn đã rời phòng đấu online.'); }}
+              onClick={() => { setCurrentRoom(null); showToast('info', 'Bạn đã rời phòng.'); }}
             >
               🚪 Rời Phòng
             </button>
           </div>
         </div>
-      ) : (
-        /* BANNER HƯỚNG DẪN KHI CHƯA VÀO PHÒNG */
-        <div className="mode-explain-bar glass-panel">
-          <div className="mode-explain-text">
-            <span>💡 <strong>MẸO CHƠI:</strong> Bạn đang ở chế độ <strong>Tự Luyện (đấu với AI)</strong>. Muốn đấu online cùng bạn bè?</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => setRoomModalOpen(true)}>
-              ➕ Mở Phòng Đấu Mới
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={openJoinModal}>
-              🚪 Nhập Mã Vào Phòng
-            </button>
-          </div>
-        </div>
       )}
-
-      {/* GAME TABS & LAYOUT SWITCHER */}
-      <div className="game-tabs-bar glass-panel">
-        <div className="game-tabs-list">
-          <button
-            className={`game-tab ${activeGame === 'caro' ? 'active' : ''}`}
-            onClick={() => { setActiveGame('caro'); playSound('click'); }}
-          >
-            ⭕ Cờ Ca-ro (15x15)
-          </button>
-
-          <button
-            className={`game-tab ${activeGame === 'chess' ? 'active' : ''}`}
-            onClick={() => { setActiveGame('chess'); playSound('click'); }}
-          >
-            ♔ Cờ Vua (Quốc Tế)
-          </button>
-
-          <button
-            className={`game-tab ${activeGame === 'xiangqi' ? 'active' : ''}`}
-            onClick={() => { setActiveGame('xiangqi'); playSound('click'); }}
-          >
-            帥 Cờ Tướng (Sở Hà)
-          </button>
-
-          <button
-            className={`game-tab ${activeGame === 'ludo' ? 'active' : ''}`}
-            onClick={() => { setActiveGame('ludo'); playSound('click'); }}
-          >
-            🐎 Cờ Cá Ngựa (15x15)
-          </button>
-
-          <button
-            className={`game-tab ${activeGame === '2048' ? 'active' : ''}`}
-            onClick={() => { setActiveGame('2048'); playSound('click'); }}
-          >
-            🔢 2048 Arcade
-          </button>
-        </div>
-
-        {/* Chế độ hiển thị Song Song / Toàn màn hình */}
-        <div className="view-mode-selector">
-          <button
-            className={`mode-btn ${viewMode === 'split' ? 'active' : ''}`}
-            onClick={() => setViewMode('split')}
-            title="Vừa chơi game vừa chat song song"
-          >
-            🔀 Game + Chat
-          </button>
-          <button
-            className={`mode-btn ${viewMode === 'game' ? 'active' : ''}`}
-            onClick={() => setViewMode('game')}
-            title="Toàn màn hình bàn cờ"
-          >
-            🎮 Bàn Cờ
-          </button>
-          <button
-            className={`mode-btn ${viewMode === 'chat' ? 'active' : ''}`}
-            onClick={() => setViewMode('chat')}
-            title="Màn hình phòng chat"
-          >
-            💬 Phòng Chat
-          </button>
-        </div>
-      </div>
 
       {/* ARENA: GAME & CHAT CONTAINER */}
       <main className={`arena-grid layout-${viewMode}`}>

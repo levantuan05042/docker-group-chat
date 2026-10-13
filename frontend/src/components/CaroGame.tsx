@@ -475,6 +475,7 @@ export const CaroGame: React.FC<CaroGameProps> = ({
               {row.map((cell, c) => {
                 const isWinCell = winLine.some(([wr, wc]) => wr === r && wc === c);
                 const isLast = lastMove && lastMove[0] === r && lastMove[1] === c;
+                const isStar = (r === 3 && c === 3) || (r === 3 && c === 11) || (r === 7 && c === 7) || (r === 11 && c === 3) || (r === 11 && c === 11);
                 return (
                   <button
                     key={c}
@@ -482,6 +483,7 @@ export const CaroGame: React.FC<CaroGameProps> = ({
                     onClick={() => handleClick(r, c)}
                     disabled={!!cell || !!winner || (isOnline ? !isMyTurn : (vsAI && turn === 'O'))}
                   >
+                    {isStar && !cell && <span className="caro-star-point" />}
                     {cell && (
                       <span className={`mark mark-${cell.toLowerCase()}`}>
                         {cell}
