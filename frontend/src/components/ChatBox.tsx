@@ -6,11 +6,20 @@ import { playSound } from '../utils/effects';
 interface ChatBoxProps {
   currentUser: User;
   currentGame: string;
+  currentRoomCode?: string | null;
+  onJoinRoom?: (code: string) => void;
+  onInviteRoom?: () => void;
 }
 
 const EMOJIS = ['😀', '🔥', '🏆', '👏', '🎮', '🎲', '👑', '💥', '🐎', '♟️', '😎', '🎉'];
 
-export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) => {
+export const ChatBox: React.FC<ChatBoxProps> = ({
+  currentUser,
+  currentGame,
+  currentRoomCode,
+  onJoinRoom,
+  onInviteRoom
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputVal, setInputVal] = useState('');
   const [sending, setSending] = useState(false);
@@ -27,7 +36,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) =>
 
   useEffect(() => {
     loadMessages();
-    const interval = setInterval(loadMessages, 2500); // Poll every 2.5s for realtime feel
+    const interval = setInterval(loadMessages, 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -65,6 +74,11 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) =>
     setInputVal(prev => prev + em);
   };
 
+  const extractRoomCode = (text: string): string | null => {
+    const match = text.match(/\[(ROOM-\d{4})\]/);
+    return match ? match[1] : null;
+  };
+
   return (
     <div className="chatbox-container glass-panel">
       <div className="chatbox-header">
@@ -72,7 +86,14 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) =>
           <span className="live-dot" />
           <h3>PHÒNG CHAT TRỰC TUYẾN</h3>
         </div>
-        <span className="room-tag">🏷️ {currentGame}</span>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {currentRoomCode && (
+            <button className="btn btn-primary btn-sm" onClick={onInviteRoom} title="Mời mọi người vào phòng">
+              📢 Mời Chat
+            </button>
+          )}
+          <span className="room-tag">🏷️ {currentGame}</span>
+        </div>
       </div>
 
       <div className="chat-messages-area">
@@ -81,13 +102,25 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) =>
         ) : (
           messages.map(msg => {
             const isMe = msg.userId === currentUser.id;
-            const isSystem = msg.gameTag === 'Hệ Thống';
+            const isSystem = msg.gameTag === 'Hệ Thống' || msg.gameTag === 'Thách Đấu';
+            const roomCode = extractRoomCode(msg.message);
 
             if (isSystem) {
               return (
-                <div key={msg.id} className="system-msg">
-                  <span className="system-icon">📢</span>
-                  <span>{msg.message}</span>
+                <div key={msg.id} className="system-msg" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span className="system-icon">{msg.gameTag === 'Thách Đấu' ? '⚔️' : '📢'}</span>
+                    <span>{msg.message}</span>
+                  </div>
+                  {roomCode && onJoinRoom && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '6px', alignSelf: 'flex-end', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                      onClick={() => onJoinRoom(roomCode)}
+                    >
+                      ⚔️ Tham Gia Phòng [{roomCode}] Ngay
+                    </button>
+                  )}
                 </div>
               );
             }
@@ -103,6 +136,15 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ currentUser, currentGame }) =>
                     </div>
                   )}
                   <div className="bubble-text">{msg.message}</div>
+                  {roomCode && onJoinRoom && !isMe && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '6px', fontSize: '11px', padding: '4px 8px' }}
+                      onClick={() => onJoinRoom(roomCode)}
+                    >
+                      ⚔️ Vào Chơi Ngay [{roomCode}]
+                    </button>
+                  )}
                 </div>
               </div>
             );

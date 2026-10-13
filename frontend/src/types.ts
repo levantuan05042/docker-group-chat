@@ -21,6 +21,23 @@ export interface ChatMessage {
 
 export type GameType = 'caro' | 'xiangqi' | 'chess' | 'ludo' | '2048';
 
+export interface GameRoom {
+  id: number;
+  roomCode: string;
+  gameType: GameType;
+  hostUserId: number;
+  hostUsername: string;
+  hostFullName: string;
+  guestUserId: number | null;
+  guestUsername: string | null;
+  guestFullName: string | null;
+  hostScore: number;
+  guestScore: number;
+  status: 'WAITING' | 'PLAYING' | 'FINISHED';
+  gameState: string | null;
+  createdAt: string;
+}
+
 export interface ToastNotification {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';

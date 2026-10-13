@@ -1,6 +1,17 @@
-import React, { useState } from 'react';
-import type { User, GameType, ToastNotification } from './types';
-import { loginUser, registerUser, reportGameWin, fetchLeaderboard } from './api';
+import React, { useState, useEffect } from 'react';
+import type { User, GameType, ToastNotification, GameRoom } from './types';
+import {
+  loginUser,
+  registerUser,
+  reportGameWin,
+  fetchLeaderboard,
+  createGameRoom,
+  joinGameRoom,
+  fetchGameRoom,
+  syncGameRoom,
+  fetchWaitingRooms,
+  sendChatMessage
+} from './api';
 import { playSound, triggerConfetti } from './utils/effects';
 import { CaroGame } from './components/CaroGame';
 import { ChessGame } from './components/ChessGame';
@@ -34,6 +45,13 @@ export default function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<User[]>([]);
 
+  // Room Management State
+  const [currentRoom, setCurrentRoom] = useState<GameRoom | null>(null);
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [waitingRooms, setWaitingRooms] = useState<GameRoom[]>([]);
+  const [inputRoomCode, setInputRoomCode] = useState('');
+
   // Show dynamic Toast notification
   const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -42,6 +60,22 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
+
+  // Poll room updates if inside a room
+  useEffect(() => {
+    if (!currentRoom) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await fetchGameRoom(currentRoom.roomCode);
+        setCurrentRoom(latest);
+      } catch (e) {
+        // Room might have been closed
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [currentRoom?.roomCode]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +88,7 @@ export default function App() {
         showToast('success', `Chào mừng ${user.fullName || user.username} trở lại đấu trường GameChat! 🎉`);
       } else {
         user = await registerUser(authUsername, authPassword, authFullName, authEmail);
-        showToast('success', 'Đăng ký thành công! Mật khẩu của bạn đã được mã hóa BCrypt an toàn. 🛡️');
+        showToast('success', 'Đăng ký thành công! Mật khẩu được mã hóa BCrypt an toàn. 🛡️');
       }
       playSound('win');
       triggerConfetti();
@@ -71,19 +105,110 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('gamechat_user');
     setCurrentUser(null);
+    setCurrentRoom(null);
     playSound('click');
     showToast('info', 'Bạn đã đăng xuất khỏi hệ thống.');
   };
 
-  // Record Game Win to MySQL and update player stats
+  // Create Room
+  const handleCreateRoom = async (gameType: GameType) => {
+    if (!currentUser) return;
+    try {
+      const room = await createGameRoom(
+        gameType,
+        currentUser.id,
+        currentUser.username,
+        currentUser.fullName || currentUser.username
+      );
+      setCurrentRoom(room);
+      setActiveGame(gameType);
+      setRoomModalOpen(false);
+      playSound('win');
+      showToast('success', `Tạo phòng thành công! Mã phòng của bạn: [${room.roomCode}]. Đã phát lời mời vào chat! 📢`);
+    } catch (err: any) {
+      showToast('error', err.message || 'Không thể tạo phòng!');
+    }
+  };
+
+  // Join Room
+  const handleJoinRoom = async (code: string) => {
+    if (!currentUser) return;
+    const cleanCode = code.trim().toUpperCase();
+    try {
+      const room = await joinGameRoom(
+        cleanCode,
+        currentUser.id,
+        currentUser.username,
+        currentUser.fullName || currentUser.username
+      );
+      setCurrentRoom(room);
+      setActiveGame(room.gameType);
+      setJoinModalOpen(false);
+      setInputRoomCode('');
+      playSound('move');
+      showToast('success', `Đã tham gia phòng [${room.roomCode}] đối đầu với ${room.hostFullName}! ⚔️`);
+    } catch (err: any) {
+      showToast('error', err.message || 'Không thể tham gia phòng!');
+    }
+  };
+
+  // Open Join Modal with Waiting Rooms List
+  const openJoinModal = async () => {
+    try {
+      const rooms = await fetchWaitingRooms();
+      setWaitingRooms(rooms);
+      setJoinModalOpen(true);
+      playSound('click');
+    } catch (e) {
+      showToast('error', 'Không thể tải danh sách phòng chờ!');
+    }
+  };
+
+  // Invite to Chat
+  const handleInviteToChat = async () => {
+    if (!currentUser || !currentRoom) return;
+    try {
+      const msg = `⚔️ [THÁCH ĐẤU]: ${currentUser.fullName || currentUser.username} đang chờ đối thủ tại phòng [${currentRoom.roomCode}] - trò ${currentRoom.gameType.toUpperCase()}! Bấm vào để chiến ngay!`;
+      await sendChatMessage(
+        currentUser.id,
+        currentUser.username,
+        currentUser.fullName || currentUser.username,
+        currentUser.avatar || '🎮',
+        msg,
+        'Thách Đấu'
+      );
+      showToast('success', 'Đã phát lời mời thách đấu vào phòng Chat! 📢');
+    } catch (e) {
+      showToast('error', 'Lỗi khi gửi lời mời!');
+    }
+  };
+
+  // Record Game Win to MySQL and update match score
   const handleGameWin = async (gameName: string, bonus: number) => {
     if (!currentUser) return;
+
+    // Cập nhật điểm cá nhân
     try {
       const res = await reportGameWin(currentUser.id, gameName, bonus);
       setCurrentUser(prev => prev ? { ...prev, score: res.score, wins: res.wins } : null);
-      showToast('success', `Cộng +${bonus} điểm thưởng vào tài khoản MySQL! Tổng điểm: ${res.score} ⭐`);
+      showToast('success', `Cộng +${bonus} điểm thưởng vào MySQL! Tổng điểm: ${res.score} ⭐`);
     } catch (e) {
       console.error(e);
+    }
+
+    // Cập nhật Tỷ số trận đấu nếu đang trong phòng
+    if (currentRoom) {
+      const isHost = currentRoom.hostUserId === currentUser.id;
+      const newHostScore = isHost ? currentRoom.hostScore + 1 : currentRoom.hostScore;
+      const newGuestScore = !isHost ? currentRoom.guestScore + 1 : currentRoom.guestScore;
+
+      try {
+        const synced = await syncGameRoom(currentRoom.roomCode, newHostScore, newGuestScore);
+        setCurrentRoom(synced);
+        showToast('info', `Tỷ số cập nhật: ${synced.hostFullName} (${synced.hostScore}) - (${synced.guestScore}) ${synced.guestFullName || 'Khách'}`);
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -102,7 +227,6 @@ export default function App() {
   if (!currentUser) {
     return (
       <div className="app-wrapper">
-        {/* Toast Container */}
         <div className="toast-container">
           {toasts.map(t => (
             <div key={t.id} className={`toast-item toast-${t.type}`}>
@@ -115,13 +239,13 @@ export default function App() {
         <div className="auth-wrapper">
           <div className="auth-card glass-panel">
             <div className="auth-header">
-              <span style={{ fontSize: '46px', display: 'block', marginBottom: '8px' }}>🕹️</span>
+              <span style={{ fontSize: '42px', display: 'block', marginBottom: '8px' }}>🕹️</span>
               <h2>GAMECHAT HUB</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                Đấu Trường Cờ &amp; Minigames Trực Tuyến • Chat Realtime
+              <p style={{ color: 'var(--text-muted)', fontSize: '13.5px' }}>
+                Đấu Trường Cờ Đối Kháng &amp; Chat Trực Tuyến
               </p>
               <div style={{ marginTop: '8px', display: 'inline-block', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', color: '#a5b4fc' }}>
-                🔒 Bảo mật mật khẩu bằng thuật toán BCrypt
+                🔒 Mật khẩu được mã hóa an toàn bằng thuật toán BCrypt
               </div>
             </div>
 
@@ -168,13 +292,13 @@ export default function App() {
 
                   <div className="form-group">
                     <label>Chọn biểu tượng Avatar</label>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                       {AVATARS.map(av => (
                         <button
                           key={av}
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '20px', padding: '6px 10px', border: authAvatar === av ? '2px solid #6366f1' : '1px solid var(--border-color)' }}
+                          style={{ fontSize: '18px', padding: '4px 8px', border: authAvatar === av ? '2px solid #6366f1' : '1px solid var(--border-subtle)' }}
                           onClick={() => setAuthAvatar(av)}
                         >
                           {av}
@@ -246,23 +370,66 @@ export default function App() {
           <span className="brand-logo-glow">{currentUser.avatar || '🕹️'}</span>
           <div className="brand-heading">
             <h1>GAMECHAT HUB</h1>
-            <p>Vừa Đấu Cờ Đỉnh Cao • Vừa Giao Lưu Nhắn Tin</p>
+            <p>Đấu Trường Trực Tuyến • Tỷ Số Realtime</p>
           </div>
         </div>
 
         <div className="user-status-bar">
-          <div className="score-badge">⭐ {currentUser.score} Điểm</div>
-          <div className="wins-badge">🏆 {currentUser.wins} Thắng</div>
+          <button className="btn btn-primary btn-sm" onClick={() => setRoomModalOpen(true)}>
+            ➕ Tạo Phòng
+          </button>
 
-          <button className="btn btn-secondary btn-sm" onClick={openLeaderboard}>
-            🥇 Bảng Xếp Hạng
+          <button className="btn btn-secondary btn-sm" onClick={openJoinModal}>
+            🚪 Vào Phòng
+          </button>
+
+          <div className="score-badge">⭐ {currentUser.score}</div>
+          <div className="wins-badge">🏆 {currentUser.wins}</div>
+
+          <button className="btn btn-secondary btn-sm" onClick={openLeaderboard} title="Xem cao thủ">
+            🥇 BXH
           </button>
 
           <button className="btn btn-danger btn-sm" onClick={handleLogout} title="Đăng xuất">
-            Đăng xuất
+            Thoát
           </button>
         </div>
       </header>
+
+      {/* SCOREBOARD BANNER (NẾU ĐANG TRONG PHÒNG ĐẤU) */}
+      {currentRoom && (
+        <div className="room-scoreboard-banner glass-panel">
+          <div className="room-code-badge">
+            <span>MÃ PHÒNG:</span> <strong>{currentRoom.roomCode}</strong>
+            <button className="copy-code-btn" onClick={() => { navigator.clipboard.writeText(currentRoom.roomCode); showToast('info', 'Đã chép mã phòng!'); }}>📋</button>
+          </div>
+
+          <div className="match-scoreboard-display">
+            <div className="player-side host-side">
+              <span className="p-badge">Chủ Phòng</span>
+              <span className="p-name">{currentRoom.hostFullName}</span>
+              <span className="p-score">{currentRoom.hostScore}</span>
+            </div>
+
+            <div className="scoreboard-vs">⚡ TỶ SỐ ⚡</div>
+
+            <div className="player-side guest-side">
+              <span className="p-score">{currentRoom.guestScore}</span>
+              <span className="p-name">{currentRoom.guestFullName || '(Đang chờ đối thủ...)'}</span>
+              <span className="p-badge">{currentRoom.guestFullName ? 'Khách' : 'Trống'}</span>
+            </div>
+          </div>
+
+          <div className="room-controls">
+            <button className="btn btn-primary btn-sm" onClick={handleInviteToChat}>
+              📢 Mời Vào Chat
+            </button>
+            <button className="btn btn-danger btn-sm" onClick={() => { setCurrentRoom(null); showToast('info', 'Đã rời phòng đấu.'); }}>
+              Rời Phòng
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* GAME SELECTOR TABS & LAYOUT SWITCHER */}
       <div className="game-tabs-bar glass-panel">
@@ -292,7 +459,7 @@ export default function App() {
             className={`game-tab ${activeGame === 'ludo' ? 'active' : ''}`}
             onClick={() => { setActiveGame('ludo'); playSound('click'); }}
           >
-            🐎 Cờ Cá Ngựa (4 Đội)
+            🐎 Cờ Cá Ngựa (15x15)
           </button>
 
           <button
@@ -357,9 +524,90 @@ export default function App() {
           <ChatBox
             currentUser={currentUser}
             currentGame={getGameTitle(activeGame)}
+            currentRoomCode={currentRoom?.roomCode}
+            onJoinRoom={handleJoinRoom}
+            onInviteRoom={handleInviteToChat}
           />
         )}
       </main>
+
+      {/* MODAL TẠO PHÒNG MỚI */}
+      {roomModalOpen && (
+        <div className="modal-overlay" onClick={() => setRoomModalOpen(false)}>
+          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>➕ TẠO PHÒNG ĐẤU MỚI</h2>
+              <button className="btn btn-secondary btn-sm" onClick={() => setRoomModalOpen(false)}>✕</button>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Chọn trò chơi bạn muốn mở phòng. Hệ thống sẽ tự động phát lời mời kèm mã phòng vào phòng Chat!
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button className="btn btn-secondary" onClick={() => handleCreateRoom('caro')}>
+                ⭕ Cờ Ca-ro
+              </button>
+              <button className="btn btn-secondary" onClick={() => handleCreateRoom('chess')}>
+                ♔ Cờ Vua
+              </button>
+              <button className="btn btn-secondary" onClick={() => handleCreateRoom('xiangqi')}>
+                帥 Cờ Tướng
+              </button>
+              <button className="btn btn-secondary" onClick={() => handleCreateRoom('ludo')}>
+                🐎 Cờ Cá Ngựa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL THAM GIA PHÒNG */}
+      {joinModalOpen && (
+        <div className="modal-overlay" onClick={() => setJoinModalOpen(false)}>
+          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🚪 THAM GIA PHÒNG ĐẤU</h2>
+              <button className="btn btn-secondary btn-sm" onClick={() => setJoinModalOpen(false)}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nhập mã phòng (ví dụ: ROOM-1234)"
+                value={inputRoomCode}
+                onChange={e => setInputRoomCode(e.target.value)}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={() => handleJoinRoom(inputRoomCode)}
+                disabled={!inputRoomCode.trim()}
+              >
+                Vào Phòng
+              </button>
+            </div>
+
+            <h4 style={{ fontSize: '13px', color: '#93c5fd', marginBottom: '10px' }}>Phòng Đang Chờ Đối Thủ:</h4>
+            {waitingRooms.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Hiện chưa có phòng nào đang mở. Hãy là người đầu tiên tạo phòng!</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                {waitingRooms.map(r => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px' }}>
+                    <div>
+                      <strong>[{r.roomCode}]</strong> • Trò: <span style={{ color: '#fbbf24' }}>{r.gameType.toUpperCase()}</span>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Chủ phòng: {r.hostFullName}</div>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleJoinRoom(r.roomCode)}>
+                      Vào Chơi ⚔️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* LEADERBOARD MODAL */}
       {leaderboardOpen && (
@@ -399,7 +647,7 @@ export default function App() {
               </tbody>
             </table>
 
-            <div style={{ marginTop: '20px', textAlign: 'right' }}>
+            <div style={{ marginTop: '16px', textAlign: 'right' }}>
               <button className="btn btn-primary" onClick={() => setLeaderboardOpen(false)}>Đóng</button>
             </div>
           </div>

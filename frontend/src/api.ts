@@ -1,4 +1,4 @@
-import type { ChatMessage, User } from './types';
+import type { ChatMessage, GameRoom, User } from './types';
 
 const isLocalDev = typeof window !== 'undefined' && window.location.port === '5173';
 const API_BASE = import.meta.env.VITE_API_URL || (isLocalDev ? 'http://localhost:8080/api' : '/api');
@@ -63,5 +63,68 @@ export async function reportGameWin(userId: number, gameName: string, score: num
 export async function fetchLeaderboard(): Promise<User[]> {
   const res = await fetch(`${API_BASE}/leaderboard`);
   if (!res.ok) throw new Error('Không thể tải bảng xếp hạng!');
+  return res.json();
+}
+
+// Room Management APIs
+export async function createGameRoom(
+  gameType: string,
+  hostUserId: number,
+  hostUsername: string,
+  hostFullName: string
+): Promise<GameRoom> {
+  const res = await fetch(`${API_BASE}/rooms/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gameType, hostUserId, hostUsername, hostFullName })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Tạo phòng thất bại!');
+  return data;
+}
+
+export async function joinGameRoom(
+  roomCode: string,
+  guestUserId: number,
+  guestUsername: string,
+  guestFullName: string
+): Promise<GameRoom> {
+  const res = await fetch(`${API_BASE}/rooms/join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomCode, guestUserId, guestUsername, guestFullName })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Tham gia phòng thất bại!');
+  return data;
+}
+
+export async function fetchGameRoom(roomCode: string): Promise<GameRoom> {
+  const res = await fetch(`${API_BASE}/rooms/${roomCode}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Không tìm thấy phòng!');
+  return data;
+}
+
+export async function syncGameRoom(
+  roomCode: string,
+  hostScore?: number,
+  guestScore?: number,
+  gameState?: string,
+  status?: string
+): Promise<GameRoom> {
+  const res = await fetch(`${API_BASE}/rooms/${roomCode}/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hostScore, guestScore, gameState, status })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Đồng bộ phòng thất bại!');
+  return data;
+}
+
+export async function fetchWaitingRooms(): Promise<GameRoom[]> {
+  const res = await fetch(`${API_BASE}/rooms/waiting`);
+  if (!res.ok) throw new Error('Không thể tải danh sách phòng!');
   return res.json();
 }
