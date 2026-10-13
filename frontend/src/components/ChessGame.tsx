@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { GameRoom, User } from '../types';
 import { playSound, triggerConfetti } from '../utils/effects';
 
 interface ChessGameProps {
   onWin: (gameName: string, score: number) => void;
   showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  room?: GameRoom | null;
+  currentUser?: User | null;
+  onSyncState?: (gameState: string) => void;
 }
 
 type PieceColor = 'w' | 'b';
@@ -38,15 +42,45 @@ const PIECE_SYMBOLS: Record<PieceColor, Record<PieceType, string>> = {
   b: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
 };
 
-export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
+export const ChessGame: React.FC<ChessGameProps> = ({
+  onWin,
+  showToast,
+  room,
+  currentUser,
+  onSyncState
+}) => {
   const [board, setBoard] = useState<ChessBoard>(() => INITIAL_BOARD.map(r => [...r]));
   const [turn, setTurn] = useState<PieceColor>('w');
   const [selectedPos, setSelectedPos] = useState<[number, number] | null>(null);
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
-  const [vsAI, setVsAI] = useState<boolean>(true);
+  const [vsAI, setVsAI] = useState<boolean>(!room);
   const [capturedWhite, setCapturedWhite] = useState<Piece[]>([]);
   const [capturedBlack, setCapturedBlack] = useState<Piece[]>([]);
+
+  const isOnline = !!room;
+  const isHost = isOnline && currentUser && room.hostUserId === currentUser.id;
+  const myColor: PieceColor = isHost ? 'w' : 'b';
+  const opponentName = isOnline
+    ? (isHost ? (room.guestFullName || 'Đang chờ khách...') : room.hostFullName)
+    : 'Máy (AI)';
+
+  const isMyTurn = !isOnline || (turn === myColor && (isHost ? !!room?.guestUserId : true));
+
+  // Đồng bộ trạng thái từ Server
+  useEffect(() => {
+    if (!room?.gameState) return;
+    try {
+      const state = JSON.parse(room.gameState);
+      if (state.board) setBoard(state.board);
+      if (state.turn) setTurn(state.turn);
+      if (state.capturedWhite) setCapturedWhite(state.capturedWhite);
+      if (state.capturedBlack) setCapturedBlack(state.capturedBlack);
+      if (state.winner) setWinner(state.winner);
+    } catch (e) {
+      console.error('Lỗi phân tích gameState Cờ Vua:', e);
+    }
+  }, [room?.gameState]);
 
   const getMoves = (r: number, c: number, currentBoard: ChessBoard): [number, number][] => {
     const p = currentBoard[r][c];
@@ -64,7 +98,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
       if (target.color !== color) {
         moves.push([nr, nc]);
       }
-      return false; // Bị cản
+      return false;
     };
 
     if (p.type === 'p') {
@@ -72,35 +106,44 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
       const startRow = color === 'w' ? 6 : 1;
       if (r + dir >= 0 && r + dir < 8 && !currentBoard[r + dir][c]) {
         moves.push([r + dir, c]);
-        if (r === startRow && !currentBoard[r + dir * 2][c]) {
-          moves.push([r + dir * 2, c]);
+        if (r === startRow && !currentBoard[r + 2 * dir][c]) {
+          moves.push([r + 2 * dir, c]);
         }
       }
-      // Ăn chéo
       [-1, 1].forEach(dc => {
         const nr = r + dir, nc = c + dc;
         if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
-          const t = currentBoard[nr][nc];
-          if (t && t.color !== color) moves.push([nr, nc]);
+          const target = currentBoard[nr][nc];
+          if (target && target.color !== color) moves.push([nr, nc]);
         }
       });
     } else if (p.type === 'n') {
-      const nDirs = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
-      nDirs.forEach(([dr, dc]) => addMove(r + dr, c + dc));
-    } else if (p.type === 'b' || p.type === 'r' || p.type === 'q') {
-      const dirs: [number, number][] = [];
-      if (p.type === 'r' || p.type === 'q') dirs.push([0, 1], [0, -1], [1, 0], [-1, 0]);
-      if (p.type === 'b' || p.type === 'q') dirs.push([1, 1], [1, -1], [-1, 1], [-1, -1]);
+      const jumps = [
+        [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+        [1, -2], [1, 2], [2, -1], [2, 1]
+      ];
+      jumps.forEach(([dr, dc]) => addMove(r + dr, c + dc));
+    } else if (p.type === 'b') {
+      const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
       dirs.forEach(([dr, dc]) => {
         let nr = r + dr, nc = c + dc;
-        while (addMove(nr, nc)) {
-          nr += dr;
-          nc += dc;
-        }
+        while (addMove(nr, nc)) { nr += dr; nc += dc; }
+      });
+    } else if (p.type === 'r') {
+      const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      dirs.forEach(([dr, dc]) => {
+        let nr = r + dr, nc = c + dc;
+        while (addMove(nr, nc)) { nr += dr; nc += dc; }
+      });
+    } else if (p.type === 'q') {
+      const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+      dirs.forEach(([dr, dc]) => {
+        let nr = r + dr, nc = c + dc;
+        while (addMove(nr, nc)) { nr += dr; nc += dc; }
       });
     } else if (p.type === 'k') {
-      const kDirs = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-      kDirs.forEach(([dr, dc]) => addMove(r + dr, c + dc));
+      const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+      dirs.forEach(([dr, dc]) => addMove(r + dr, c + dc));
     }
 
     return moves;
@@ -108,26 +151,37 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
 
   const handleCellClick = (r: number, c: number) => {
     if (winner) return;
-    if (vsAI && turn === 'b') return;
+
+    if (isOnline) {
+      if (!room.guestUserId) {
+        showToast('info', '⏳ Đang chờ người chơi khác vào phòng! Bạn chưa thể đánh cờ.');
+        return;
+      }
+      if (!isMyTurn) {
+        showToast('info', `⏳ Chưa đến lượt bạn! Hãy đợi đối thủ (${opponentName}) đi nước cờ.`);
+        return;
+      }
+    } else {
+      if (vsAI && turn === 'b') return;
+    }
+
+    const currentTurnColor = isOnline ? myColor : turn;
 
     if (selectedPos) {
       const [sr, sc] = selectedPos;
-      const isMoveValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
-
-      if (isMoveValid) {
-        executeMove(sr, sc, r, c);
+      const isValid = validMoves.some(([vr, vc]) => vr === r && vc === c);
+      if (isValid) {
+        movePiece(sr, sc, r, c);
         setSelectedPos(null);
         setValidMoves([]);
         return;
       }
     }
 
-    // Chọn quân mới
-    const piece = board[r][c];
-    if (piece && piece.color === turn) {
+    const clickedPiece = board[r][c];
+    if (clickedPiece && clickedPiece.color === currentTurnColor) {
       setSelectedPos([r, c]);
-      const moves = getMoves(r, c, board);
-      setValidMoves(moves);
+      setValidMoves(getMoves(r, c, board));
       playSound('click');
     } else {
       setSelectedPos(null);
@@ -135,16 +189,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
     }
   };
 
-  const executeMove = (sr: number, sc: number, tr: number, tc: number) => {
-    const p = board[sr][sc];
-    if (!p) return;
-
+  const movePiece = (sr: number, sc: number, tr: number, tc: number) => {
+    const p = board[sr][sc]!;
     const target = board[tr][tc];
     const newBoard = board.map(row => [...row]);
     newBoard[tr][tc] = p;
     newBoard[sr][sc] = null;
 
-    // Phong cấp tốt lên Hậu nếu chạm đáy
+    // Phong cấp tốt lên Hậu
     if (p.type === 'p') {
       if ((p.color === 'w' && tr === 0) || (p.color === 'b' && tr === 7)) {
         newBoard[tr][tc] = { type: 'q', color: p.color };
@@ -153,28 +205,51 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
 
     setBoard(newBoard);
 
+    let newCapW = [...capturedWhite];
+    let newCapB = [...capturedBlack];
+    let winSide: string | null = null;
+
     if (target) {
       playSound('capture');
-      if (target.color === 'w') setCapturedWhite(prev => [...prev, target]);
-      else setCapturedBlack(prev => [...prev, target]);
+      if (target.color === 'w') {
+        newCapW.push(target);
+        setCapturedWhite(newCapW);
+      } else {
+        newCapB.push(target);
+        setCapturedBlack(newCapB);
+      }
 
       if (target.type === 'k') {
-        const winTeam = p.color === 'w' ? 'Trắng' : 'Đen';
-        setWinner(winTeam);
+        winSide = p.color === 'w' ? 'Phe Trắng' : 'Phe Đen';
+        setWinner(winSide);
         playSound('win');
         triggerConfetti();
-        showToast('success', `🎉 Vua đối phương đã bị bắt! Phe ${winTeam} giành chiến thắng!`);
-        if (p.color === 'w' || !vsAI) onWin('Cờ Vua', 50);
-        return;
+        showToast('success', `🎉 Vua đối phương đã bị bắt! ${winSide} giành chiến thắng!`);
+        onWin('Cờ Vua', 50);
       }
     } else {
       playSound('move');
     }
 
-    const nextTurn = turn === 'w' ? 'b' : 'w';
+    const nextTurn: PieceColor = turn === 'w' ? 'b' : 'w';
     setTurn(nextTurn);
 
-    if (vsAI && nextTurn === 'b') {
+    // Đồng bộ sang đối thủ
+    if (isOnline && onSyncState) {
+      onSyncState(
+        JSON.stringify({
+          board: newBoard,
+          turn: winSide ? p.color : nextTurn,
+          capturedWhite: newCapW,
+          capturedBlack: newCapB,
+          winner: winSide
+        })
+      );
+      return;
+    }
+
+    // Đấu với AI
+    if (!isOnline && vsAI && nextTurn === 'b' && !winSide) {
       setTimeout(() => makeAIMove(newBoard), 400);
     }
   };
@@ -197,7 +272,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
               else if (target.type === 'b' || target.type === 'n') score = 30;
               else score = 10;
             }
-            score += (tr - r); // Tiến quân xuống
+            score += (tr - r);
             allMoves.push({ sr: r, sc: c, tr, tc, score });
           });
         }
@@ -205,7 +280,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
     }
 
     if (allMoves.length === 0) {
-      setWinner('Trắng (Hòa/Thắng)');
+      setWinner('Phe Trắng (Thắng)');
       return;
     }
 
@@ -228,9 +303,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
       playSound('capture');
       setCapturedWhite(prev => [...prev, target]);
       if (target.type === 'k') {
-        setWinner('Đen (Máy)');
+        setWinner('Phe Đen (Máy)');
         playSound('error');
-        showToast('error', 'Máy đã chiếu tướng bắt Vua! Bạn đã thua.');
+        showToast('error', 'Máy đã bắt Vua của bạn!');
         return;
       }
     } else {
@@ -241,7 +316,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
   };
 
   const resetGame = () => {
-    setBoard(INITIAL_BOARD.map(r => [...r]));
+    const init = INITIAL_BOARD.map(r => [...r]);
+    setBoard(init);
     setTurn('w');
     setSelectedPos(null);
     setValidMoves([]);
@@ -249,29 +325,63 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
     setCapturedWhite([]);
     setCapturedBlack([]);
     playSound('click');
+
+    if (isOnline && onSyncState) {
+      onSyncState(
+        JSON.stringify({
+          board: init,
+          turn: 'w',
+          capturedWhite: [],
+          capturedBlack: [],
+          winner: null
+        })
+      );
+    }
   };
 
   return (
     <div className="game-wrapper chess-container">
+      {/* THANH TRẠNG THÁI RÕ RÀNG */}
       <div className="game-top-bar">
         <div className="game-status-badge">
           {winner ? (
             <span className="win-announce">🏆 Thắng cuộc: <strong>{winner}</strong></span>
+          ) : isOnline ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>
+                Bạn: <strong style={{ color: myColor === 'w' ? '#f8fafc' : '#94a3b8' }}>{myColor === 'w' ? 'Quân Trắng (Đi trước)' : 'Quân Đen (Đi sau)'}</strong>
+              </span>
+              <span className={`turn-pill ${isMyTurn ? 'turn-mine' : 'turn-wait'}`}>
+                {isMyTurn ? '🎯 LƯỢT CỦA BẠN' : `⏳ ĐỐI THỦ ĐANG NGHĨ...`}
+              </span>
+            </div>
           ) : (
-            <span>Lượt đi: <strong style={{ color: turn === 'w' ? '#f8fafc' : '#fb923c' }}>{turn === 'w' ? 'Quân Trắng ♔' : 'Quân Đen ♚'}</strong> {vsAI && turn === 'b' && '(AI suy nghĩ...)'}</span>
+            <span>
+              Lượt đi: <strong style={{ color: turn === 'w' ? '#f8fafc' : '#94a3b8' }}>{turn === 'w' ? 'Quân Trắng' : 'Quân Đen'}</strong>{' '}
+              {vsAI && turn === 'b' && '(Máy suy nghĩ...)'}
+            </span>
           )}
         </div>
 
         <div className="game-actions">
-          <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
-            {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
-          </button>
+          {!isOnline && (
+            <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
+              {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
+            </button>
+          )}
           <button className="reset-btn" onClick={resetGame}>🔄 Ván mới</button>
         </div>
       </div>
 
+      {/* THÔNG BÁO HƯỚNG DẪN KHI CHƠI ONLINE */}
+      {isOnline && !room?.guestUserId && (
+        <div className="online-wait-alert">
+          📢 <strong>Phòng cờ vua đang mở!</strong> Đang chờ đối thủ vào phòng... Hãy chia sẻ mã <code>{room.roomCode}</code> hoặc bấm <strong>"Mời Vào Chat"</strong> để bắt đầu trận đấu!
+        </div>
+      )}
+
       <div className="chess-layout">
-        {/* Quân Đen ăn được */}
+        {/* Quân Trắng bị ăn */}
         <div className="captured-panel">
           <span className="cap-label">Trắng bị ăn:</span>
           <div className="captured-pieces">
@@ -309,7 +419,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({ onWin, showToast }) => {
           </div>
         </div>
 
-        {/* Quân Trắng ăn được */}
+        {/* Quân Đen bị ăn */}
         <div className="captured-panel">
           <span className="cap-label">Đen bị ăn:</span>
           <div className="captured-pieces">

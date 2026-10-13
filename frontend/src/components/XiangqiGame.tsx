@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { GameRoom, User } from '../types';
 import { playSound, triggerConfetti } from '../utils/effects';
 
 interface XiangqiGameProps {
   onWin: (gameName: string, score: number) => void;
   showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  room?: GameRoom | null;
+  currentUser?: User | null;
+  onSyncState?: (gameState: string) => void;
 }
 
 type Side = 'red' | 'black';
@@ -74,14 +78,43 @@ const DY = 57.777778; // 40 + 9 * 57.777778 = 560 (hàng 0 đến hàng 9)
 const colX = (c: number) => X0 + c * DX;
 const rowY = (r: number) => Y0 + r * DY;
 
-export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) => {
+export const XiangqiGame: React.FC<XiangqiGameProps> = ({
+  onWin,
+  showToast,
+  room,
+  currentUser,
+  onSyncState
+}) => {
   const [board, setBoard] = useState<XBoard>(createInitialBoard);
   const [turn, setTurn] = useState<Side>('red');
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
-  const [vsAI, setVsAI] = useState<boolean>(true);
+  const [vsAI, setVsAI] = useState<boolean>(!room);
   const [lastMove, setLastMove] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
+
+  const isOnline = !!room;
+  const isHost = isOnline && currentUser && room.hostUserId === currentUser.id;
+  const mySide: Side = isHost ? 'red' : 'black';
+  const opponentName = isOnline
+    ? (isHost ? (room.guestFullName || 'Đang chờ khách...') : room.hostFullName)
+    : 'Máy (AI)';
+
+  const isMyTurn = !isOnline || (turn === mySide && (isHost ? !!room?.guestUserId : true));
+
+  // Đồng bộ trạng thái online từ máy đối thủ qua Server
+  useEffect(() => {
+    if (!room?.gameState) return;
+    try {
+      const state = JSON.parse(room.gameState);
+      if (state.board) setBoard(state.board);
+      if (state.turn) setTurn(state.turn);
+      if (state.lastMove) setLastMove(state.lastMove);
+      if (state.winner) setWinner(state.winner);
+    } catch (e) {
+      console.error('Lỗi parse gameState Cờ Tướng:', e);
+    }
+  }, [room?.gameState]);
 
   const inBoard = (nr: number, nc: number) => nr >= 0 && nr <= 9 && nc >= 0 && nc <= 8;
 
@@ -182,7 +215,21 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
 
   const handlePointClick = (r: number, c: number) => {
     if (winner) return;
-    if (vsAI && turn === 'black') return;
+
+    if (isOnline) {
+      if (!room.guestUserId) {
+        showToast('info', '⏳ Đang chờ người chơi khác vào phòng! Bạn chưa thể đánh cờ.');
+        return;
+      }
+      if (!isMyTurn) {
+        showToast('info', `⏳ Chưa đến lượt bạn! Hãy đợi đối thủ (${opponentName}) đi nước cờ.`);
+        return;
+      }
+    } else {
+      if (vsAI && turn === 'black') return;
+    }
+
+    const currentTurnSide = isOnline ? mySide : turn;
 
     if (selected) {
       const [sr, sc] = selected;
@@ -196,7 +243,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     }
 
     const p = board[r][c];
-    if (p && p.side === turn) {
+    if (p && p.side === currentTurnSide) {
       setSelected([r, c]);
       setValidMoves(getValidMoves(r, c, board));
       playSound('click');
@@ -213,18 +260,19 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     newBoard[tr][tc] = piece;
     newBoard[sr][sc] = null;
     setBoard(newBoard);
-    setLastMove({ from: [sr, sc], to: [tr, tc] });
+    const newLastMove = { from: [sr, sc] as [number, number], to: [tr, tc] as [number, number] };
+    setLastMove(newLastMove);
 
+    let winSide: string | null = null;
     if (target) {
       playSound('capture');
       if (target.type === 'k') {
-        const winSide = piece.side === 'red' ? 'Phe Đỏ' : 'Phe Đen';
+        winSide = piece.side === 'red' ? 'Phe Đỏ' : 'Phe Đen';
         setWinner(winSide);
         playSound('win');
         triggerConfetti();
         showToast('success', `🎉 Tướng đối phương đã bị bắt! ${winSide} chiến thắng vang dội!`);
-        if (piece.side === 'red' || !vsAI) onWin('Cờ Tướng', 60);
-        return;
+        onWin('Cờ Tướng', 60);
       }
     } else {
       playSound('move');
@@ -233,7 +281,21 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
     const nextSide: Side = turn === 'red' ? 'black' : 'red';
     setTurn(nextSide);
 
-    if (vsAI && nextSide === 'black') {
+    // Đồng bộ sang máy đối thủ
+    if (isOnline && onSyncState) {
+      onSyncState(
+        JSON.stringify({
+          board: newBoard,
+          turn: winSide ? piece.side : nextSide,
+          lastMove: newLastMove,
+          winner: winSide
+        })
+      );
+      return;
+    }
+
+    // Nếu chơi với AI
+    if (!isOnline && vsAI && nextSide === 'black' && !winSide) {
       setTimeout(() => aiMove(newBoard), 400);
     }
   };
@@ -295,13 +357,25 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
   };
 
   const resetGame = () => {
-    setBoard(createInitialBoard());
+    const initial = createInitialBoard();
+    setBoard(initial);
     setTurn('red');
     setSelected(null);
     setValidMoves([]);
     setWinner(null);
     setLastMove(null);
     playSound('click');
+
+    if (isOnline && onSyncState) {
+      onSyncState(
+        JSON.stringify({
+          board: initial,
+          turn: 'red',
+          lastMove: null,
+          winner: null
+        })
+      );
+    }
   };
 
   // Vẽ hoa thị (góc chữ thập) chuẩn cờ tướng
@@ -334,29 +408,50 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
 
   return (
     <div className="game-wrapper xiangqi-real-wrapper">
+      {/* THANH TRẠNG THÁI RÕ RÀNG */}
       <div className="game-top-bar">
         <div className="game-status-badge">
           {winner ? (
             <span className="win-announce">🏆 Thắng cuộc: <strong>{winner}</strong></span>
+          ) : isOnline ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>
+                Bạn: <strong style={{ color: mySide === 'red' ? '#ef4444' : '#cbd5e1' }}>{mySide === 'red' ? 'Phe Đỏ (帥 - Đi trước)' : 'Phe Đen (將 - Đi sau)'}</strong>
+              </span>
+              <span className={`turn-pill ${isMyTurn ? 'turn-mine' : 'turn-wait'}`}>
+                {isMyTurn ? '🎯 LƯỢT CỦA BẠN' : `⏳ ĐỐI THỦ ĐANG NGHĨ...`}
+              </span>
+            </div>
           ) : (
-            <span>Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ (帥)' : 'Phe Đen (將)'}</strong> {vsAI && turn === 'black' && '(Máy suy nghĩ...)'}</span>
+            <span>
+              Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ (帥)' : 'Phe Đen (將)'}</strong>{' '}
+              {vsAI && turn === 'black' && '(Máy suy nghĩ...)'}
+            </span>
           )}
         </div>
 
         <div className="game-actions">
-          <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
-            {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
-          </button>
+          {!isOnline && (
+            <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
+              {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
+            </button>
+          )}
           <button className="reset-btn" onClick={resetGame}>🔄 Ván mới</button>
         </div>
       </div>
+
+      {/* THÔNG BÁO HƯỚNG DẪN KHI CHƠI ONLINE */}
+      {isOnline && !room?.guestUserId && (
+        <div className="online-wait-alert">
+          📢 <strong>Phòng cờ tướng đang mở!</strong> Đang chờ đối thủ vào phòng... Hãy gửi mã <code>{room.roomCode}</code> hoặc bấm <strong>"Mời Vào Chat"</strong> để cùng so tài!
+        </div>
+      )}
 
       {/* BÀN CỜ TƯỚNG CHUẨN THỰC TẾ: TẤT CẢ VẼ CHÍNH XÁC 100% TRÊN SVG NGUYÊN BẢN */}
       <div className="xiangqi-real-board-container">
         <div className="xiangqi-table-wood">
           <svg className="xiangqi-svg-board" viewBox="0 0 540 600">
             <defs>
-              {/* Bóng đổ 3D cho quân cờ gỗ */}
               <filter id="pieceShadow" x="-30%" y="-30%" width="160%" height="160%">
                 <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.55" />
               </filter>
@@ -364,7 +459,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                 <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#f59e0b" floodOpacity="0.85" />
               </filter>
 
-              {/* Gradient gỗ ngà sang trọng cho quân Đỏ */}
               <radialGradient id="redPieceWood" cx="35%" cy="30%" r="70%">
                 <stop offset="0%" stopColor="#fffaf0" />
                 <stop offset="45%" stopColor="#fed7aa" />
@@ -372,7 +466,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                 <stop offset="100%" stopColor="#b45309" />
               </radialGradient>
 
-              {/* Gradient gỗ mun đá cẩm thạch cho quân Đen */}
               <radialGradient id="blackPieceWood" cx="35%" cy="30%" r="70%">
                 <stop offset="0%" stopColor="#ffffff" />
                 <stop offset="45%" stopColor="#e2e8f0" />
@@ -380,7 +473,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                 <stop offset="100%" stopColor="#475569" />
               </radialGradient>
 
-              {/* Gradient nền bàn cờ gỗ Hoàng Đàn */}
               <linearGradient id="boardWoodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#f3c68f" />
                 <stop offset="50%" stopColor="#e5ad6d" />
@@ -444,25 +536,18 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
             <line x1={colX(5)} y1={rowY(7)} x2={colX(3)} y2={rowY(9)} stroke="#633815" strokeWidth="1.6" />
 
             {/* 7. HOA THỊ (DẤU CHỮ THẬP CHUẨN CỜ TƯỚNG) TẠI VỊ TRÍ PHÁO & TỐT */}
-            {/* Pháo Đen hàng 2 */}
             {renderCrossMark(colX(1), rowY(2))}
             {renderCrossMark(colX(7), rowY(2))}
-
-            {/* Tốt Đen hàng 3 */}
             {renderCrossMark(colX(0), rowY(3), false, true)}
             {renderCrossMark(colX(2), rowY(3))}
             {renderCrossMark(colX(4), rowY(3))}
             {renderCrossMark(colX(6), rowY(3))}
             {renderCrossMark(colX(8), rowY(3), true, false)}
-
-            {/* Binh Đỏ hàng 6 */}
             {renderCrossMark(colX(0), rowY(6), false, true)}
             {renderCrossMark(colX(2), rowY(6))}
             {renderCrossMark(colX(4), rowY(6))}
             {renderCrossMark(colX(6), rowY(6))}
             {renderCrossMark(colX(8), rowY(6), true, false)}
-
-            {/* Pháo Đỏ hàng 7 */}
             {renderCrossMark(colX(1), rowY(7))}
             {renderCrossMark(colX(7), rowY(7))}
 
@@ -470,7 +555,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
             <text x={colX(2)} y="307" fill="#753e16" fontSize="23" fontWeight="bold" fontFamily="serif" textAnchor="middle">楚　河</text>
             <text x={colX(6)} y="307" fill="#753e16" fontSize="23" fontWeight="bold" fontFamily="serif" textAnchor="middle">漢　界</text>
 
-            {/* 9. LỚP QUÂN CỜ & TƯƠNG TÁC TẠI CÁC GIAO ĐIỂM (KHÔNG THỂ LỆCH TÍ NÀO) */}
+            {/* 9. LỚP QUÂN CỜ & TƯƠNG TÁC TẠI CÁC GIAO ĐIỂM */}
             {board.map((row, r) =>
               row.map((cell, c) => {
                 const cx = colX(c);
@@ -484,12 +569,10 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                   <g
                     key={`point-${r}-${c}`}
                     onClick={() => handlePointClick(r, c)}
-                    style={{ cursor: cell || isValid ? 'pointer' : 'default' }}
+                    style={{ cursor: (cell || isValid) && (isOnline ? isMyTurn : true) ? 'pointer' : 'default' }}
                   >
-                    {/* Vùng chạm/click nhạy xung quanh giao điểm */}
                     <circle cx={cx} cy={cy} r="25" fill="transparent" />
 
-                    {/* Đánh dấu nước đi vừa đi (Nước trước) */}
                     {(isLastFrom || isLastTo) && (
                       <rect
                         x={cx - 16}
@@ -505,7 +588,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                       />
                     )}
 
-                    {/* Vòng hào quang khi quân cờ được chọn */}
                     {isSelected && (
                       <g filter="url(#glowGold)">
                         <circle cx={cx} cy={cy} r="26.5" fill="rgba(245, 158, 11, 0.25)" />
@@ -513,7 +595,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                       </g>
                     )}
 
-                    {/* Điểm gợi ý nước đi hợp lệ vào ô trống */}
                     {isValid && !cell && (
                       <g>
                         <circle cx={cx} cy={cy} r="16" fill="rgba(16, 185, 129, 0.2)" />
@@ -521,15 +602,12 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                       </g>
                     )}
 
-                    {/* Điểm gợi ý ăn quân đối phương */}
                     {isValid && cell && (
                       <circle cx={cx} cy={cy} r="26" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" strokeWidth="3" strokeDasharray="5 3" />
                     )}
 
-                    {/* QUÂN CỜ 3D KHẮC GỖ CỔ ĐIỂN CHUẨN ĐƯỢC ĐẶT CHÍNH XÁC TẠI GIAO ĐIỂM */}
                     {cell && (
                       <g filter="url(#pieceShadow)">
-                        {/* Thân quân cờ gỗ 3D */}
                         <circle
                           cx={cx}
                           cy={cy}
@@ -538,7 +616,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                           stroke={cell.side === 'red' ? '#9a3412' : '#334155'}
                           strokeWidth="2"
                         />
-                        {/* Viền vát khắc lõm 3D bên trong */}
                         <circle
                           cx={cx}
                           cy={cy}
@@ -556,7 +633,6 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({ onWin, showToast }) =>
                           stroke="rgba(255, 255, 255, 0.55)"
                           strokeWidth="1"
                         />
-                        {/* Chữ Hán thư pháp khắc chìm */}
                         <text
                           x={cx}
                           y={cy + 7.5}
