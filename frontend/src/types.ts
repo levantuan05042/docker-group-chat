@@ -3,26 +3,27 @@ export interface User {
   username: string;
   fullName: string;
   email: string;
+  avatar: string;
+  score: number;
+  wins: number;
 }
 
-export type TodoStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
-export type TodoPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-
-export interface Todo {
+export interface ChatMessage {
   id: number;
-  title: string;
-  description: string;
-  status: TodoStatus;
-  priority: TodoPriority;
-  dueDate: string | null;
   userId: number;
+  username: string;
+  fullName: string;
+  avatar: string;
+  message: string;
+  gameTag: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-export interface TodoStats {
-  total: number;
-  todoCount: number;
-  inProgressCount: number;
-  completedCount: number;
+export type GameType = 'caro' | 'xiangqi' | 'chess' | 'ludo' | '2048';
+
+export interface ToastNotification {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title?: string;
+  message: string;
 }

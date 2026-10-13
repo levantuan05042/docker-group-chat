@@ -23,6 +23,15 @@ public class User {
     @Column(length = 100)
     private String email;
 
+    @Column(length = 255)
+    private String avatar = "🎮";
+
+    @Column(nullable = false)
+    private int score = 100;
+
+    @Column(nullable = false)
+    private int wins = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -50,6 +59,15 @@ public class User {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
+
+    public int getScore() { return score; }
+    public void setScore(int score) { this.score = score; }
+
+    public int getWins() { return wins; }
+    public void setWins(int wins) { this.wins = wins; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
