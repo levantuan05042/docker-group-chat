@@ -10,7 +10,8 @@ import {
   fetchGameRoom,
   syncGameRoom,
   fetchWaitingRooms,
-  fetchUsers,
+  fetchOnlineUsers,
+  sendHeartbeat,
   inviteUserToRoom
 } from './api';
 import { playSound, triggerConfetti } from './utils/effects';
@@ -139,16 +140,28 @@ export default function App() {
     showToast('info', 'Bạn đã đăng xuất khỏi hệ thống.');
   };
 
-  // Tải danh sách người chơi và mở popup mời
+  // Heartbeat định kỳ 15 giây để báo trạng thái Online với máy chủ
+  useEffect(() => {
+    if (!currentUser) return;
+    sendHeartbeat(currentUser.id);
+    const interval = setInterval(() => {
+      sendHeartbeat(currentUser.id);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [currentUser?.id]);
+
+  // Tải danh sách người chơi ĐANG ONLINE và mở popup mời
   const loadUsersAndOpenInviteModal = async () => {
+    if (!currentUser) return;
     try {
       setInviteLoading(true);
-      const users = await fetchUsers();
+      // Chỉ lấy những người đang online (hoạt động trong 45 giây qua)
+      const users = await fetchOnlineUsers(currentUser.id);
       setUsersList(users);
       setUserSearchQuery('');
       setInviteModalOpen(true);
     } catch (e) {
-      showToast('error', 'Không thể tải danh sách người chơi!');
+      showToast('error', 'Không thể tải danh sách người chơi online!');
     } finally {
       setInviteLoading(false);
     }
@@ -684,17 +697,17 @@ export default function App() {
         )}
       </main>
 
-      {/* POPUP: CHỌN NGƯỜI CHƠI ĐỂ MỜI ĐẤU (CHỈ NGƯỜI ĐƯỢC CHỌN MỚI THẤY & VÀO ĐƯỢC) */}
+      {/* POPUP: CHỌN NGƯỜI CHƠI ĐỂ MỜI ĐẤU (CHỈ HIỂN THỊ NGƯỜI ĐANG ONLINE) */}
       {inviteModalOpen && currentRoom && (
         <div className="modal-overlay" onClick={() => setInviteModalOpen(false)}>
           <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div className="modal-header">
-              <h2>👥 MỜI NGƯỜI CHƠI VÀO PHÒNG [{currentRoom.roomCode}]</h2>
+              <h2>🟢 NGƯỜI CHƠI ĐANG ONLINE [{currentRoom.roomCode}]</h2>
               <button className="btn btn-secondary btn-sm" onClick={() => setInviteModalOpen(false)}>✕</button>
             </div>
 
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: '1.5' }}>
-              Hãy chọn người bạn muốn thách đấu. <strong>Chỉ người được mời mới thấy thông báo trên Chat và chỉ người đó mới có quyền tham gia phòng này.</strong>
+              Danh sách chỉ hiển thị những người <strong>đang Online</strong>. Hãy chọn đối thủ bạn muốn thách đấu — <strong>chỉ người được mời mới thấy thông báo trên Chat và có quyền vào phòng này.</strong>
             </p>
 
             {/* Ô tìm kiếm người chơi */}
@@ -709,14 +722,18 @@ export default function App() {
               />
             </div>
 
-            {/* Danh sách người chơi */}
+            {/* Danh sách người chơi online */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', marginBottom: '16px' }}>
               {inviteLoading ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Đang tải danh sách người chơi...</p>
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Đang tìm kiếm người chơi online...</p>
               ) : filteredUsers.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    Không tìm thấy người chơi nào khác.
+                <div style={{ textAlign: 'center', padding: '24px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '30px', marginBottom: '8px' }}>😴</div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Hiện tại chưa có người chơi nào khác đang Online.
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#93c5fd' }}>
+                    Bạn có thể chọn <strong>"Mở Phòng Tự Do"</strong> phía dưới để lấy mã phòng gửi cho bạn bè!
                   </p>
                 </div>
               ) : (
@@ -734,9 +751,28 @@ export default function App() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '24px' }}>{u.avatar || '🎮'}</span>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ fontSize: '24px' }}>{u.avatar || '🎮'}</span>
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: -2,
+                            right: -2,
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: '#22c55e',
+                            border: '2px solid #0f172a',
+                            boxShadow: '0 0 6px #22c55e'
+                          }}
+                          title="Đang Online"
+                        />
+                      </div>
                       <div>
-                        <strong style={{ fontSize: '13.5px', color: '#f8fafc' }}>{u.fullName || u.username}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <strong style={{ fontSize: '13.5px', color: '#f8fafc' }}>{u.fullName || u.username}</strong>
+                          <span style={{ fontSize: '10px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '1px 6px', borderRadius: '10px', fontWeight: 600 }}>Online</span>
+                        </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           @{u.username} • ⭐ {u.score} điểm • 🏆 {u.wins} thắng
                         </div>

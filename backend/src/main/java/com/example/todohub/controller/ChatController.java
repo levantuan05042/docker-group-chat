@@ -24,11 +24,40 @@ public class ChatController {
 
     @GetMapping("/chat/messages")
     public ResponseEntity<List<ChatMessage>> getMessages(@RequestParam(required = false) Long userId) {
+        if (userId != null) {
+            userService.updateHeartbeat(userId);
+        }
         List<ChatMessage> list = chatService.getRecentMessages();
         if (userId != null) {
             list = list.stream().filter(m -> m.getTargetUserId() == null || m.getTargetUserId().equals(userId) || m.getUserId().equals(userId)).toList();
         }
         return ResponseEntity.ok(list);
+    }
+
+    @PostMapping("/users/heartbeat")
+    public ResponseEntity<?> heartbeat(@RequestBody Map<String, Object> body) {
+        if (body.get("userId") != null) {
+            Long userId = Long.valueOf(body.get("userId").toString());
+            userService.updateHeartbeat(userId);
+        }
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
+
+    @GetMapping("/users/online")
+    public ResponseEntity<?> getOnlineUsers(@RequestParam(required = false) Long currentUserId) {
+        if (currentUserId != null) {
+            userService.updateHeartbeat(currentUserId);
+        }
+        List<User> users = userService.getOnlineUsers(currentUserId);
+        var safeList = users.stream().map(u -> Map.of(
+                "id", u.getId(),
+                "username", u.getUsername(),
+                "fullName", u.getFullName() != null ? u.getFullName() : u.getUsername(),
+                "avatar", u.getAvatar() != null ? u.getAvatar() : "🎮",
+                "score", u.getScore(),
+                "wins", u.getWins()
+        )).toList();
+        return ResponseEntity.ok(safeList);
     }
 
     @GetMapping("/users")

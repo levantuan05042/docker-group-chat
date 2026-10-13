@@ -32,6 +32,9 @@ public class User {
     @Column(nullable = false)
     private int wins = 0;
 
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt = LocalDateTime.now();
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -42,6 +45,7 @@ public class User {
         this.password = password;
         this.fullName = fullName;
         this.email = email;
+        this.lastActiveAt = LocalDateTime.now();
         this.createdAt = LocalDateTime.now();
     }
 
@@ -68,6 +72,9 @@ public class User {
 
     public int getWins() { return wins; }
     public void setWins(int wins) { this.wins = wins; }
+
+    public LocalDateTime getLastActiveAt() { return lastActiveAt; }
+    public void setLastActiveAt(LocalDateTime lastActiveAt) { this.lastActiveAt = lastActiveAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

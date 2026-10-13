@@ -31,6 +31,23 @@ export async function fetchUsers(): Promise<User[]> {
   return res.json();
 }
 
+export async function fetchOnlineUsers(currentUserId?: number): Promise<User[]> {
+  const url = currentUserId ? `${API_BASE}/users/online?currentUserId=${currentUserId}` : `${API_BASE}/users/online`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Không thể tải danh sách người chơi online!');
+  return res.json();
+}
+
+export async function sendHeartbeat(userId: number): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/users/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+  } catch (e) {}
+}
+
 export async function fetchChatMessages(userId?: number): Promise<ChatMessage[]> {
   const url = userId ? `${API_BASE}/chat/messages?userId=${userId}` : `${API_BASE}/chat/messages`;
   const res = await fetch(url);

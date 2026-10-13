@@ -91,6 +91,24 @@ public class UserService {
         return userRepository.findTop50ByOrderByIdDesc();
     }
 
+    public void updateHeartbeat(Long userId) {
+        if (userId == null) return;
+        userRepository.findById(userId).ifPresent(u -> {
+            u.setLastActiveAt(java.time.LocalDateTime.now());
+            userRepository.save(u);
+        });
+    }
+
+    public List<User> getOnlineUsers(Long excludeUserId) {
+        // Coi là Online nếu có tương tác trong 45 giây gần nhất
+        java.time.LocalDateTime cutoff = java.time.LocalDateTime.now().minusSeconds(45);
+        List<User> list = userRepository.findByLastActiveAtAfter(cutoff);
+        if (excludeUserId != null) {
+            return list.stream().filter(u -> !u.getId().equals(excludeUserId)).toList();
+        }
+        return list;
+    }
+
     public User getById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng!"));

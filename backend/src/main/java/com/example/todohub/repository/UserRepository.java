@@ -12,4 +12,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     java.util.List<User> findTop20ByOrderByScoreDesc();
     java.util.List<User> findTop50ByOrderByIdDesc();
+    java.util.List<User> findByLastActiveAtAfter(java.time.LocalDateTime cutoff);
 }
