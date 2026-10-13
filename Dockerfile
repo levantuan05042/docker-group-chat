@@ -15,13 +15,11 @@ RUN npm run build
 FROM maven:3.9.6-eclipse-temurin-17 AS backend-builder
 WORKDIR /app/backend
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline -B
-
 COPY backend/src ./src
 # Copy bản build frontend vào thư mục static của Spring Boot
 COPY --from=frontend-builder /app/frontend/dist ./src/main/resources/static
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -B
 
 # ==========================================
 # GIAI ĐOẠN 3: Chạy ứng dụng (Runtime)
