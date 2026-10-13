@@ -4,7 +4,7 @@ import { playSound, triggerConfetti } from '../utils/effects';
 
 interface XiangqiGameProps {
   onWin: (gameName: string, score: number) => void;
-  showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string) => void;
   room?: GameRoom | null;
   currentUser?: User | null;
   onSyncState?: (gameState: string) => void;
@@ -12,6 +12,7 @@ interface XiangqiGameProps {
 
 type Side = 'red' | 'black';
 type XPieceType = 'k' | 'a' | 'e' | 'r' | 'c' | 'h' | 'p';
+type Difficulty = 'normal' | 'hard' | 'nightmare';
 
 interface XPiece {
   type: XPieceType;
@@ -78,6 +79,17 @@ const DY = 57.777778; // 40 + 9 * 57.777778 = 560 (hàng 0 đến hàng 9)
 const colX = (c: number) => X0 + c * DX;
 const rowY = (r: number) => Y0 + r * DY;
 
+// Bảng điểm chuẩn giá trị quân cờ Tướng
+const PIECE_VAL: Record<XPieceType, number> = {
+  k: 100000,
+  r: 950,
+  c: 460,
+  h: 420,
+  e: 210,
+  a: 210,
+  p: 100
+};
+
 export const XiangqiGame: React.FC<XiangqiGameProps> = ({
   onWin,
   showToast,
@@ -91,6 +103,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(!room);
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [lastMove, setLastMove] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
 
   const isOnline = !!room;
@@ -98,7 +111,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
   const mySide: Side = isHost ? 'red' : 'black';
   const opponentName = isOnline
     ? (isHost ? (room.guestFullName || 'Đang chờ khách...') : room.hostFullName)
-    : 'Máy (AI)';
+    : `Máy AI (${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'})`;
 
   const isMyTurn = !isOnline || (turn === mySide && (isHost ? !!room?.guestUserId : true));
 
@@ -271,8 +284,9 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
         setWinner(winSide);
         playSound('win');
         triggerConfetti();
-        showToast('success', `🎉 Tướng đối phương đã bị bắt! ${winSide} chiến thắng vang dội!`);
-        onWin('Cờ Tướng', 60);
+        const bonusScore = difficulty === 'nightmare' ? 100 : difficulty === 'hard' ? 70 : 50;
+        showToast('success', `🎉 Tướng đối phương đã bị bắt! ${winSide} chiến thắng vang dội! (+${bonusScore} điểm)`);
+        onWin('Cờ Tướng', bonusScore);
       }
     } else {
       playSound('move');
@@ -296,13 +310,58 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
 
     // Nếu chơi với AI
     if (!isOnline && vsAI && nextSide === 'black' && !winSide) {
-      setTimeout(() => aiMove(newBoard), 400);
+      const thinkTime = difficulty === 'nightmare' ? 500 : difficulty === 'hard' ? 350 : 250;
+      setTimeout(() => aiMove(newBoard), thinkTime);
     }
   };
 
-  const aiMove = (currentBoard: XBoard) => {
-    const list: { sr: number; sc: number; tr: number; tc: number; score: number }[] = [];
+  // Hàm đánh giá thế cờ tĩnh cho bên Đen (Black)
+  const evaluateBoardState = (b: XBoard): number => {
+    let score = 0;
+    for (let r = 0; r < 10; r++) {
+      for (let c = 0; c < 9; c++) {
+        const p = b[r][c];
+        if (p) {
+          const base = PIECE_VAL[p.type];
+          let posVal = 0;
 
+          // Thưởng điểm vị trí
+          if (p.type === 'p') {
+            // Tốt qua sông giá trị tăng gấp đôi
+            if (p.side === 'black' && r >= 5) posVal = 120 + r * 10;
+            if (p.side === 'red' && r <= 4) posVal = 120 + (9 - r) * 10;
+          } else if (p.type === 'h') {
+            // Mã ở trung tâm
+            posVal = (4 - Math.abs(c - 4)) * 15;
+          } else if (p.type === 'r') {
+            // Xe cơ động
+            posVal = 30;
+          }
+
+          if (p.side === 'black') {
+            score += base + posVal;
+          } else {
+            score -= (base + posVal);
+          }
+        }
+      }
+    }
+    return score;
+  };
+
+  // Thuật toán AI Cờ Tướng 3 mức độ
+  const aiMove = (currentBoard: XBoard) => {
+    interface MoveItem {
+      sr: number;
+      sc: number;
+      tr: number;
+      tc: number;
+      score: number;
+    }
+
+    const allBlackMoves: MoveItem[] = [];
+
+    // Tìm tất cả các nước đi hợp lệ của quân Đen
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = currentBoard[r][c];
@@ -310,29 +369,109 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
           const moves = getValidMoves(r, c, currentBoard);
           moves.forEach(([tr, tc]) => {
             const target = currentBoard[tr][tc];
-            let score = 0;
+            let immediateValue = 0;
+
             if (target) {
-              if (target.type === 'k') score = 2000;
-              else if (target.type === 'r') score = 90;
-              else if (target.type === 'c') score = 50;
-              else if (target.type === 'h') score = 40;
-              else score = 15;
+              immediateValue += PIECE_VAL[target.type] * 10;
+              // Bắt được quân giá trị cao hơn
+              if (PIECE_VAL[target.type] >= PIECE_VAL[p.type]) {
+                immediateValue += 200;
+              }
             }
-            score += tr;
-            list.push({ sr: r, sc: c, tr, tc, score });
+
+            // Tiến quân sang sông
+            if (p.type === 'p' && tr >= 5) immediateValue += 100;
+            if (p.type === 'h' && tr >= 4) immediateValue += 30;
+            if (p.type === 'r') immediateValue += 25;
+
+            allBlackMoves.push({ sr: r, sc: c, tr, tc, score: immediateValue });
           });
         }
       }
     }
 
-    if (list.length === 0) {
+    if (allBlackMoves.length === 0) {
       setWinner('Phe Đỏ (Thắng)');
       return;
     }
 
-    list.sort((a, b) => b.score - a.score);
-    const chosen = list[0];
+    allBlackMoves.sort((a, b) => b.score - a.score);
 
+    let chosen = allBlackMoves[0];
+
+    if (difficulty === 'normal') {
+      // Bình thường: thỉnh thoảng chọn nước ngẫu nhiên trong top 3
+      if (allBlackMoves.length > 2 && Math.random() < 0.25) {
+        chosen = allBlackMoves[Math.floor(Math.random() * Math.min(3, allBlackMoves.length))];
+      }
+    } else if (difficulty === 'hard') {
+      // Khó: Đánh giá thế cờ sau khi đi 1 bước
+      let bestStaticScore = -Infinity;
+      const topMoves = allBlackMoves.slice(0, 10);
+
+      for (const m of topMoves) {
+        const piece = currentBoard[m.sr][m.sc]!;
+        const target = currentBoard[m.tr][m.tc];
+        currentBoard[m.tr][m.tc] = piece;
+        currentBoard[m.sr][m.sc] = null;
+
+        const boardScore = evaluateBoardState(currentBoard) + m.score;
+
+        currentBoard[m.sr][m.sc] = piece;
+        currentBoard[m.tr][m.tc] = target;
+
+        if (boardScore > bestStaticScore) {
+          bestStaticScore = boardScore;
+          chosen = m;
+        }
+      }
+    } else if (difficulty === 'nightmare') {
+      // SIÊU KHÓ 🔥: Minimax 2 bước đầy đủ (Xem trước nước phản công mạnh nhất của Đỏ)
+      let bestMinimax = -Infinity;
+      const topMoves = allBlackMoves.slice(0, 12);
+
+      for (const m of topMoves) {
+        const piece = currentBoard[m.sr][m.sc]!;
+        const target = currentBoard[m.tr][m.tc];
+
+        // Nếu bắt được Tướng đỏ -> thắng luôn, đi ngay
+        if (target && target.type === 'k') {
+          chosen = m;
+          break;
+        }
+
+        currentBoard[m.tr][m.tc] = piece;
+        currentBoard[m.sr][m.sc] = null;
+
+        // Tìm nước phản công mạnh nhất của Đỏ
+        let maxRedReply = -Infinity;
+        for (let rr = 0; rr < 10; rr++) {
+          for (let rc = 0; rc < 9; rc++) {
+            const redPiece = currentBoard[rr][rc];
+            if (redPiece && redPiece.side === 'red') {
+              const redMoves = getValidMoves(rr, rc, currentBoard);
+              for (const [rtr, rtc] of redMoves) {
+                const redTarget = currentBoard[rtr][rtc];
+                let replyVal = redTarget ? PIECE_VAL[redTarget.type] * 8 : 0;
+                if (replyVal > maxRedReply) maxRedReply = replyVal;
+              }
+            }
+          }
+        }
+
+        const totalEval = evaluateBoardState(currentBoard) + m.score - (maxRedReply === -Infinity ? 0 : maxRedReply);
+
+        currentBoard[m.sr][m.sc] = piece;
+        currentBoard[m.tr][m.tc] = target;
+
+        if (totalEval > bestMinimax) {
+          bestMinimax = totalEval;
+          chosen = m;
+        }
+      }
+    }
+
+    // Thực hiện nước đi đã chọn
     const piece = currentBoard[chosen.sr][chosen.sc]!;
     const target = currentBoard[chosen.tr][chosen.tc];
     const newBoard = currentBoard.map(row => [...row]);
@@ -346,7 +485,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
       if (target.type === 'k') {
         setWinner('Phe Đen (Máy)');
         playSound('error');
-        showToast('error', 'Máy đã chiếu bí bắt Tướng của bạn!');
+        showToast('error', `Máy (${difficulty.toUpperCase()}) đã chiếu bí bắt Tướng của bạn!`);
         return;
       }
     } else {
@@ -389,17 +528,17 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
         {hasLeft && (
           <>
             <line x1={cx - d} y1={cy - d} x2={cx - d - len} y2={cy - d} />
-            <line x1={cx - d} y1={cy - d} x2={cx - d} y2={cy - d - len} />
+            <line x1={cx - d} y1={cy - d} x2={cx - d - len} y2={cy - d - len} />
             <line x1={cx - d} y1={cy + d} x2={cx - d - len} y2={cy + d} />
-            <line x1={cx - d} y1={cy + d} x2={cx - d} y2={cy + d + len} />
+            <line x1={cx - d} y1={cy + d} x2={cx - d - len} y2={cy + d + len} />
           </>
         )}
         {hasRight && (
           <>
             <line x1={cx + d} y1={cy - d} x2={cx + d + len} y2={cy - d} />
-            <line x1={cx + d} y1={cy - d} x2={cx + d} y2={cy - d - len} />
+            <line x1={cx + d} y1={cy - d} x2={cx + d + len} y2={cy - d - len} />
             <line x1={cx + d} y1={cy + d} x2={cx + d + len} y2={cy + d} />
-            <line x1={cx + d} y1={cy + d} x2={cx + d} y2={cy + d + len} />
+            <line x1={cx + d} y1={cy + d} x2={cx + d + len} y2={cy + d + len} />
           </>
         )}
       </g>
@@ -425,12 +564,39 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
           ) : (
             <span>
               Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ (帥)' : 'Phe Đen (將)'}</strong>{' '}
-              {vsAI && turn === 'black' && '(Máy suy nghĩ...)'}
+              {vsAI && turn === 'black' && `(Máy [${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'}] đang tính...)`}
             </span>
           )}
         </div>
 
         <div className="game-actions">
+          {/* LỰA CHỌN ĐỘ KHÓ KHI ĐẤU VỚI MÁY (AI) */}
+          {!isOnline && vsAI && (
+            <div className="difficulty-segmented">
+              <button
+                className={`diff-btn diff-normal ${difficulty === 'normal' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('normal'); showToast('info', 'Đã chuyển độ khó: 🟢 Bình thường (Mặc định)'); }}
+                title="Dễ chơi, phù hợp giải trí"
+              >
+                🟢 Bình thường
+              </button>
+              <button
+                className={`diff-btn diff-hard ${difficulty === 'hard' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('hard'); showToast('info', 'Đã chuyển độ khó: 🟡 Khó (AI biết giữ quân)'); }}
+                title="Thử thách, AI tính toán kỹ"
+              >
+                🟡 Khó
+              </button>
+              <button
+                className={`diff-btn diff-nightmare ${difficulty === 'nightmare' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('nightmare'); showToast('warning', 'Đã bật: 🔴 SIÊU KHÓ 🔥 (AI tính toán sâu, cực kỳ khó thắng!)'); }}
+                title="Cực khó! Toát mồ hôi hột mới thắng được"
+              >
+                🔴 Siêu khó 🔥
+              </button>
+            </div>
+          )}
+
           {!isOnline && (
             <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
               {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}

@@ -4,11 +4,13 @@ import { playSound, triggerConfetti } from '../utils/effects';
 
 interface CaroGameProps {
   onWin: (gameName: string, score: number) => void;
-  showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string) => void;
   room?: GameRoom | null;
   currentUser?: User | null;
   onSyncState?: (gameState: string) => void;
 }
+
+type Difficulty = 'normal' | 'hard' | 'nightmare';
 
 const BOARD_SIZE = 15;
 
@@ -26,6 +28,7 @@ export const CaroGame: React.FC<CaroGameProps> = ({
   const [winner, setWinner] = useState<string | null>(null);
   const [winLine, setWinLine] = useState<[number, number][]>([]);
   const [vsAI, setVsAI] = useState<boolean>(!room);
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [lastMove, setLastMove] = useState<[number, number] | null>(null);
 
   const isOnline = !!room;
@@ -33,7 +36,7 @@ export const CaroGame: React.FC<CaroGameProps> = ({
   const myRole: 'X' | 'O' = isHost ? 'X' : 'O';
   const opponentName = isOnline
     ? (isHost ? (room.guestFullName || 'Đang chờ khách...') : room.hostFullName)
-    : 'Máy (AI)';
+    : `Máy AI (${difficulty === 'normal' ? 'Bình Thường' : difficulty === 'hard' ? 'Khó' : 'Siêu Khó 🔥'})`;
 
   const isMyTurn = !isOnline || (turn === myRole && (isHost ? !!room?.guestUserId : true));
 
@@ -76,42 +79,227 @@ export const CaroGame: React.FC<CaroGameProps> = ({
     return null;
   };
 
-  const handleAIMove = (currentBoard: (string | null)[][]) => {
-    let bestScore = -1;
-    let bestMove: [number, number] = [7, 7];
+  // Đánh giá thế cờ tại ô (r, c) cho bên 'player' (X hoặc O)
+  const scoreLinePattern = (b: (string | null)[][], r: number, c: number, player: string) => {
+    const directions = [
+      [0, 1],  // Ngang
+      [1, 0],  // Dọc
+      [1, 1],  // Chéo xuống
+      [1, -1]  // Chéo lên
+    ];
 
-    const evaluatePos = (r: number, c: number): number => {
-      let score = 0;
-      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
-      for (const [dr, dc] of dirs) {
-        let oCount = 0;
-        let xCount = 0;
-        for (let i = -4; i <= 4; i++) {
-          const nr = r + dr * i;
-          const nc = c + dc * i;
-          if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
-            if (currentBoard[nr][nc] === 'O') oCount++;
-            if (currentBoard[nr][nc] === 'X') xCount++;
-          }
+    let totalScore = 0;
+    let open3Count = 0;
+    let fourCount = 0;
+
+    for (const [dr, dc] of directions) {
+      let count = 1; // Quân đặt tại (r, c)
+      let openEnds = 0;
+
+      // Hướng thuận
+      let step = 1;
+      while (step <= 4) {
+        const nr = r + dr * step;
+        const nc = c + dc * step;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
+        if (b[nr][nc] === player) {
+          count++;
+          step++;
+        } else if (b[nr][nc] === null) {
+          openEnds++;
+          break;
+        } else {
+          break; // Bị chặn bởi đối thủ
         }
-        score += oCount * 12 + xCount * 10;
       }
-      return score + Math.floor(Math.random() * 5);
-    };
 
+      // Hướng nghịch
+      step = 1;
+      while (step <= 4) {
+        const nr = r - dr * step;
+        const nc = c - dc * step;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
+        if (b[nr][nc] === player) {
+          count++;
+          step++;
+        } else if (b[nr][nc] === null) {
+          openEnds++;
+          break;
+        } else {
+          break; // Bị chặn bởi đối thủ
+        }
+      }
+
+      // Điểm số theo mẫu hình chuẩn quốc tế
+      if (count >= 5) {
+        totalScore += 10000000; // Thắng ngay lập tức
+      } else if (count === 4) {
+        if (openEnds === 2) {
+          totalScore += 2500000; // 4 mở 2 đầu (chắc chắn thắng)
+          fourCount++;
+        } else if (openEnds === 1) {
+          totalScore += 200000;  // 4 chặn 1 đầu
+          fourCount++;
+        }
+      } else if (count === 3) {
+        if (openEnds === 2) {
+          totalScore += 80000;   // Tam cúc mở (rất nguy hiểm)
+          open3Count++;
+        } else if (openEnds === 1) {
+          totalScore += 4000;    // 3 chặn 1 đầu
+        }
+      } else if (count === 2) {
+        if (openEnds === 2) {
+          totalScore += 1500;
+        } else if (openEnds === 1) {
+          totalScore += 250;
+        }
+      }
+    }
+
+    // Đòn vồ đôi (Tạo 2 tam cúc mở hoặc 1 tam cúc + 1 tứ cúc) -> thế cờ tất sát
+    if (open3Count >= 2 || (open3Count >= 1 && fourCount >= 1)) {
+      totalScore += 1500000;
+    }
+
+    return totalScore;
+  };
+
+  // Tính điểm tổng hợp cho nước đi (r, c)
+  const evaluateCell = (b: (string | null)[][], r: number, c: number, diff: Difficulty): number => {
+    // 1. Điểm tấn công của Máy (O)
+    b[r][c] = 'O';
+    const attackScore = scoreLinePattern(b, r, c, 'O');
+    b[r][c] = null;
+
+    // 2. Điểm phòng thủ (chặn người chơi X)
+    b[r][c] = 'X';
+    const defenseScore = scoreLinePattern(b, r, c, 'X');
+    b[r][c] = null;
+
+    // Điểm vị trí trung tâm bàn cờ
+    const distCenter = Math.abs(r - 7) + Math.abs(c - 7);
+    const centerBonus = Math.max(0, 15 - distCenter) * 20;
+
+    if (diff === 'normal') {
+      // Bình thường: Tấn công vừa phải, phòng thủ cơ bản, ngẫu nhiên nhẹ
+      const noise = Math.floor(Math.random() * 50);
+      return attackScore * 0.9 + defenseScore * 0.8 + centerBonus + noise;
+    }
+
+    if (diff === 'hard') {
+      // Khó: Đề cao phòng thủ, không bao giờ bỏ sót 4 hay 3 mở, chặn vồ đôi
+      return attackScore * 1.0 + defenseScore * 1.15 + centerBonus;
+    }
+
+    // Siêu khó (Nightmare): Tấn công hung hãn, phòng thủ chặt chẽ
+    return attackScore * 1.05 + defenseScore * 1.35 + centerBonus;
+  };
+
+  // Thuật toán AI theo 3 cấp độ
+  const handleAIMove = (currentBoard: (string | null)[][]) => {
+    // Tìm các ô trống có quân xung quanh (bán kính 2 ô) để tối ưu hiệu năng
+    const candidates: { r: number; c: number; score: number }[] = [];
+
+    let hasAnyMove = false;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (currentBoard[r][c]) {
+          hasAnyMove = true;
+          break;
+        }
+      }
+      if (hasAnyMove) break;
+    }
+
+    // Nếu bàn cờ trống, đánh luôn giữa bàn (7, 7)
+    if (!hasAnyMove) {
+      makeAIMoveTo(7, 7, currentBoard);
+      return;
+    }
+
+    // Quét các ô lân cận các quân đã đánh
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (!currentBoard[r][c]) {
-          const s = evaluatePos(r, c);
-          if (s > bestScore) {
-            bestScore = s;
-            bestMove = [r, c];
+          // Kiểm tra xem có quân trong phạm vi 2 ô không
+          let near = false;
+          for (let dr = -2; dr <= 2 && !near; dr++) {
+            for (let dc = -2; dc <= 2 && !near; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && currentBoard[nr][nc]) {
+                near = true;
+              }
+            }
+          }
+          if (near) {
+            const score = evaluateCell(currentBoard, r, c, difficulty);
+            candidates.push({ r, c, score });
           }
         }
       }
     }
 
-    const [ar, ac] = bestMove;
+    if (candidates.length === 0) {
+      makeAIMoveTo(7, 7, currentBoard);
+      return;
+    }
+
+    // Sắp xếp các nước đi tốt nhất giảm dần
+    candidates.sort((a, b) => b.score - a.score);
+
+    // Xử lý theo từng cấp độ
+    let chosen = candidates[0];
+
+    if (difficulty === 'normal') {
+      // Bình thường: 75% chọn nước tốt nhất, 25% chọn nước thứ 2 hoặc 3 để người chơi dễ thở
+      if (candidates.length > 2 && Math.random() < 0.25) {
+        chosen = candidates[Math.floor(Math.random() * Math.min(3, candidates.length))];
+      }
+    } else if (difficulty === 'nightmare') {
+      // SIÊU KHÓ: Minimax 2 bước (Lookahead 2-ply) cho top 6 nước đi xuất sắc nhất
+      let bestMinimaxScore = -Infinity;
+      const topCandidates = candidates.slice(0, 6);
+
+      for (const cand of topCandidates) {
+        // Thử AI đi ô này
+        currentBoard[cand.r][cand.c] = 'O';
+
+        // Nếu nước này AI thắng luôn -> chọn ngay lập tức
+        if (checkWin(currentBoard, cand.r, cand.c, 'O')) {
+          currentBoard[cand.r][cand.c] = null;
+          chosen = cand;
+          break;
+        }
+
+        // Tìm nước đáp trả mạnh nhất của người chơi X
+        let playerBestReply = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+          for (let c = 0; c < BOARD_SIZE; c++) {
+            if (!currentBoard[r][c]) {
+              currentBoard[r][c] = 'X';
+              const pScore = scoreLinePattern(currentBoard, r, c, 'X');
+              currentBoard[r][c] = null;
+              if (pScore > playerBestReply) playerBestReply = pScore;
+            }
+          }
+        }
+
+        currentBoard[cand.r][cand.c] = null;
+
+        // Điểm Minimax = Điểm của AI - Nước phản công nguy hiểm nhất của đối thủ
+        const minimaxScore = cand.score - playerBestReply * 0.9;
+        if (minimaxScore > bestMinimaxScore) {
+          bestMinimaxScore = minimaxScore;
+          chosen = cand;
+        }
+      }
+    }
+
+    makeAIMoveTo(chosen.r, chosen.c, currentBoard);
+  };
+
+  const makeAIMoveTo = (ar: number, ac: number, currentBoard: (string | null)[][]) => {
     const newBoard = currentBoard.map(row => [...row]);
     newBoard[ar][ac] = 'O';
     setBoard(newBoard);
@@ -123,7 +311,7 @@ export const CaroGame: React.FC<CaroGameProps> = ({
       setWinner('O (Máy)');
       setWinLine(winningLine);
       playSound('error');
-      showToast('error', 'Máy (O) đã chiến thắng! Hãy thử lại ván mới.');
+      showToast('error', `Máy (${difficulty.toUpperCase()}) đã chiến thắng! Hãy cố gắng ở ván sau! 💪`);
     } else {
       setTurn('X');
     }
@@ -161,8 +349,9 @@ export const CaroGame: React.FC<CaroGameProps> = ({
       setWinLine(winningLine);
       playSound('win');
       triggerConfetti();
-      showToast('success', `🎉 Chúc mừng! Người chơi [${currentMark}] đã chiến thắng ván cờ!`);
-      onWin('Cờ Ca-ro', 40);
+      const bonusScore = difficulty === 'nightmare' ? 80 : difficulty === 'hard' ? 50 : 30;
+      showToast('success', `🎉 Chúc mừng! Người chơi [${currentMark}] đã chiến thắng ván cờ! (+${bonusScore} điểm)`);
+      onWin('Cờ Ca-ro', bonusScore);
     } else {
       setTurn(nextMark);
     }
@@ -184,7 +373,8 @@ export const CaroGame: React.FC<CaroGameProps> = ({
     // Nếu chơi solo offline với AI
     if (!isOnline && vsAI && currentMark === 'X' && !winningLine) {
       setTurn('O');
-      setTimeout(() => handleAIMove(newBoard), 300);
+      const thinkTime = difficulty === 'nightmare' ? 450 : difficulty === 'hard' ? 300 : 200;
+      setTimeout(() => handleAIMove(newBoard), thinkTime);
     }
   };
 
@@ -229,15 +419,42 @@ export const CaroGame: React.FC<CaroGameProps> = ({
           ) : (
             <span>
               Lượt đi: <strong style={{ color: turn === 'X' ? '#38bdf8' : '#f87171' }}>{turn}</strong>{' '}
-              {vsAI && turn === 'O' && '(Máy đang suy nghĩ...)'}
+              {vsAI && turn === 'O' && `(Máy [${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'}] đang tính...)`}
             </span>
           )}
         </div>
 
         <div className="game-actions">
+          {/* LỰA CHỌN ĐỘ KHÓ KHI ĐẤU VỚI MÁY (AI) */}
+          {!isOnline && vsAI && (
+            <div className="difficulty-segmented">
+              <button
+                className={`diff-btn diff-normal ${difficulty === 'normal' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('normal'); showToast('info', 'Đã chuyển độ khó: 🟢 Bình thường (Mặc định)'); }}
+                title="Dễ chơi, phù hợp giải trí"
+              >
+                🟢 Bình thường
+              </button>
+              <button
+                className={`diff-btn diff-hard ${difficulty === 'hard' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('hard'); showToast('info', 'Đã chuyển độ khó: 🟡 Khó (AI chặn đòn chuẩn)'); }}
+                title="Thử thách, AI chặn đòn tốt"
+              >
+                🟡 Khó
+              </button>
+              <button
+                className={`diff-btn diff-nightmare ${difficulty === 'nightmare' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('nightmare'); showToast('warning', 'Đã bật: 🔴 SIÊU KHÓ 🔥 (AI tính toán sâu, cực kỳ khó thắng!)'); }}
+                title="Cực khó! Toát mồ hôi hột mới thắng được"
+              >
+                🔴 Siêu khó 🔥
+              </button>
+            </div>
+          )}
+
           {!isOnline && (
             <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
-              {vsAI ? '🤖 Đấu với Máy' : '👥 Đấu 2 Người'}
+              {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
             </button>
           )}
           <button className="reset-btn" onClick={resetGame}>🔄 Ván mới</button>

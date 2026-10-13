@@ -4,7 +4,7 @@ import { playSound, triggerConfetti } from '../utils/effects';
 
 interface ChessGameProps {
   onWin: (gameName: string, score: number) => void;
-  showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string) => void;
   room?: GameRoom | null;
   currentUser?: User | null;
   onSyncState?: (gameState: string) => void;
@@ -12,6 +12,7 @@ interface ChessGameProps {
 
 type PieceColor = 'w' | 'b';
 type PieceType = 'p' | 'r' | 'n' | 'b' | 'q' | 'k';
+type Difficulty = 'normal' | 'hard' | 'nightmare';
 
 interface Piece {
   type: PieceType;
@@ -42,6 +43,15 @@ const PIECE_SYMBOLS: Record<PieceColor, Record<PieceType, string>> = {
   b: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
 };
 
+const PIECE_VAL: Record<PieceType, number> = {
+  k: 20000,
+  q: 950,
+  r: 510,
+  b: 335,
+  n: 325,
+  p: 100
+};
+
 export const ChessGame: React.FC<ChessGameProps> = ({
   onWin,
   showToast,
@@ -55,6 +65,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
   const [vsAI, setVsAI] = useState<boolean>(!room);
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [capturedWhite, setCapturedWhite] = useState<Piece[]>([]);
   const [capturedBlack, setCapturedBlack] = useState<Piece[]>([]);
 
@@ -63,7 +74,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const myColor: PieceColor = isHost ? 'w' : 'b';
   const opponentName = isOnline
     ? (isHost ? (room.guestFullName || 'Đang chờ khách...') : room.hostFullName)
-    : 'Máy (AI)';
+    : `Máy AI (${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'})`;
 
   const isMyTurn = !isOnline || (turn === myColor && (isHost ? !!room?.guestUserId : true));
 
@@ -224,8 +235,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         setWinner(winSide);
         playSound('win');
         triggerConfetti();
-        showToast('success', `🎉 Vua đối phương đã bị bắt! ${winSide} giành chiến thắng!`);
-        onWin('Cờ Vua', 50);
+        const bonusScore = difficulty === 'nightmare' ? 90 : difficulty === 'hard' ? 60 : 40;
+        showToast('success', `🎉 Vua đối phương đã bị bắt! ${winSide} giành chiến thắng! (+${bonusScore} điểm)`);
+        onWin('Cờ Vua', bonusScore);
       }
     } else {
       playSound('move');
@@ -250,12 +262,44 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     // Đấu với AI
     if (!isOnline && vsAI && nextTurn === 'b' && !winSide) {
-      setTimeout(() => makeAIMove(newBoard), 400);
+      const thinkTime = difficulty === 'nightmare' ? 450 : difficulty === 'hard' ? 300 : 200;
+      setTimeout(() => makeAIMove(newBoard), thinkTime);
     }
   };
 
+  // Đánh giá thế cờ tĩnh Cờ Vua cho quân Đen
+  const evaluateChessBoard = (b: ChessBoard): number => {
+    let score = 0;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = b[r][c];
+        if (p) {
+          const val = PIECE_VAL[p.type];
+          // Thưởng điểm kiểm soát trung tâm (hàng 3, 4, cột 3, 4)
+          const centerDist = Math.abs(r - 3.5) + Math.abs(c - 3.5);
+          const posBonus = Math.max(0, 7 - centerDist) * 8;
+
+          if (p.color === 'b') {
+            score += val + posBonus;
+          } else {
+            score -= (val + posBonus);
+          }
+        }
+      }
+    }
+    return score;
+  };
+
   const makeAIMove = (currentBoard: ChessBoard) => {
-    const allMoves: { sr: number; sc: number; tr: number; tc: number; score: number }[] = [];
+    interface MoveCandidate {
+      sr: number;
+      sc: number;
+      tr: number;
+      tc: number;
+      score: number;
+    }
+
+    const allMoves: MoveCandidate[] = [];
 
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
@@ -264,16 +308,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           const moves = getMoves(r, c, currentBoard);
           moves.forEach(([tr, tc]) => {
             const target = currentBoard[tr][tc];
-            let score = 0;
+            let immediate = 0;
             if (target) {
-              if (target.type === 'k') score = 1000;
-              else if (target.type === 'q') score = 90;
-              else if (target.type === 'r') score = 50;
-              else if (target.type === 'b' || target.type === 'n') score = 30;
-              else score = 10;
+              immediate += PIECE_VAL[target.type] * 8;
+              if (PIECE_VAL[target.type] >= PIECE_VAL[piece.type]) immediate += 200;
             }
-            score += (tr - r);
-            allMoves.push({ sr: r, sc: c, tr, tc, score });
+            // Thưởng điểm tiến quân về trung tâm
+            immediate += (tr - r) * 10;
+            allMoves.push({ sr: r, sc: c, tr, tc, score: immediate });
           });
         }
       }
@@ -285,7 +327,74 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
 
     allMoves.sort((a, b) => b.score - a.score);
-    const chosen = allMoves[0];
+    let chosen = allMoves[0];
+
+    if (difficulty === 'normal') {
+      if (allMoves.length > 2 && Math.random() < 0.25) {
+        chosen = allMoves[Math.floor(Math.random() * Math.min(3, allMoves.length))];
+      }
+    } else if (difficulty === 'hard') {
+      let bestEval = -Infinity;
+      const topMoves = allMoves.slice(0, 10);
+      for (const m of topMoves) {
+        const p = currentBoard[m.sr][m.sc]!;
+        const target = currentBoard[m.tr][m.tc];
+        currentBoard[m.tr][m.tc] = p;
+        currentBoard[m.sr][m.sc] = null;
+
+        const boardScore = evaluateChessBoard(currentBoard) + m.score;
+
+        currentBoard[m.sr][m.sc] = p;
+        currentBoard[m.tr][m.tc] = target;
+
+        if (boardScore > bestEval) {
+          bestEval = boardScore;
+          chosen = m;
+        }
+      }
+    } else if (difficulty === 'nightmare') {
+      // SIÊU KHÓ 🔥: Minimax 2 bước xem trước phản công của Trắng
+      let bestMinimax = -Infinity;
+      const topMoves = allMoves.slice(0, 12);
+
+      for (const m of topMoves) {
+        const p = currentBoard[m.sr][m.sc]!;
+        const target = currentBoard[m.tr][m.tc];
+
+        if (target && target.type === 'k') {
+          chosen = m;
+          break;
+        }
+
+        currentBoard[m.tr][m.tc] = p;
+        currentBoard[m.sr][m.sc] = null;
+
+        let maxWhiteReply = -Infinity;
+        for (let wr = 0; wr < 8; wr++) {
+          for (let wc = 0; wc < 8; wc++) {
+            const wPiece = currentBoard[wr][wc];
+            if (wPiece && wPiece.color === 'w') {
+              const wMoves = getMoves(wr, wc, currentBoard);
+              for (const [wtr, wtc] of wMoves) {
+                const wTarget = currentBoard[wtr][wtc];
+                let rep = wTarget ? PIECE_VAL[wTarget.type] * 7 : 0;
+                if (rep > maxWhiteReply) maxWhiteReply = rep;
+              }
+            }
+          }
+        }
+
+        const total = evaluateChessBoard(currentBoard) + m.score - (maxWhiteReply === -Infinity ? 0 : maxWhiteReply);
+
+        currentBoard[m.sr][m.sc] = p;
+        currentBoard[m.tr][m.tc] = target;
+
+        if (total > bestMinimax) {
+          bestMinimax = total;
+          chosen = m;
+        }
+      }
+    }
 
     const p = currentBoard[chosen.sr][chosen.sc]!;
     const target = currentBoard[chosen.tr][chosen.tc];
@@ -305,7 +414,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       if (target.type === 'k') {
         setWinner('Phe Đen (Máy)');
         playSound('error');
-        showToast('error', 'Máy đã bắt Vua của bạn!');
+        showToast('error', `Máy (${difficulty.toUpperCase()}) đã bắt Vua của bạn!`);
         return;
       }
     } else {
@@ -358,12 +467,39 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           ) : (
             <span>
               Lượt đi: <strong style={{ color: turn === 'w' ? '#f8fafc' : '#94a3b8' }}>{turn === 'w' ? 'Quân Trắng' : 'Quân Đen'}</strong>{' '}
-              {vsAI && turn === 'b' && '(Máy suy nghĩ...)'}
+              {vsAI && turn === 'b' && `(Máy [${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'}] đang tính...)`}
             </span>
           )}
         </div>
 
         <div className="game-actions">
+          {/* LỰA CHỌN ĐỘ KHÓ KHI ĐẤU VỚI MÁY (AI) */}
+          {!isOnline && vsAI && (
+            <div className="difficulty-segmented">
+              <button
+                className={`diff-btn diff-normal ${difficulty === 'normal' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('normal'); showToast('info', 'Đã chuyển độ khó: 🟢 Bình thường (Mặc định)'); }}
+                title="Dễ chơi, phù hợp giải trí"
+              >
+                🟢 Bình thường
+              </button>
+              <button
+                className={`diff-btn diff-hard ${difficulty === 'hard' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('hard'); showToast('info', 'Đã chuyển độ khó: 🟡 Khó (AI biết giữ quân)'); }}
+                title="Thử thách, AI tính toán kỹ"
+              >
+                🟡 Khó
+              </button>
+              <button
+                className={`diff-btn diff-nightmare ${difficulty === 'nightmare' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('nightmare'); showToast('warning', 'Đã bật: 🔴 SIÊU KHÓ 🔥 (AI tính toán sâu, cực kỳ khó thắng!)'); }}
+                title="Cực khó! Toát mồ hôi hột mới thắng được"
+              >
+                🔴 Siêu khó 🔥
+              </button>
+            </div>
+          )}
+
           {!isOnline && (
             <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
               {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
