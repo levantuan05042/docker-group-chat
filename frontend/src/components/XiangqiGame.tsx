@@ -626,17 +626,17 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
               </filter>
 
               <radialGradient id="redPieceWood" cx="35%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#fffaf0" />
-                <stop offset="45%" stopColor="#fed7aa" />
-                <stop offset="85%" stopColor="#f59e0b" />
-                <stop offset="100%" stopColor="#b45309" />
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="40%" stopColor="#fffbeb" />
+                <stop offset="80%" stopColor="#fef3c7" />
+                <stop offset="100%" stopColor="#d97706" />
               </radialGradient>
 
               <radialGradient id="blackPieceWood" cx="35%" cy="30%" r="70%">
                 <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="45%" stopColor="#e2e8f0" />
-                <stop offset="85%" stopColor="#94a3b8" />
-                <stop offset="100%" stopColor="#475569" />
+                <stop offset="40%" stopColor="#f8fafc" />
+                <stop offset="80%" stopColor="#e2e8f0" />
+                <stop offset="100%" stopColor="#94a3b8" />
               </radialGradient>
 
               <linearGradient id="boardWoodGrad" x1="0%" y1="0%" x2="100%" y2="100%">

@@ -40,6 +40,34 @@ export default function App() {
   const [authAvatar, setAuthAvatar] = useState('🎮');
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Theme State: Sáng (Light - Mặc định) / Tối (Dark)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('gamehub_theme');
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('gamehub_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    playSound('click');
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  // Mobile Bottom Navigation Tab: 'game' | 'chat'
+  const [mobileTab, setMobileTab] = useState<'game' | 'chat'>('game');
+
+  // Modern Victory Celebration Modal Data
+  const [victoryData, setVictoryData] = useState<{
+    gameName: string;
+    winnerName: string;
+    bonus: number;
+    newScore: number;
+    newWins: number;
+  } | null>(null);
+
   // App Layout & Game State
   const [activeGame, setActiveGame] = useState<GameType>('caro');
   const [viewMode, setViewMode] = useState<'split' | 'game' | 'chat'>('split');
@@ -260,7 +288,16 @@ export default function App() {
     try {
       const res = await reportGameWin(currentUser.id, gameName, bonus);
       setCurrentUser(prev => prev ? { ...prev, score: res.score, wins: res.wins } : null);
-      showToast('success', `Cộng +${bonus} điểm thưởng vào MySQL! Tổng điểm: ${res.score} ⭐`);
+      playSound('win');
+      triggerConfetti();
+      setVictoryData({
+        gameName,
+        winnerName: currentUser.fullName || currentUser.username,
+        bonus,
+        newScore: res.score,
+        newWins: res.wins
+      });
+      showToast('success', `🎉 Chiến thắng vang dội! +${bonus} điểm thưởng!`);
     } catch (e) {
       console.error(e);
     }
@@ -563,6 +600,15 @@ export default function App() {
             </button>
           </div>
 
+          {/* NÚT ĐỔI GIAO DIỆN SÁNG / TỐI */}
+          <button
+            className="btn btn-secondary btn-sm theme-toggle-btn"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Chuyển sang giao diện Tối 🌙' : 'Chuyển sang giao diện Sáng ☀️'}
+          >
+            {theme === 'light' ? '🌙 Tối' : '☀️ Sáng'}
+          </button>
+
           <button className="btn btn-logout btn-sm" onClick={handleLogout} title="Đăng xuất">
             Thoát
           </button>
@@ -614,8 +660,8 @@ export default function App() {
         </div>
       )}
 
-      {/* ARENA: GAME & CHAT CONTAINER */}
-      <main className={`arena-grid layout-${viewMode}`}>
+      {/* ARENA: GAME & CHAT CONTAINER (TƯƠNG THÍCH MỌI THIẾT BỊ PC, LAPTOP, TABLET, ĐIỆN THOẠI) */}
+      <main className={`arena-grid layout-${viewMode} mobile-tab-${mobileTab}`}>
         {/* KHU VỰC GAME */}
         {viewMode !== 'chat' && (
           <div className="game-arena-card glass-panel">
@@ -672,6 +718,49 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* THANH ĐIỀU HƯỚNG DƯỚI ĐÁY CHO ĐIỆN THOẠI & TABLET (MOBILE BOTTOM NAVIGATION) */}
+      <nav className="mobile-bottom-nav glass-panel">
+        <button
+          className={`mob-nav-btn ${mobileTab === 'game' ? 'active' : ''}`}
+          onClick={() => { setMobileTab('game'); playSound('click'); }}
+        >
+          <span className="mob-icon">🎮</span>
+          <span className="mob-text">Bàn Cờ</span>
+        </button>
+
+        <button
+          className={`mob-nav-btn ${mobileTab === 'chat' ? 'active' : ''}`}
+          onClick={() => { setMobileTab('chat'); playSound('click'); }}
+        >
+          <span className="mob-icon">💬</span>
+          <span className="mob-text">Phòng Chat</span>
+        </button>
+
+        <button
+          className="mob-nav-btn"
+          onClick={() => { openLeaderboard(); playSound('click'); }}
+        >
+          <span className="mob-icon">🏆</span>
+          <span className="mob-text">Xếp Hạng</span>
+        </button>
+
+        <button
+          className="mob-nav-btn"
+          onClick={() => {
+            if (currentRoom) {
+              setCurrentRoom(null);
+              showToast('info', 'Bạn đã rời phòng.');
+            } else {
+              setRoomModalOpen(true);
+            }
+            playSound('click');
+          }}
+        >
+          <span className="mob-icon">{currentRoom ? '🚪' : '➕'}</span>
+          <span className="mob-text">{currentRoom ? 'Rời Phòng' : 'Tạo Phòng'}</span>
+        </button>
+      </nav>
 
       {/* POPUP: CHỌN NGƯỜI CHƠI ĐỂ MỜI ĐẤU (CHỈ HIỂN THỊ NGƯỜI ĐANG ONLINE) */}
       {inviteModalOpen && currentRoom && (
@@ -968,6 +1057,63 @@ export default function App() {
 
             <div style={{ marginTop: '16px', textAlign: 'right' }}>
               <button className="btn btn-primary" onClick={() => setLeaderboardOpen(false)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP CHÚC MỪNG CHIẾN THẮNG HIỆN ĐẠI (VICTORY MODAL) */}
+      {victoryData && (
+        <div className="modal-overlay victory-overlay" onClick={() => setVictoryData(null)}>
+          <div className="modal-content glass-panel victory-card" onClick={e => e.stopPropagation()}>
+            <div className="victory-trophy-wrapper">
+              <span className="victory-trophy-icon">🏆</span>
+            </div>
+
+            <h2 className="victory-title">🎉 CHIẾN THẮNG VANG DỘI! 🎉</h2>
+            <p className="victory-subtitle">
+              Chúc mừng <strong>{victoryData.winnerName}</strong> đã xuất sắc giành chiến thắng trong ván đấu <strong>{victoryData.gameName}</strong>!
+            </p>
+
+            <div className="victory-stats-grid">
+              <div className="v-stat-card bonus-card">
+                <span className="v-stat-emoji">⭐</span>
+                <span className="v-stat-num">+{victoryData.bonus}</span>
+                <span className="v-stat-title">Điểm Thưởng MySQL</span>
+              </div>
+
+              <div className="v-stat-card wins-card">
+                <span className="v-stat-emoji">👑</span>
+                <span className="v-stat-num">{victoryData.newWins}</span>
+                <span className="v-stat-title">Trận Thắng</span>
+              </div>
+
+              <div className="v-stat-card total-card">
+                <span className="v-stat-emoji">✨</span>
+                <span className="v-stat-num">{victoryData.newScore}</span>
+                <span className="v-stat-title">Tổng Điểm Xếp Hạng</span>
+              </div>
+            </div>
+
+            <div className="victory-actions">
+              <button
+                className="btn btn-primary btn-block victory-btn"
+                onClick={() => {
+                  setVictoryData(null);
+                  playSound('click');
+                }}
+              >
+                🔄 Tiếp Tục Trận Mới
+              </button>
+              <button
+                className="btn btn-secondary btn-block"
+                onClick={() => {
+                  setVictoryData(null);
+                  setRoomModalOpen(true);
+                }}
+              >
+                🚪 Mở Phòng Game Khác
+              </button>
             </div>
           </div>
         </div>

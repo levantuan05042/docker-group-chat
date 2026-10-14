@@ -70,7 +70,7 @@ export function playSound(type: 'move' | 'win' | 'dice' | 'error' | 'click' | 'c
   }
 }
 
-// Pure HTML5 Canvas Confetti Fireworks Celebration
+// Pure HTML5 Canvas Multi-Burst Confetti & Fireworks Celebration
 export function triggerConfetti() {
   const canvas = document.createElement('canvas');
   canvas.style.position = 'fixed';
@@ -88,7 +88,7 @@ export function triggerConfetti() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const colors = ['#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#fbbf24'];
+  const colors = ['#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#fbbf24', '#06b6d4', '#e11d48'];
   const particles: Array<{
     x: number;
     y: number;
@@ -99,21 +99,34 @@ export function triggerConfetti() {
     alpha: number;
     rotation: number;
     vrot: number;
+    isStar?: boolean;
   }> = [];
 
-  for (let i = 0; i < 160; i++) {
-    particles.push({
-      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-      y: canvas.height * 0.4 + (Math.random() - 0.5) * 100,
-      vx: (Math.random() - 0.5) * 16,
-      vy: (Math.random() - 0.7) * 18,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 8 + 4,
-      alpha: 1,
-      rotation: Math.random() * 360,
-      vrot: (Math.random() - 0.5) * 10,
-    });
-  }
+  // Tạo đợt pháo hoa từ 3 điểm: Giữa, Trái, Phải
+  const origins = [
+    { x: canvas.width * 0.5, y: canvas.height * 0.45 },
+    { x: canvas.width * 0.2, y: canvas.height * 0.55 },
+    { x: canvas.width * 0.8, y: canvas.height * 0.55 }
+  ];
+
+  origins.forEach(orig => {
+    for (let i = 0; i < 90; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 14 + 6;
+      particles.push({
+        x: orig.x + (Math.random() - 0.5) * 40,
+        y: orig.y + (Math.random() - 0.5) * 40,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 7 + 4,
+        alpha: 1,
+        rotation: Math.random() * 360,
+        vrot: (Math.random() - 0.5) * 12,
+        isStar: Math.random() > 0.6
+      });
+    }
+  });
 
   let animationFrame: number;
   const render = () => {
@@ -123,9 +136,9 @@ export function triggerConfetti() {
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.4; // Gravity
+      p.vy += 0.35; // Trọng lực rơi
       p.vx *= 0.98;
-      p.alpha -= 0.008;
+      p.alpha -= 0.007;
       p.rotation += p.vrot;
 
       if (p.alpha > 0) {
@@ -135,7 +148,20 @@ export function triggerConfetti() {
         ctx.rotate((p.rotation * Math.PI) / 180);
         ctx.globalAlpha = Math.max(0, p.alpha);
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+
+        if (p.isStar) {
+          // Vẽ ngôi sao lấp lánh
+          ctx.beginPath();
+          for (let s = 0; s < 5; s++) {
+            ctx.lineTo(Math.cos(((18 + s * 72) * Math.PI) / 180) * p.size, -Math.sin(((18 + s * 72) * Math.PI) / 180) * p.size);
+            ctx.lineTo(Math.cos(((54 + s * 72) * Math.PI) / 180) * (p.size / 2), -Math.sin(((54 + s * 72) * Math.PI) / 180) * (p.size / 2));
+          }
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Dải ruy băng ngũ sắc
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+        }
         ctx.restore();
       }
     });
