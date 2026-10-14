@@ -102,7 +102,7 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [validMoves, setValidMoves] = useState<[number, number][]>([]);
   const [winner, setWinner] = useState<string | null>(null);
-  const [vsAI, setVsAI] = useState<boolean>(!room);
+  const vsAI = !room;
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [lastMove, setLastMove] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
 
@@ -547,69 +547,33 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
 
   return (
     <div className="game-wrapper xiangqi-real-wrapper">
-      {/* THANH TRẠNG THÁI RÕ RÀNG */}
-      <div className="game-top-bar">
-        <div className="game-status-badge">
-          {winner ? (
-            <span className="win-announce">🏆 Thắng cuộc: <strong>{winner}</strong></span>
-          ) : isOnline ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>
-                Bạn: <strong style={{ color: mySide === 'red' ? '#ef4444' : '#cbd5e1' }}>{mySide === 'red' ? 'Phe Đỏ (帥 - Đi trước)' : 'Phe Đen (將 - Đi sau)'}</strong>
-              </span>
-              <span className={`turn-pill ${isMyTurn ? 'turn-mine' : 'turn-wait'}`}>
-                {isMyTurn ? '🎯 LƯỢT CỦA BẠN' : `⏳ ĐỐI THỦ ĐANG NGHĨ...`}
-              </span>
-            </div>
-          ) : (
-            <span>
-              Lượt đi: <strong style={{ color: turn === 'red' ? '#ef4444' : '#cbd5e1' }}>{turn === 'red' ? 'Phe Đỏ (帥)' : 'Phe Đen (將)'}</strong>{' '}
-              {vsAI && turn === 'black' && `(Máy [${difficulty === 'normal' ? 'Bình thường' : difficulty === 'hard' ? 'Khó' : 'Siêu khó 🔥'}] đang tính...)`}
+      {/* 1. THẺ ĐỐI THỦ PHÍA TRÊN */}
+      <div className="player-strip opponent-strip">
+        <div className="player-meta">
+          <span className="player-avatar">{isOnline ? '👤' : '🤖'}</span>
+          <div className="player-details">
+            <span className="player-name">{opponentName}</span>
+            <span className="player-role">
+              {isOnline ? (isHost ? 'Phe Đen (將 - Đi sau)' : 'Phe Đỏ (帥 - Đi trước)') : `Phe Đen (將) • ${difficulty === 'normal' ? '🟢 Bình thường' : difficulty === 'hard' ? '🟡 Khó' : '🔴 Siêu khó 🔥'}`}
             </span>
-          )}
+          </div>
         </div>
 
-        <div className="game-actions">
-          {/* LỰA CHỌN ĐỘ KHÓ KHI ĐẤU VỚI MÁY (AI) */}
-          {!isOnline && vsAI && (
-            <div className="difficulty-segmented">
-              <button
-                className={`diff-btn diff-normal ${difficulty === 'normal' ? 'active' : ''}`}
-                onClick={() => { setDifficulty('normal'); showToast('info', 'Đã chuyển độ khó: 🟢 Bình thường (Mặc định)'); }}
-                title="Dễ chơi, phù hợp giải trí"
-              >
-                🟢 Bình thường
-              </button>
-              <button
-                className={`diff-btn diff-hard ${difficulty === 'hard' ? 'active' : ''}`}
-                onClick={() => { setDifficulty('hard'); showToast('info', 'Đã chuyển độ khó: 🟡 Khó (AI biết giữ quân)'); }}
-                title="Thử thách, AI tính toán kỹ"
-              >
-                🟡 Khó
-              </button>
-              <button
-                className={`diff-btn diff-nightmare ${difficulty === 'nightmare' ? 'active' : ''}`}
-                onClick={() => { setDifficulty('nightmare'); showToast('warning', 'Đã bật: 🔴 SIÊU KHÓ 🔥 (AI tính toán sâu, cực kỳ khó thắng!)'); }}
-                title="Cực khó! Toát mồ hôi hột mới thắng được"
-              >
-                🔴 Siêu khó 🔥
-              </button>
-            </div>
+        <div className="player-status-badge">
+          {winner ? (
+            <span className="status-badge status-winner">VÁN ĐẤU KẾT THÚC</span>
+          ) : (
+            <span className={`status-badge ${!isMyTurn ? 'status-active' : 'status-waiting'}`}>
+              {!isMyTurn ? '🎯 LƯỢT ĐI' : '⏳ ĐANG ĐỢI'}
+            </span>
           )}
-
-          {!isOnline && (
-            <button className={`mode-toggle ${vsAI ? 'active' : ''}`} onClick={() => { setVsAI(!vsAI); resetGame(); }}>
-              {vsAI ? '🤖 Đấu với AI' : '👥 Đấu 2 Người'}
-            </button>
-          )}
-          <button className="reset-btn" onClick={resetGame}>🔄 Ván mới</button>
         </div>
       </div>
 
       {/* THÔNG BÁO HƯỚNG DẪN KHI CHƠI ONLINE */}
       {isOnline && !room?.guestUserId && (
         <div className="online-wait-alert">
-          📢 <strong>Phòng cờ tướng đang mở!</strong> Đang chờ đối thủ vào phòng... Hãy gửi mã <code>{room.roomCode}</code> hoặc bấm <strong>"Mời Vào Chat"</strong> để cùng so tài!
+          📢 <strong>Phòng cờ tướng đang mở!</strong> Đang chờ đối thủ vào phòng... Hãy chia sẻ mã <code>{room.roomCode}</code> hoặc bấm <strong>"Mời Bạn"</strong> để bắt đầu trận đấu!
         </div>
       )}
 
@@ -818,6 +782,61 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
               })
             )}
           </svg>
+        </div>
+      </div>
+
+      {/* 3. THẺ BẠN PHÍA DƯỚI & ĐIỀU KHIỂN */}
+      <div className="player-strip user-strip">
+        <div className="player-meta">
+          <span className="player-avatar">{currentUser?.avatar || '🎮'}</span>
+          <div className="player-details">
+            <span className="player-name">{currentUser?.fullName || currentUser?.username || 'Bạn'}</span>
+            <span className="player-role">
+              {isOnline ? (isHost ? 'Phe Đỏ (帥 - Đi trước)' : 'Phe Đen (將 - Đi sau)') : 'Phe Đỏ (帥 - Đi trước)'}
+            </span>
+          </div>
+        </div>
+
+        <div className="user-center-status">
+          {winner ? (
+            <span className="status-badge status-winner">👑 {winner}</span>
+          ) : (
+            <span className={`status-badge ${isMyTurn ? 'status-active' : 'status-waiting'}`}>
+              {isMyTurn ? '🎯 LƯỢT CỦA BẠN' : '⏳ CHỜ ĐỐI THỦ...'}
+            </span>
+          )}
+        </div>
+
+        <div className="strip-controls">
+          {!isOnline && vsAI && (
+            <div className="difficulty-segmented">
+              <button
+                className={`diff-btn diff-normal ${difficulty === 'normal' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('normal'); showToast('info', 'Đã chọn: 🟢 Bình thường'); }}
+                title="Bình thường"
+              >
+                Bình thường
+              </button>
+              <button
+                className={`diff-btn diff-hard ${difficulty === 'hard' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('hard'); showToast('info', 'Đã chọn: 🟡 Khó'); }}
+                title="Khó"
+              >
+                Khó
+              </button>
+              <button
+                className={`diff-btn diff-nightmare ${difficulty === 'nightmare' ? 'active' : ''}`}
+                onClick={() => { setDifficulty('nightmare'); showToast('warning', 'Đã chọn: 🔴 Siêu khó 🔥'); }}
+                title="Siêu khó 🔥"
+              >
+                Siêu khó 🔥
+              </button>
+            </div>
+          )}
+
+          <button className="btn btn-primary btn-sm" onClick={resetGame} title="Ván mới">
+            🔄 Ván Mới
+          </button>
         </div>
       </div>
     </div>

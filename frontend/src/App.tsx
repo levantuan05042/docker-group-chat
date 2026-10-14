@@ -56,8 +56,9 @@ export default function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // Mobile Bottom Navigation Tab: 'game' | 'chat'
-  const [mobileTab, setMobileTab] = useState<'game' | 'chat'>('game');
+  // Mobile & Sidebar Tab Management
+  const [sidebarTab, setSidebarTab] = useState<'chat' | 'rooms' | 'leaderboard' | 'rules'>('chat');
+  const [mobileTab, setMobileTab] = useState<'game' | 'chat' | 'rooms' | 'leaderboard'>('game');
 
   // Modern Victory Celebration Modal Data
   const [victoryData, setVictoryData] = useState<{
@@ -707,15 +708,260 @@ export default function App() {
           </div>
         )}
 
-        {/* KHU VỰC CHAT REALTIME */}
+        {/* KHU VỰC ĐIỀU KHIỂN & TƯƠNG TÁC (COMMAND CENTER: CHAT, PHÒNG ĐẤU, BXH, LUẬT CHƠI) */}
         {viewMode !== 'game' && (
-          <ChatBox
-            currentUser={currentUser}
-            currentGame={getGameTitle(activeGame)}
-            currentRoomCode={currentRoom?.roomCode}
-            onJoinRoom={handleJoinRoom}
-            onInviteRoom={loadUsersAndOpenInviteModal}
-          />
+          <aside className="sidebar-command-center">
+            {/* THANH TAB ĐIỀU HƯỚNG TÍCH HỢP */}
+            <div className="sidebar-nav-tabs">
+              <button
+                className={`sidebar-tab-btn ${sidebarTab === 'chat' ? 'active' : ''}`}
+                onClick={() => { setSidebarTab('chat'); playSound('click'); }}
+              >
+                💬 Chat
+              </button>
+              <button
+                className={`sidebar-tab-btn ${sidebarTab === 'rooms' ? 'active' : ''}`}
+                onClick={() => {
+                  setSidebarTab('rooms');
+                  fetchWaitingRooms().then(setWaitingRooms).catch(() => {});
+                  playSound('click');
+                }}
+              >
+                🚪 Phòng
+              </button>
+              <button
+                className={`sidebar-tab-btn ${sidebarTab === 'leaderboard' ? 'active' : ''}`}
+                onClick={() => {
+                  setSidebarTab('leaderboard');
+                  fetchLeaderboard().then(setLeaderboard).catch(() => {});
+                  playSound('click');
+                }}
+              >
+                🏆 BXH
+              </button>
+              <button
+                className={`sidebar-tab-btn ${sidebarTab === 'rules' ? 'active' : ''}`}
+                onClick={() => { setSidebarTab('rules'); playSound('click'); }}
+              >
+                📖 Luật
+              </button>
+            </div>
+
+            {/* NỘI DUNG TAB HIỆN TẠI */}
+            <div className="sidebar-tab-content">
+              {sidebarTab === 'chat' && (
+                <ChatBox
+                  currentUser={currentUser}
+                  currentGame={getGameTitle(activeGame)}
+                  currentRoomCode={currentRoom?.roomCode}
+                  onJoinRoom={handleJoinRoom}
+                  onInviteRoom={loadUsersAndOpenInviteModal}
+                />
+              )}
+
+              {sidebarTab === 'rooms' && (
+                <div className="tab-panel-inner">
+                  {currentRoom ? (
+                    <div className="room-status-box">
+                      <div className="panel-section-title">
+                        <span>🟢 PHÒNG ĐANG THI ĐẤU</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <strong style={{ fontSize: '15px', color: '#0284c7' }}>{currentRoom.roomCode}</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Trò chơi: <strong>{getGameTitle(currentRoom.gameType)}</strong>
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentRoom.roomCode);
+                            showToast('info', 'Đã sao chép mã phòng!');
+                          }}
+                        >
+                          📋 Sao Chép
+                        </button>
+                      </div>
+
+                      <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', fontSize: '12px' }}>
+                        <div>Chủ phòng: <strong>{currentRoom.hostFullName}</strong> ({currentRoom.hostScore} điểm)</div>
+                        <div>Khách: <strong>{currentRoom.guestFullName || (currentRoom.invitedFullName ? `Đang chờ ${currentRoom.invitedFullName}` : 'Chưa có đối thủ')}</strong> ({currentRoom.guestScore} điểm)</div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        {isHost && !currentRoom.guestUserId && (
+                          <button className="btn btn-primary btn-sm btn-block" onClick={loadUsersAndOpenInviteModal}>
+                            👥 Mời Người Online
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-danger btn-sm btn-block"
+                          onClick={() => {
+                            setCurrentRoom(null);
+                            showToast('info', 'Bạn đã rời phòng.');
+                          }}
+                        >
+                          🚪 Rời Phòng
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button
+                          className="btn btn-primary btn-block"
+                          onClick={() => handleCreateRoom(activeGame)}
+                          style={{ padding: '10px' }}
+                        >
+                          ➕ Tạo Phòng [{getGameTitle(activeGame)}]
+                        </button>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Mã phòng (vd: ROOM-1234)"
+                            value={inputRoomCode}
+                            onChange={e => setInputRoomCode(e.target.value)}
+                            style={{ fontSize: '12px' }}
+                          />
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => handleJoinRoom(inputRoomCode)}
+                            disabled={!inputRoomCode.trim()}
+                          >
+                            Vào
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span className="panel-section-title">📡 Phòng Chờ Trực Tuyến</span>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => fetchWaitingRooms().then(setWaitingRooms)}
+                            title="Làm mới"
+                          >
+                            🔄
+                          </button>
+                        </div>
+
+                        {waitingRooms.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '18px 10px', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                            Chưa có phòng nào đang mở. Hãy bấm nút phía trên để tạo phòng đầu tiên! 🚀
+                          </div>
+                        ) : (
+                          <div className="waiting-rooms-list">
+                            {waitingRooms.map(r => (
+                              <div key={r.id} className="waiting-room-card">
+                                <div>
+                                  <div style={{ fontWeight: 800, fontSize: '12px', color: '#0284c7' }}>
+                                    {r.roomCode} • <span style={{ color: '#d97706' }}>{getGameTitle(r.gameType)}</span>
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    Chủ: {r.hostFullName}
+                                  </div>
+                                </div>
+                                <button className="btn btn-primary btn-sm" onClick={() => handleJoinRoom(r.roomCode)}>
+                                  ⚔️ Vào
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {sidebarTab === 'leaderboard' && (
+                <div className="tab-panel-inner">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="panel-section-title">🏆 Top Cao Thủ Máy Chủ</span>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => fetchLeaderboard().then(setLeaderboard)}
+                      title="Làm mới"
+                    >
+                      🔄
+                    </button>
+                  </div>
+
+                  <table className="sidebar-leaderboard-table">
+                    <thead>
+                      <tr>
+                        <th>Hạng</th>
+                        <th>Kỳ Thủ</th>
+                        <th>Điểm</th>
+                        <th>Thắng</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboard.slice(0, 10).map((u, idx) => (
+                        <tr key={u.id} className={u.id === currentUser.id ? 'highlight-user' : ''}>
+                          <td>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}</td>
+                          <td>
+                            <span style={{ marginRight: '4px' }}>{u.avatar || '🎮'}</span>
+                            <span>{u.fullName || u.username}</span>
+                          </td>
+                          <td style={{ color: '#d97706', fontWeight: 800 }}>⭐{u.score}</td>
+                          <td style={{ color: '#059669', fontWeight: 800 }}>🏆{u.wins}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {sidebarTab === 'rules' && (
+                <div className="tab-panel-inner">
+                  <div className="panel-section-title">📖 Luật Chơi &amp; Mẹo Thi Đấu</div>
+                  {activeGame === 'caro' && (
+                    <div className="rule-card">
+                      <h4>⭕ Cờ Ca-ro (Gomoku 15x15)</h4>
+                      <p>• <strong>Mục tiêu:</strong> Tạo thành hàng liên tiếp 5 quân cờ (ngang, dọc, chéo) không bị chặn cả hai đầu.</p>
+                      <p>• <strong>Chiến thuật:</strong> Luôn tìm cách tạo thế cờ <em>"3 mở"</em> (hai đầu trống) hoặc <em>"vồ đôi 4-3"</em> để đối phương không kịp trở tay.</p>
+                      <p>• <strong>Cấp độ AI:</strong> Mức <em>Siêu khó 🔥</em> tính toán chuỗi đe dọa 4-3 liên tục để phản công bất ngờ!</p>
+                    </div>
+                  )}
+                  {activeGame === 'chess' && (
+                    <div className="rule-card">
+                      <h4>♔ Cờ Vua Tiêu Chuẩn FIDE</h4>
+                      <p>• <strong>Mục tiêu:</strong> Chiếu bí (Checkmate) Vua đối phương.</p>
+                      <p>• <strong>Nước đi:</strong> Tốt đi thẳng ăn chéo; Mã đi chữ L; Tượng đi chéo; Xe đi ngang dọc; Hậu phối hợp Xe và Tượng; Vua đi 1 ô mọi hướng.</p>
+                      <p>• <strong>Mẹo:</strong> Kiểm soát 4 ô trung tâm (e4, d4, e5, d5) từ khai cuộc để chiếm ưu thế cơ động.</p>
+                    </div>
+                  )}
+                  {activeGame === 'xiangqi' && (
+                    <div className="rule-card">
+                      <h4>帥 Cờ Tướng (Sở Hà Hán Giới)</h4>
+                      <p>• <strong>Tướng/Sĩ:</strong> Chỉ được di chuyển trong Cửu Cung 3x3 và không được để 2 Tướng đối mặt trực diện.</p>
+                      <p>• <strong>Pháo:</strong> Đi như Xe nhưng khi ăn quân bắt buộc phải nhảy qua đúng 1 quân làm ngòi.</p>
+                      <p>• <strong>Tượng:</strong> Đi chéo 2 ô, không được qua sông và có thể bị cản mắt tượng.</p>
+                    </div>
+                  )}
+                  {activeGame === 'ludo' && (
+                    <div className="rule-card">
+                      <h4>🐎 Cờ Cá Ngựa Dân Gian</h4>
+                      <p>• <strong>Xuất chuồng:</strong> Lắc được xúc xắc 6 điểm để mở 1 ngựa ra đường đua.</p>
+                      <p>• <strong>Đá ngựa:</strong> Di chuyển trúng ô ngựa đối phương để đá ngựa đó về chuồng.</p>
+                      <p>• <strong>Về đích:</strong> Đưa đủ 4 ngựa về chuồng xếp thứ tự 6-5-4-3 để giành chiến thắng!</p>
+                    </div>
+                  )}
+                  {activeGame === '2048' && (
+                    <div className="rule-card">
+                      <h4>🔢 2048 Arcade</h4>
+                      <p>• <strong>Luật chơi:</strong> Dùng 4 phím mũi tên hoặc nút bấm để trượt các ô số. Hai ô cùng số va chạm sẽ gộp lại thành tổng gấp đôi.</p>
+                      <p>• <strong>Mẹo:</strong> Luôn cố gắng giữ ô số lớn nhất nằm cố định ở một góc (ví dụ góc dưới bên phải).</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </aside>
         )}
       </main>
 
@@ -731,34 +977,40 @@ export default function App() {
 
         <button
           className={`mob-nav-btn ${mobileTab === 'chat' ? 'active' : ''}`}
-          onClick={() => { setMobileTab('chat'); playSound('click'); }}
-        >
-          <span className="mob-icon">💬</span>
-          <span className="mob-text">Phòng Chat</span>
-        </button>
-
-        <button
-          className="mob-nav-btn"
-          onClick={() => { openLeaderboard(); playSound('click'); }}
-        >
-          <span className="mob-icon">🏆</span>
-          <span className="mob-text">Xếp Hạng</span>
-        </button>
-
-        <button
-          className="mob-nav-btn"
           onClick={() => {
-            if (currentRoom) {
-              setCurrentRoom(null);
-              showToast('info', 'Bạn đã rời phòng.');
-            } else {
-              setRoomModalOpen(true);
-            }
+            setMobileTab('chat');
+            setSidebarTab('chat');
             playSound('click');
           }}
         >
-          <span className="mob-icon">{currentRoom ? '🚪' : '➕'}</span>
-          <span className="mob-text">{currentRoom ? 'Rời Phòng' : 'Tạo Phòng'}</span>
+          <span className="mob-icon">💬</span>
+          <span className="mob-text">Chat</span>
+        </button>
+
+        <button
+          className={`mob-nav-btn ${mobileTab === 'rooms' ? 'active' : ''}`}
+          onClick={() => {
+            setMobileTab('rooms');
+            setSidebarTab('rooms');
+            fetchWaitingRooms().then(setWaitingRooms).catch(() => {});
+            playSound('click');
+          }}
+        >
+          <span className="mob-icon">🚪</span>
+          <span className="mob-text">Phòng Đấu</span>
+        </button>
+
+        <button
+          className={`mob-nav-btn ${mobileTab === 'leaderboard' ? 'active' : ''}`}
+          onClick={() => {
+            setMobileTab('leaderboard');
+            setSidebarTab('leaderboard');
+            fetchLeaderboard().then(setLeaderboard).catch(() => {});
+            playSound('click');
+          }}
+        >
+          <span className="mob-icon">🏆</span>
+          <span className="mob-text">Xếp Hạng</span>
         </button>
       </nav>
 

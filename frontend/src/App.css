@@ -380,6 +380,131 @@
 }
 
 /* ============================================================
+   CHESS.COM / LICHESS STYLE PLAYER STRIPS
+   ============================================================ */
+.player-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  gap: 10px;
+}
+
+.opponent-strip {
+  margin-bottom: 6px;
+  border-left: 3px solid #6366f1;
+}
+
+.user-strip {
+  margin-top: 6px;
+  border-left: 3px solid #10b981;
+}
+
+.player-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-avatar {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.player-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.player-role {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.player-status-badge, .user-center-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="dark"] .status-active {
+  color: #34d399;
+}
+
+.status-waiting {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .status-waiting {
+  color: #fbbf24;
+}
+
+.status-winner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(234, 88, 12, 0.25));
+  color: #b45309;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .status-winner {
+  color: #fde047;
+}
+
+.status-loser {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.strip-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================================================
    ARENA GRID LAYOUT (TỐI ƯU CHO PC, LAPTOP, TABLET & MOBILE)
    ============================================================ */
 .arena-grid {
@@ -392,7 +517,7 @@
 
 /* Desktop layout */
 .layout-split {
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: minmax(0, 1fr) 360px;
 }
 
 .layout-game {
@@ -409,26 +534,183 @@
     grid-template-columns: 1fr !important;
   }
 
-  .mobile-tab-game .chatbox-container {
+  .mobile-tab-game .sidebar-command-center {
     display: none !important;
   }
 
-  .mobile-tab-chat .game-arena-card {
+  .mobile-tab-chat .game-arena-card,
+  .mobile-tab-rooms .game-arena-card,
+  .mobile-tab-leaderboard .game-arena-card {
     display: none !important;
+  }
+
+  .mobile-tab-chat .sidebar-command-center,
+  .mobile-tab-rooms .sidebar-command-center,
+  .mobile-tab-leaderboard .sidebar-command-center {
+    display: flex !important;
+  }
+
+  .user-strip {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }
 
-.game-arena-card {
+/* ============================================================
+   SIDEBAR COMMAND CENTER (TABS: CHAT, PHÒNG, BXH, LUẬT CHƠI)
+   ============================================================ */
+.sidebar-command-center {
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 12px;
-  overflow: hidden;
-  border-radius: var(--radius-md);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.sidebar-nav-tabs {
+  display: flex;
+  align-items: center;
+  background: rgba(99, 102, 241, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 4px;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.sidebar-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 4px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.sidebar-tab-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+}
+
+.sidebar-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tab Panels */
+.tab-panel-inner {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-section-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+/* Room panel styling */
+.room-status-box {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waiting-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waiting-room-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.waiting-room-card:hover {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* Leaderboard in sidebar */
+.sidebar-leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sidebar-leaderboard-table th, .sidebar-leaderboard-table td {
+  padding: 8px 6px;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.sidebar-leaderboard-table th {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.sidebar-leaderboard-table tr.highlight-user {
+  background: rgba(99, 102, 241, 0.12);
+  font-weight: 700;
+}
+
+/* Rules / Help cards */
+.rule-card {
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.rule-card h4 {
+  font-size: 13px;
+  color: var(--primary);
+  margin-bottom: 4px;
 }
 
 .game-wrapper {
