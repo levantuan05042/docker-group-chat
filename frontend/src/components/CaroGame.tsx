@@ -79,129 +79,168 @@ export const CaroGame: React.FC<CaroGameProps> = ({
     return null;
   };
 
-  // Đánh giá thế cờ tại ô (r, c) cho bên 'player' (X hoặc O)
-  const scoreLinePattern = (b: (string | null)[][], r: number, c: number, player: string) => {
+  // Phân tích toàn diện các mẫu hình Gomoku theo chuẩn thi đấu quốc tế
+  const evaluatePatternsAt = (
+    b: (string | null)[][],
+    r: number,
+    c: number,
+    player: string
+  ): {
+    wins: number;
+    open4: number;
+    closed4: number;
+    open3: number;
+    closed3: number;
+    open2: number;
+    score: number;
+  } => {
     const directions = [
-      [0, 1],  // Ngang
-      [1, 0],  // Dọc
-      [1, 1],  // Chéo xuống
-      [1, -1]  // Chéo lên
+      [0, 1],   // Ngang
+      [1, 0],   // Dọc
+      [1, 1],   // Chéo chính
+      [1, -1]   // Chéo phụ
     ];
 
-    let totalScore = 0;
-    let open3Count = 0;
-    let fourCount = 0;
+    let wins = 0;
+    let open4 = 0;
+    let closed4 = 0;
+    let open3 = 0;
+    let closed3 = 0;
+    let open2 = 0;
+
+    // Tạm thời đặt quân tại (r, c) để quét
+    const prevVal = b[r][c];
+    b[r][c] = player;
 
     for (const [dr, dc] of directions) {
-      let count = 1; // Quân đặt tại (r, c)
-      let openEnds = 0;
-
-      // Hướng thuận
-      let step = 1;
-      while (step <= 4) {
+      // Trích xuất chuỗi 9 ô đối xứng qua (r, c): từ step -4 đến +4 (tâm là vị trí 4)
+      const line: (string | null)[] = [];
+      for (let step = -4; step <= 4; step++) {
         const nr = r + dr * step;
         const nc = c + dc * step;
-        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
-        if (b[nr][nc] === player) {
-          count++;
-          step++;
-        } else if (b[nr][nc] === null) {
-          openEnds++;
-          break;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) {
+          line.push('WALL');
         } else {
-          break; // Bị chặn bởi đối thủ
+          line.push(b[nr][nc]);
         }
       }
 
-      // Hướng nghịch
-      step = 1;
-      while (step <= 4) {
-        const nr = r - dr * step;
-        const nc = c - dc * step;
-        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
-        if (b[nr][nc] === player) {
-          count++;
-          step++;
-        } else if (b[nr][nc] === null) {
-          openEnds++;
-          break;
-        } else {
-          break; // Bị chặn bởi đối thủ
+      // Đếm số quân liên tiếp chứa tâm (vị trí 4)
+      let consecutive = 1;
+      let left = 3;
+      while (left >= 0 && line[left] === player) {
+        consecutive++;
+        left--;
+      }
+      let right = 5;
+      while (right <= 8 && line[right] === player) {
+        consecutive++;
+        right++;
+      }
+
+      const leftOpen = left >= 0 && line[left] === null;
+      const rightOpen = right <= 8 && line[right] === null;
+
+      if (consecutive >= 5) {
+        wins++;
+      } else if (consecutive === 4) {
+        if (leftOpen && rightOpen) {
+          open4++;
+        } else if (leftOpen || rightOpen) {
+          closed4++;
+        }
+      } else if (consecutive === 3) {
+        if (leftOpen && rightOpen) {
+          // Kiểm tra xem có thể mở rộng thành 4 mở không
+          const leftExtendedOpen = left > 0 && line[left - 1] === null;
+          const rightExtendedOpen = right < 8 && line[right + 1] === null;
+          if (leftExtendedOpen || rightExtendedOpen) {
+            open3++;
+          } else {
+            closed3++;
+          }
+        } else if (leftOpen || rightOpen) {
+          closed3++;
+        }
+      } else if (consecutive === 2) {
+        if (leftOpen && rightOpen) {
+          open2++;
         }
       }
 
-      // Điểm số theo mẫu hình chuẩn quốc tế
-      if (count >= 5) {
-        totalScore += 10000000; // Thắng ngay lập tức
-      } else if (count === 4) {
-        if (openEnds === 2) {
-          totalScore += 2500000; // 4 mở 2 đầu (chắc chắn thắng)
-          fourCount++;
-        } else if (openEnds === 1) {
-          totalScore += 200000;  // 4 chặn 1 đầu
-          fourCount++;
+      // Quét các mẫu hình có lỗ hổng (Broken 4: X.XXX, XX.XX, XXX.X)
+      // Quét tất cả cửa sổ 5 ô chứa tâm (vị trí 4)
+      for (let start = 0; start <= 4; start++) {
+        let pCount = 0;
+        let emptyCount = 0;
+        let hasOpponent = false;
+
+        for (let i = 0; i < 5; i++) {
+          const val = line[start + i];
+          if (val === player) pCount++;
+          else if (val === null) emptyCount++;
+          else hasOpponent = true;
         }
-      } else if (count === 3) {
-        if (openEnds === 2) {
-          totalScore += 80000;   // Tam cúc mở (rất nguy hiểm)
-          open3Count++;
-        } else if (openEnds === 1) {
-          totalScore += 4000;    // 3 chặn 1 đầu
-        }
-      } else if (count === 2) {
-        if (openEnds === 2) {
-          totalScore += 1500;
-        } else if (openEnds === 1) {
-          totalScore += 250;
+
+        if (!hasOpponent && pCount === 4 && emptyCount === 1) {
+          // Tứ cúc có lỗ hổng đe dọa thành 5 ở nước sau
+          if (consecutive < 4) {
+            closed4++;
+          }
         }
       }
     }
 
-    // Đòn vồ đôi (Tạo 2 tam cúc mở hoặc 1 tam cúc + 1 tứ cúc) -> thế cờ tất sát
-    if (open3Count >= 2 || (open3Count >= 1 && fourCount >= 1)) {
-      totalScore += 1500000;
+    // Hoàn trả giá trị ô cờ
+    b[r][c] = prevVal;
+
+    // Tính điểm tổng hợp cho mẫu hình
+    let score = 0;
+    score += wins * 50000000;
+    score += open4 * 6000000;
+    score += closed4 * 500000;
+    score += open3 * 120000;
+    score += closed3 * 12000;
+    score += open2 * 2000;
+
+    // Đòn vồ đôi (Forks: Đôi 3 mở, 4-3, Đôi 4) -> Thế trận chắc thắng không thể đỡ
+    const total4 = open4 + closed4;
+    if (open3 >= 2 || (open3 >= 1 && total4 >= 1) || total4 >= 2) {
+      score += 2500000;
     }
 
-    return totalScore;
+    return { wins, open4, closed4, open3, closed3, open2, score };
   };
 
-  // Tính điểm tổng hợp cho nước đi (r, c)
+  // Tính điểm vị trí tổng hợp cho nước đi (r, c)
   const evaluateCell = (b: (string | null)[][], r: number, c: number, diff: Difficulty): number => {
-    // 1. Điểm tấn công của Máy (O)
-    b[r][c] = 'O';
-    const attackScore = scoreLinePattern(b, r, c, 'O');
-    b[r][c] = null;
+    const patO = evaluatePatternsAt(b, r, c, 'O');
+    const patX = evaluatePatternsAt(b, r, c, 'X');
 
-    // 2. Điểm phòng thủ (chặn người chơi X)
-    b[r][c] = 'X';
-    const defenseScore = scoreLinePattern(b, r, c, 'X');
-    b[r][c] = null;
-
-    // Điểm vị trí trung tâm bàn cờ
+    // Ưu tiên chiếm giữ trung tâm
     const distCenter = Math.abs(r - 7) + Math.abs(c - 7);
-    const centerBonus = Math.max(0, 15 - distCenter) * 20;
+    const centerBonus = Math.max(0, 15 - distCenter) * 25;
 
     if (diff === 'normal') {
-      // Bình thường: Tấn công vừa phải, phòng thủ cơ bản, ngẫu nhiên nhẹ
-      const noise = Math.floor(Math.random() * 50);
-      return attackScore * 0.9 + defenseScore * 0.8 + centerBonus + noise;
+      const noise = Math.floor(Math.random() * 40);
+      return patO.score * 1.0 + patX.score * 0.9 + centerBonus + noise;
     }
 
     if (diff === 'hard') {
-      // Khó: Đề cao phòng thủ, không bao giờ bỏ sót 4 hay 3 mở, chặn vồ đôi
-      return attackScore * 1.0 + defenseScore * 1.15 + centerBonus;
+      // Khó: Đề cao phòng ngự tuyệt đối, chặn đứng mọi đợt tấn công của người chơi
+      return patO.score * 1.05 + patX.score * 1.35 + centerBonus;
     }
 
-    // Siêu khó (Nightmare): Tấn công hung hãn, phòng thủ chặt chẽ
-    return attackScore * 1.05 + defenseScore * 1.35 + centerBonus;
+    // Siêu khó (Nightmare): Tấn công hung hãn và phòng thủ bóp nghẹt đối thủ
+    return patO.score * 1.15 + patX.score * 1.55 + centerBonus;
   };
 
-  // Thuật toán AI theo 3 cấp độ
+  // Thuật toán AI thông minh theo 3 cấp độ
   const handleAIMove = (currentBoard: (string | null)[][]) => {
-    // Tìm các ô trống có quân xung quanh (bán kính 2 ô) để tối ưu hiệu năng
+    // 1. Quét tìm tất cả các ô trống có quân xung quanh (bán kính 2 ô)
     const candidates: { r: number; c: number; score: number }[] = [];
-
     let hasAnyMove = false;
+
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (currentBoard[r][c]) {
@@ -212,17 +251,15 @@ export const CaroGame: React.FC<CaroGameProps> = ({
       if (hasAnyMove) break;
     }
 
-    // Nếu bàn cờ trống, đánh luôn giữa bàn (7, 7)
+    // Nếu bàn cờ trống, đánh luôn tâm (7, 7)
     if (!hasAnyMove) {
       makeAIMoveTo(7, 7, currentBoard);
       return;
     }
 
-    // Quét các ô lân cận các quân đã đánh
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (!currentBoard[r][c]) {
-          // Kiểm tra xem có quân trong phạm vi 2 ô không
           let near = false;
           for (let dr = -2; dr <= 2 && !near; dr++) {
             for (let dc = -2; dc <= 2 && !near; dc++) {
@@ -245,52 +282,98 @@ export const CaroGame: React.FC<CaroGameProps> = ({
       return;
     }
 
-    // Sắp xếp các nước đi tốt nhất giảm dần
-    candidates.sort((a, b) => b.score - a.score);
+    // ============================================================
+    // HỆ THỐNG PHÂN CẤP CHIẾN THUẬT BẤT KHẢ CHIẾN BẠI (THREAT LADDER)
+    // ============================================================
 
-    // Xử lý theo từng cấp độ
+    // 1. TẤT SÁT: Nếu Máy (O) có nước thắng ngay (5 quân liên tiếp) -> ĐÁNH NGAY!
+    for (const cand of candidates) {
+      currentBoard[cand.r][cand.c] = 'O';
+      const isWin = checkWin(currentBoard, cand.r, cand.c, 'O') !== null;
+      currentBoard[cand.r][cand.c] = null;
+      if (isWin) {
+        makeAIMoveTo(cand.r, cand.c, currentBoard);
+        return;
+      }
+    }
+
+    // 2. CỨU NGUY TUYỆT ĐỐI: Nếu Người chơi (X) có ô thắng ở nước sau (4 liền hoặc 4 hở) -> PHẢI CHẶN NGAY!
+    const playerWinThreats: { r: number; c: number; score: number }[] = [];
+    for (const cand of candidates) {
+      currentBoard[cand.r][cand.c] = 'X';
+      const playerCanWin = checkWin(currentBoard, cand.r, cand.c, 'X') !== null;
+      currentBoard[cand.r][cand.c] = null;
+      if (playerCanWin) {
+        playerWinThreats.push(cand);
+      }
+    }
+    if (playerWinThreats.length > 0) {
+      playerWinThreats.sort((a, b) => b.score - a.score);
+      makeAIMoveTo(playerWinThreats[0].r, playerWinThreats[0].c, currentBoard);
+      return;
+    }
+
+    // 3. TẤN CÔNG THƯỢNG THỪA: Máy tạo Tứ cúc mở (. O O O O .) hoặc vồ đôi -> Không thể cản phá!
+    for (const cand of candidates) {
+      const pat = evaluatePatternsAt(currentBoard, cand.r, cand.c, 'O');
+      const total4 = pat.open4 + pat.closed4;
+      if (pat.open4 > 0 || (pat.open3 > 0 && total4 >= 1) || total4 >= 2) {
+        makeAIMoveTo(cand.r, cand.c, currentBoard);
+        return;
+      }
+    }
+
+    // 4. PHÒNG THỦ TUYỆT ĐỐI: Chặn đứng Người chơi tạo Tứ cúc mở hoặc vồ đôi (3-3, 4-3)
+    const forkThreats: { r: number; c: number; score: number }[] = [];
+    for (const cand of candidates) {
+      const pat = evaluatePatternsAt(currentBoard, cand.r, cand.c, 'X');
+      const total4 = pat.open4 + pat.closed4;
+      if (pat.open4 > 0 || pat.open3 >= 2 || (pat.open3 >= 1 && total4 >= 1)) {
+        forkThreats.push(cand);
+      }
+    }
+    if (forkThreats.length > 0) {
+      forkThreats.sort((a, b) => b.score - a.score);
+      makeAIMoveTo(forkThreats[0].r, forkThreats[0].c, currentBoard);
+      return;
+    }
+
+    // Sắp xếp các nước đi giảm dần theo điểm số vị trí
+    candidates.sort((a, b) => b.score - a.score);
     let chosen = candidates[0];
 
     if (difficulty === 'normal') {
-      // Bình thường: 75% chọn nước tốt nhất, 25% chọn nước thứ 2 hoặc 3 để người chơi dễ thở
+      // Bình thường: 75% chọn nước tối ưu, 25% chọn nước thứ 2 hoặc 3
       if (candidates.length > 2 && Math.random() < 0.25) {
         chosen = candidates[Math.floor(Math.random() * Math.min(3, candidates.length))];
       }
     } else if (difficulty === 'nightmare') {
-      // SIÊU KHÓ: Minimax 2 bước (Lookahead 2-ply) cho top 6 nước đi xuất sắc nhất
-      let bestMinimaxScore = -Infinity;
-      const topCandidates = candidates.slice(0, 6);
+      // SIÊU KHÓ 🔥: Minimax 2 bước đầy đủ (Lookahead 2-ply) cho Top 8 nước đi tốt nhất
+      let bestScore = -Infinity;
+      const topCandidates = candidates.slice(0, 8);
 
       for (const cand of topCandidates) {
-        // Thử AI đi ô này
         currentBoard[cand.r][cand.c] = 'O';
 
-        // Nếu nước này AI thắng luôn -> chọn ngay lập tức
-        if (checkWin(currentBoard, cand.r, cand.c, 'O')) {
-          currentBoard[cand.r][cand.c] = null;
-          chosen = cand;
-          break;
-        }
-
-        // Tìm nước đáp trả mạnh nhất của người chơi X
-        let playerBestReply = 0;
+        // Tìm nước phản công mạnh nhất của Người chơi X
+        let maxPlayerReply = 0;
         for (let r = 0; r < BOARD_SIZE; r++) {
           for (let c = 0; c < BOARD_SIZE; c++) {
             if (!currentBoard[r][c]) {
-              currentBoard[r][c] = 'X';
-              const pScore = scoreLinePattern(currentBoard, r, c, 'X');
-              currentBoard[r][c] = null;
-              if (pScore > playerBestReply) playerBestReply = pScore;
+              const pPat = evaluatePatternsAt(currentBoard, r, c, 'X');
+              if (pPat.score > maxPlayerReply) {
+                maxPlayerReply = pPat.score;
+              }
             }
           }
         }
 
         currentBoard[cand.r][cand.c] = null;
 
-        // Điểm Minimax = Điểm của AI - Nước phản công nguy hiểm nhất của đối thủ
-        const minimaxScore = cand.score - playerBestReply * 0.9;
-        if (minimaxScore > bestMinimaxScore) {
-          bestMinimaxScore = minimaxScore;
+        // Điểm đánh giá Minimax = Điểm nước đi của Máy - Nước phản đòn lớn nhất của Người chơi
+        const evalScore = cand.score - maxPlayerReply * 1.15;
+        if (evalScore > bestScore) {
+          bestScore = evalScore;
           chosen = cand;
         }
       }

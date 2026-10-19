@@ -267,27 +267,103 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
   };
 
-  // Đánh giá thế cờ tĩnh Cờ Vua cho quân Đen
+// Bảng điểm vị trí chuẩn (Piece-Square Tables) cho quân Đen
+const PST_PAWN: number[][] = [
+  [0,   0,   0,   0,   0,   0,   0,   0],
+  [15, 15,  15, -15, -15,  15,  15,  15],
+  [10,  5,   5,  20,  20,   5,   5,  10],
+  [10, 10,  25,  35,  35,  25,  10,  10],
+  [20, 20,  30,  45,  45,  30,  20,  20],
+  [40, 40,  50,  65,  65,  50,  40,  40],
+  [85, 85,  95, 110, 110,  95,  85,  85], // Sát đích phong Hậu
+  [0,   0,   0,   0,   0,   0,   0,   0]
+];
+
+const PST_KNIGHT: number[][] = [
+  [-40, -30, -20, -20, -20, -20, -30, -40],
+  [-30, -10,   5,  10,  10,   5, -10, -30],
+  [-20,   5,  20,  30,  30,  20,   5, -20],
+  [-20,  10,  30,  40,  40,  30,  10, -20],
+  [-20,  10,  30,  40,  40,  30,  10, -20],
+  [-20,   5,  20,  30,  30,  20,   5, -20],
+  [-30, -10,   5,  10,  10,   5, -10, -30],
+  [-40, -30, -20, -20, -20, -20, -30, -40]
+];
+
+const PST_BISHOP: number[][] = [
+  [-20, -10, -10, -10, -10, -10, -10, -20],
+  [-10,   5,   0,   0,   0,   0,   5, -10],
+  [-10,  10,  15,  20,  20,  15,  10, -10],
+  [-10,   5,  20,  25,  25,  20,   5, -10],
+  [-10,   5,  20,  25,  25,  20,   5, -10],
+  [-10,  10,  15,  20,  20,  15,  10, -10],
+  [-10,   5,   0,   0,   0,   0,   5, -10],
+  [-20, -10, -10, -10, -10, -10, -10, -20]
+];
+
+const PST_ROOK: number[][] = [
+  [0,   0,   0,   5,   5,   0,   0,   0],
+  [-5,  0,   0,   0,   0,   0,   0,  -5],
+  [-5,  0,   0,   0,   0,   0,   0,  -5],
+  [-5,  0,   0,   0,   0,   0,   0,  -5],
+  [-5,  0,   0,   0,   0,   0,   0,  -5],
+  [-5,  0,   0,   0,   0,   0,   0,  -5],
+  [20, 25,  25,  25,  25,  25,  25,  20],
+  [0,   0,   0,   5,   5,   0,   0,   0]
+];
+
+const PST_QUEEN: number[][] = [
+  [-20, -10, -10,  -5,  -5, -10, -10, -20],
+  [-10,   0,   5,   0,   0,   0,   0, -10],
+  [-10,   5,  10,  10,  10,  10,   5, -10],
+  [-5,    0,  10,  15,  15,  10,   0,  -5],
+  [-5,    0,  10,  15,  15,  10,   0,  -5],
+  [-10,   5,  10,  10,  10,  10,   5, -10],
+  [-10,   0,   0,   0,   0,   0,   0, -10],
+  [-20, -10, -10,  -5,  -5, -10, -10, -20]
+];
+
+  // Đánh giá thế cờ tĩnh Cờ Vua sâu sắc kết hợp Giá trị quân và Bảng điểm vị trí
   const evaluateChessBoard = (b: ChessBoard): number => {
     let score = 0;
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const p = b[r][c];
         if (p) {
-          const val = PIECE_VAL[p.type];
-          // Thưởng điểm kiểm soát trung tâm (hàng 3, 4, cột 3, 4)
-          const centerDist = Math.abs(r - 3.5) + Math.abs(c - 3.5);
-          const posBonus = Math.max(0, 7 - centerDist) * 8;
+          let pstVal = 0;
+          const row = p.color === 'b' ? r : (7 - r);
+          if (p.type === 'p') pstVal = PST_PAWN[row][c];
+          else if (p.type === 'n') pstVal = PST_KNIGHT[row][c];
+          else if (p.type === 'b') pstVal = PST_BISHOP[row][c];
+          else if (p.type === 'r') pstVal = PST_ROOK[row][c];
+          else if (p.type === 'q') pstVal = PST_QUEEN[row][c];
 
+          const totalVal = PIECE_VAL[p.type] + pstVal;
           if (p.color === 'b') {
-            score += val + posBonus;
+            score += totalVal;
           } else {
-            score -= (val + posBonus);
+            score -= totalVal;
           }
         }
       }
     }
     return score;
+  };
+
+  // Kiểm tra xem ô (targetR, targetC) có đang bị phe `attackerColor` nhắm bắn không
+  const isSquareAttacked = (targetR: number, targetC: number, attackerColor: PieceColor, b: ChessBoard): boolean => {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = b[r][c];
+        if (p && p.color === attackerColor) {
+          const moves = getMoves(r, c, b);
+          if (moves.some(([mr, mc]) => mr === targetR && mc === targetC)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   };
 
   const makeAIMove = (currentBoard: ChessBoard) => {
@@ -301,6 +377,19 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     const allMoves: MoveCandidate[] = [];
 
+    // Tìm vị trí Vua Đen và kiểm tra xem Vua Đen có đang bị chiếu không
+    let blackKingPos: [number, number] | null = null;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = currentBoard[r][c];
+        if (p && p.color === 'b' && p.type === 'k') {
+          blackKingPos = [r, c];
+          break;
+        }
+      }
+      if (blackKingPos) break;
+    }
+
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const piece = currentBoard[r][c];
@@ -308,14 +397,71 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           const moves = getMoves(r, c, currentBoard);
           moves.forEach(([tr, tc]) => {
             const target = currentBoard[tr][tc];
-            let immediate = 0;
-            if (target) {
-              immediate += PIECE_VAL[target.type] * 8;
-              if (PIECE_VAL[target.type] >= PIECE_VAL[piece.type]) immediate += 200;
+
+            // 1. TẤT SÁT: Nếu bắt được Vua Trắng -> THẮNG NGAY!
+            if (target && target.type === 'k') {
+              allMoves.push({ sr: r, sc: c, tr, tc, score: 1000000 });
+              return;
             }
-            // Thưởng điểm tiến quân về trung tâm
-            immediate += (tr - r) * 10;
-            allMoves.push({ sr: r, sc: c, tr, tc, score: immediate });
+
+            let moveScore = 0;
+
+            // Thưởng điểm ăn quân đối phương
+            if (target) {
+              moveScore += PIECE_VAL[target.type] * 10;
+              if (PIECE_VAL[target.type] >= PIECE_VAL[piece.type]) {
+                moveScore += 300; // Đổi quân có lãi hoặc bằng giá trị
+              }
+            }
+
+            // Kiểm tra an toàn: Nếu ô đến (tr, tc) bị Trắng bảo vệ/tấn công
+            // Thử nước đi tạm thời trên bàn cờ
+            currentBoard[tr][tc] = piece;
+            currentBoard[r][c] = null;
+            const destInDanger = isSquareAttacked(tr, tc, 'w', currentBoard);
+
+            // Kiểm tra xem nước đi này có để Vua Đen bị bắt ở nước sau không (bị chiếu)
+            const kingPos = piece.type === 'k' ? [tr, tc] : blackKingPos;
+            let kingInDanger = false;
+            if (kingPos) {
+              kingInDanger = isSquareAttacked(kingPos[0], kingPos[1], 'w', currentBoard);
+            }
+            currentBoard[r][c] = piece;
+            currentBoard[tr][tc] = target;
+
+            // Tránh tuyệt đối nước đi khiến Vua bị bắt
+            if (kingInDanger) {
+              moveScore -= 50000;
+            }
+
+            // Phạt nặng nếu dâng quân có giá trị cao vào ô bị đối thủ bảo vệ
+            if (destInDanger) {
+              const targetVal = target ? PIECE_VAL[target.type] : 0;
+              if (PIECE_VAL[piece.type] > targetVal) {
+                moveScore -= (PIECE_VAL[piece.type] - targetVal) * 1.5;
+              }
+            }
+
+            // Thưởng điểm nếu quân này đang bị đe dọa ở (r, c) và chạy thoát an toàn
+            const currentlyAttacked = isSquareAttacked(r, c, 'w', currentBoard);
+            if (currentlyAttacked && !destInDanger) {
+              moveScore += PIECE_VAL[piece.type] * 1.2;
+            }
+
+            // Thưởng điểm vị trí (PST) và tiến quân
+            let row = tr;
+            if (piece.type === 'p') moveScore += PST_PAWN[row][tc];
+            else if (piece.type === 'n') moveScore += PST_KNIGHT[row][tc];
+            else if (piece.type === 'b') moveScore += PST_BISHOP[row][tc];
+            else if (piece.type === 'r') moveScore += PST_ROOK[row][tc];
+            else if (piece.type === 'q') moveScore += PST_QUEEN[row][tc];
+
+            // Tốt tiến gần hàng cuối để phong Hậu
+            if (piece.type === 'p' && tr >= 6) {
+              moveScore += 400;
+            }
+
+            allMoves.push({ sr: r, sc: c, tr, tc, score: moveScore });
           });
         }
       }
@@ -353,9 +499,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         }
       }
     } else if (difficulty === 'nightmare') {
-      // SIÊU KHÓ 🔥: Minimax 2 bước xem trước phản công của Trắng
+      // SIÊU KHÓ 🔥: Minimax 2 bước đầy đủ xem trước mọi nước phản công của Trắng
       let bestMinimax = -Infinity;
-      const topMoves = allMoves.slice(0, 12);
+      const topMoves = allMoves.slice(0, 14);
 
       for (const m of topMoves) {
         const p = currentBoard[m.sr][m.sc]!;
@@ -369,6 +515,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         currentBoard[m.tr][m.tc] = p;
         currentBoard[m.sr][m.sc] = null;
 
+        // Tìm nước phản công mạnh nhất của Trắng
         let maxWhiteReply = -Infinity;
         for (let wr = 0; wr < 8; wr++) {
           for (let wc = 0; wc < 8; wc++) {
@@ -377,14 +524,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               const wMoves = getMoves(wr, wc, currentBoard);
               for (const [wtr, wtc] of wMoves) {
                 const wTarget = currentBoard[wtr][wtc];
-                let rep = wTarget ? PIECE_VAL[wTarget.type] * 7 : 0;
+                let rep = wTarget ? PIECE_VAL[wTarget.type] * 8 : 0;
+                if (wTarget && wTarget.type === 'k') rep = 1000000;
                 if (rep > maxWhiteReply) maxWhiteReply = rep;
               }
             }
           }
         }
 
-        const total = evaluateChessBoard(currentBoard) + m.score - (maxWhiteReply === -Infinity ? 0 : maxWhiteReply);
+        const total = evaluateChessBoard(currentBoard) + m.score - (maxWhiteReply === -Infinity ? 0 : maxWhiteReply * 1.1);
 
         currentBoard[m.sr][m.sc] = p;
         currentBoard[m.tr][m.tc] = target;

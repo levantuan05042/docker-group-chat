@@ -349,7 +349,23 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
     return score;
   };
 
-  // Thuật toán AI Cờ Tướng 3 mức độ
+  // Kiểm tra xem ô (targetR, targetC) có đang bị phe `attackerSide` ngắm tới không
+  const isXiangqiSquareAttacked = (targetR: number, targetC: number, attackerSide: Side, b: XBoard): boolean => {
+    for (let r = 0; r < 10; r++) {
+      for (let c = 0; c < 9; c++) {
+        const p = b[r][c];
+        if (p && p.side === attackerSide) {
+          const moves = getValidMoves(r, c, b);
+          if (moves.some(([mr, mc]) => mr === targetR && mc === targetC)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  // Thuật toán AI Cờ Tướng 3 mức độ cao cấp
   const aiMove = (currentBoard: XBoard) => {
     interface MoveItem {
       sr: number;
@@ -361,30 +377,93 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
 
     const allBlackMoves: MoveItem[] = [];
 
+    // Tìm vị trí Tướng Đen trong Cửu cung
+    let blackKingPos: [number, number] | null = null;
+    for (let r = 0; r <= 2; r++) {
+      for (let c = 3; c <= 5; c++) {
+        const p = currentBoard[r][c];
+        if (p && p.side === 'black' && p.type === 'k') {
+          blackKingPos = [r, c];
+          break;
+        }
+      }
+      if (blackKingPos) break;
+    }
+
     // Tìm tất cả các nước đi hợp lệ của quân Đen
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
-        const p = currentBoard[r][c];
-        if (p && p.side === 'black') {
+        const piece = currentBoard[r][c];
+        if (piece && piece.side === 'black') {
           const moves = getValidMoves(r, c, currentBoard);
           moves.forEach(([tr, tc]) => {
             const target = currentBoard[tr][tc];
-            let immediateValue = 0;
 
+            // 1. TẤT SÁT: Nếu bắt được Tướng Đỏ -> THẮNG NGAY LẬP TỨC!
+            if (target && target.type === 'k') {
+              allBlackMoves.push({ sr: r, sc: c, tr, tc, score: 1000000 });
+              return;
+            }
+
+            let moveScore = 0;
+
+            // Thưởng điểm bắt quân đối phương
             if (target) {
-              immediateValue += PIECE_VAL[target.type] * 10;
-              // Bắt được quân giá trị cao hơn
-              if (PIECE_VAL[target.type] >= PIECE_VAL[p.type]) {
-                immediateValue += 200;
+              moveScore += PIECE_VAL[target.type] * 10;
+              if (PIECE_VAL[target.type] >= PIECE_VAL[piece.type]) {
+                moveScore += 300; // Đổi quân có lợi
               }
             }
 
-            // Tiến quân sang sông
-            if (p.type === 'p' && tr >= 5) immediateValue += 100;
-            if (p.type === 'h' && tr >= 4) immediateValue += 30;
-            if (p.type === 'r') immediateValue += 25;
+            // Kiểm tra an toàn: Ô đến (tr, tc) có bị Đỏ phục kích không
+            currentBoard[tr][tc] = piece;
+            currentBoard[r][c] = null;
+            const destInDanger = isXiangqiSquareAttacked(tr, tc, 'red', currentBoard);
 
-            allBlackMoves.push({ sr: r, sc: c, tr, tc, score: immediateValue });
+            // Kiểm tra xem Tướng Đen có bị chiếu tướng không
+            const kingPos = piece.type === 'k' ? [tr, tc] : blackKingPos;
+            let kingInDanger = false;
+            if (kingPos) {
+              kingInDanger = isXiangqiSquareAttacked(kingPos[0], kingPos[1], 'red', currentBoard);
+            }
+            currentBoard[r][c] = piece;
+            currentBoard[tr][tc] = target;
+
+            // Tránh tuyệt đối nước đi làm Tướng bị bắt
+            if (kingInDanger) {
+              moveScore -= 50000;
+            }
+
+            // Phạt nặng nếu dâng Xe, Pháo, Mã vào ô bị đối phương khống chế
+            if (destInDanger) {
+              const targetVal = target ? PIECE_VAL[target.type] : 0;
+              if (PIECE_VAL[piece.type] > targetVal) {
+                moveScore -= (PIECE_VAL[piece.type] - targetVal) * 1.5;
+              }
+            }
+
+            // Thưởng điểm nếu quân quan trọng đang bị nhắm bắn và chạy thoát an toàn
+            const currentlyAttacked = isXiangqiSquareAttacked(r, c, 'red', currentBoard);
+            if (currentlyAttacked && !destInDanger) {
+              moveScore += PIECE_VAL[piece.type] * 1.2;
+            }
+
+            // Thưởng điểm vị trí chiến thuật đặc trưng Cờ Tướng
+            if (piece.type === 'p') {
+              if (tr >= 5) moveScore += 180; // Tốt qua sông
+              if (tr >= 7) moveScore += 120; // Tốt áp sát Cửu cung
+            } else if (piece.type === 'h') {
+              if (tr >= 4) moveScore += 80;  // Mã nhập trận qua sông
+              const centerDist = Math.abs(tc - 4);
+              moveScore += (4 - centerDist) * 15;
+            } else if (piece.type === 'r') {
+              if (tr >= 5) moveScore += 60;  // Xe tuần hà, kỵ hà
+              if (tc === 1 || tc === 7 || tc === 3 || tc === 5) moveScore += 40; // Lộ thông
+            } else if (piece.type === 'c') {
+              if (tr >= 5) moveScore += 40;  // Pháo vượt sông khống chế
+            }
+
+            allBlackMoves.push({ sr: r, sc: c, tr, tc, score: moveScore });
           });
         }
       }
@@ -396,16 +475,13 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
     }
 
     allBlackMoves.sort((a, b) => b.score - a.score);
-
     let chosen = allBlackMoves[0];
 
     if (difficulty === 'normal') {
-      // Bình thường: thỉnh thoảng chọn nước ngẫu nhiên trong top 3
       if (allBlackMoves.length > 2 && Math.random() < 0.25) {
         chosen = allBlackMoves[Math.floor(Math.random() * Math.min(3, allBlackMoves.length))];
       }
     } else if (difficulty === 'hard') {
-      // Khó: Đánh giá thế cờ sau khi đi 1 bước
       let bestStaticScore = -Infinity;
       const topMoves = allBlackMoves.slice(0, 10);
 
@@ -426,15 +502,14 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
         }
       }
     } else if (difficulty === 'nightmare') {
-      // SIÊU KHÓ 🔥: Minimax 2 bước đầy đủ (Xem trước nước phản công mạnh nhất của Đỏ)
+      // SIÊU KHÓ 🔥: Minimax 2 bước đầy đủ xem trước mọi nước phản công của Đỏ
       let bestMinimax = -Infinity;
-      const topMoves = allBlackMoves.slice(0, 12);
+      const topMoves = allBlackMoves.slice(0, 14);
 
       for (const m of topMoves) {
         const piece = currentBoard[m.sr][m.sc]!;
         const target = currentBoard[m.tr][m.tc];
 
-        // Nếu bắt được Tướng đỏ -> thắng luôn, đi ngay
         if (target && target.type === 'k') {
           chosen = m;
           break;
@@ -453,13 +528,14 @@ export const XiangqiGame: React.FC<XiangqiGameProps> = ({
               for (const [rtr, rtc] of redMoves) {
                 const redTarget = currentBoard[rtr][rtc];
                 let replyVal = redTarget ? PIECE_VAL[redTarget.type] * 8 : 0;
+                if (redTarget && redTarget.type === 'k') replyVal = 1000000;
                 if (replyVal > maxRedReply) maxRedReply = replyVal;
               }
             }
           }
         }
 
-        const totalEval = evaluateBoardState(currentBoard) + m.score - (maxRedReply === -Infinity ? 0 : maxRedReply);
+        const totalEval = evaluateBoardState(currentBoard) + m.score - (maxRedReply === -Infinity ? 0 : maxRedReply * 1.1);
 
         currentBoard[m.sr][m.sc] = piece;
         currentBoard[m.tr][m.tc] = target;
