@@ -3,93 +3,110 @@ import { playSound, triggerConfetti } from '../utils/effects';
 
 interface LudoGameProps {
   onWin: (gameName: string, score: number) => void;
-  showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string) => void;
 }
 
 type Team = 'red' | 'green' | 'yellow' | 'blue';
 
-interface Horse {
+interface Pawn {
   id: number;
   team: Team;
-  horseNum: number; // 1, 2, 3, 4
-  pos: number; // -1: trong chuồng, 0..51: đường đua chính, 52..57: đường về đích 1..6, 58: đã vào tim đích
+  pawnIndex: number; // 0, 1, 2, 3
+  pos: number; // -1: in base yard, 0..50: on main track, 51..56: in home column, 57: home finish
 }
 
-// 52 vị trí chuẩn quốc tế trên lưới 15x15
-const TRACK_GRID: [number, number][] = [
-  // Red side (start index 0)
-  [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
-  [6, 5], [6, 4], [6, 3], [6, 2], [6, 1], [6, 0],
-  [7, 0], // Peak
-  [8, 0],
-  // Green side (start index 13)
-  [8, 1], [8, 2], [8, 3], [8, 4], [8, 5],
-  [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6],
-  [14, 7], // Right peak
-  [14, 8],
-  // Yellow side (start index 26)
-  [13, 8], [12, 8], [11, 8], [10, 8], [9, 8],
-  [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14],
-  [7, 14], // Bottom peak
-  [6, 14],
-  // Blue side (start index 39)
-  [6, 13], [6, 12], [6, 11], [6, 10], [6, 9],
-  [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
-  [0, 7], // Left peak
-  [0, 6]
+// 52 tọa độ ô chuẩn Ludo King trên lưới 15x15 (Bắt đầu từ Red Start)
+// Red (Bottom-Left), Green (Top-Left), Yellow (Top-Right), Blue (Bottom-Right)
+const TRACK_COORDS: [number, number][] = [
+  // 0: Red Start (1, 8)
+  [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+  // 5..10: Bottom arm going down
+  [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
+  // 11: Bottom tip
+  [7, 14],
+  // 12: Blue start entry
+  [8, 14],
+  // 13: Blue Start (8, 13)
+  [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+  // 18..23: Right arm going right
+  [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
+  // 24: Right tip
+  [14, 7],
+  // 25: Yellow start entry
+  [14, 6],
+  // 26: Yellow Start (13, 6)
+  [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+  // 31..36: Top arm going up
+  [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+  // 37: Top tip
+  [7, 0],
+  // 38: Green start entry
+  [6, 0],
+  // 39: Green Start (6, 1)
+  [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+  // 44..49: Left arm going left
+  [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+  // 50: Left tip
+  [0, 7],
+  // 51: Entry to Red Home Column
+  [0, 8]
 ];
 
-const START_INDEX: Record<Team, number> = {
-  red: 0,
-  green: 13,
-  yellow: 26,
-  blue: 39
+// Chỉ số xuất phát của 4 màu trên vòng đua 52 ô
+const START_OFFSETS: Record<Team, number> = {
+  red: 0,       // [1, 8]
+  blue: 13,     // [8, 13]
+  yellow: 26,   // [13, 6]
+  green: 39     // [6, 1]
 };
 
-// Tọa độ 6 bậc chuồng đích (1 đến 6)
-const HOME_STAIRS: Record<Team, [number, number][]> = {
+// 8 ô an toàn có ngôi sao (Safe Star Squares) chuẩn Ludo King
+const SAFE_STAR_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
+
+// 5 ô đường về nhà (Home Column) + 1 ô tim đích cho từng màu
+const HOME_COLUMNS: Record<Team, [number, number][]> = {
   red: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],
-  green: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]],
+  blue: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]],
   yellow: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]],
-  blue: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]]
+  green: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]]
 };
 
-// 4 Vị trí cắm ngựa trong chuồng (tọa độ pixel trong SVG 600x600)
-const STALL_POSITIONS: Record<Team, { x: number; y: number }[]> = {
+// 4 Vị trí đế cắm quân cờ trong Chuồng (Home Base Yards)
+const BASE_POCKETS: Record<Team, { cx: number; cy: number }[]> = {
   red: [
-    { x: 75, y: 75 },
-    { x: 165, y: 75 },
-    { x: 75, y: 165 },
-    { x: 165, y: 165 }
+    { cx: 70, cy: 430 },
+    { cx: 170, cy: 430 },
+    { cx: 70, cy: 530 },
+    { cx: 170, cy: 530 }
   ],
   green: [
-    { x: 435, y: 75 },
-    { x: 525, y: 75 },
-    { x: 435, y: 165 },
-    { x: 525, y: 165 }
+    { cx: 70, cy: 70 },
+    { cx: 170, cy: 70 },
+    { cx: 70, cy: 170 },
+    { cx: 170, cy: 170 }
   ],
   yellow: [
-    { x: 435, y: 435 },
-    { x: 525, y: 435 },
-    { x: 435, y: 525 },
-    { x: 525, y: 525 }
+    { cx: 430, cy: 70 },
+    { cx: 530, cy: 70 },
+    { cx: 430, cy: 170 },
+    { cx: 530, cy: 170 }
   ],
   blue: [
-    { x: 75, y: 435 },
-    { x: 165, y: 435 },
-    { x: 75, y: 525 },
-    { x: 165, y: 525 }
+    { cx: 430, cy: 430 },
+    { cx: 530, cy: 430 },
+    { cx: 430, cy: 530 },
+    { cx: 530, cy: 530 }
   ]
 };
 
 const TEAM_CONFIG: Record<
   Team,
-  { name: string; label: string; primary: string; secondary: string; dark: string; light: string; icon: string }
+  { name: string; label: string; primary: string; secondary: string; dark: string; light: string; avatar: string }
 > = {
-  red: { name: 'Đỏ', label: 'Đội Đỏ (Bạn)', primary: '#dc2626', secondary: '#ef4444', dark: '#991b1b', light: '#fee2e2', icon: '🔴' },
-  green: { name: 'Lá', label: 'Máy Lá', primary: '#16a34a', secondary: '#22c55e', dark: '#14532d', light: '#dcfce7', icon: '🟢' },
-  yellow: { name: 'Vàng', label: 'Máy Vàng', primary: '#ca8a04', secondary: '#eab308', dark: '#854d0e', light: '#fef9c3', icon: '🟡' },
-  blue: { name: 'Xanh', label: 'Máy Lam', primary: '#2563eb', secondary: '#3b82f6', dark: '#1e3a8a', light: '#dbeafe', icon: '🔵' }
+  red: { name: 'Đỏ', label: 'Bạn (Đỏ)', primary: '#ed1c24', secondary: '#f87171', dark: '#991b1b', light: '#fee2e2', avatar: '👑' },
+  green: { name: 'Lá', label: 'Bot Xanh Lá', primary: '#00a859', secondary: '#4ade80', dark: '#14532d', light: '#dcfce7', avatar: '🤖' },
+  yellow: { name: 'Vàng', label: 'Bot Vàng', primary: '#fdb813', secondary: '#fef08a', dark: '#854d0e', light: '#fef9c3', avatar: '🦊' },
+  blue: { name: 'Lam', label: 'Bot Lam', primary: '#0072bc', secondary: '#60a5fa', dark: '#1e3a8a', light: '#dbeafe', avatar: '🦁' }
 };
 
 export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
@@ -97,56 +114,56 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
   const [isRolling, setIsRolling] = useState<boolean>(false);
   const [currentTurn, setCurrentTurn] = useState<Team>('red');
   const [hasRolled, setHasRolled] = useState<boolean>(false);
+  const [sixCount, setSixCount] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
+  const [animatingPawnId, setAnimatingPawnId] = useState<number | null>(null);
 
-  // 16 con ngựa chuẩn truyền thống (mỗi đội 4 ngựa)
-  const [horses, setHorses] = useState<Horse[]>([
-    { id: 1, team: 'red', horseNum: 1, pos: -1 },
-    { id: 2, team: 'red', horseNum: 2, pos: -1 },
-    { id: 3, team: 'red', horseNum: 3, pos: -1 },
-    { id: 4, team: 'red', horseNum: 4, pos: -1 },
+  // 16 Quân Cờ Ludo King chuẩn (mỗi màu 4 quân)
+  const [pawns, setPawns] = useState<Pawn[]>([
+    { id: 1, team: 'red', pawnIndex: 0, pos: -1 },
+    { id: 2, team: 'red', pawnIndex: 1, pos: -1 },
+    { id: 3, team: 'red', pawnIndex: 2, pos: -1 },
+    { id: 4, team: 'red', pawnIndex: 3, pos: -1 },
 
-    { id: 5, team: 'green', horseNum: 1, pos: -1 },
-    { id: 6, team: 'green', horseNum: 2, pos: -1 },
-    { id: 7, team: 'green', horseNum: 3, pos: -1 },
-    { id: 8, team: 'green', horseNum: 4, pos: -1 },
+    { id: 5, team: 'green', pawnIndex: 0, pos: -1 },
+    { id: 6, team: 'green', pawnIndex: 1, pos: -1 },
+    { id: 7, team: 'green', pawnIndex: 2, pos: -1 },
+    { id: 8, team: 'green', pawnIndex: 3, pos: -1 },
 
-    { id: 9, team: 'yellow', horseNum: 1, pos: -1 },
-    { id: 10, team: 'yellow', horseNum: 2, pos: -1 },
-    { id: 11, team: 'yellow', horseNum: 3, pos: -1 },
-    { id: 12, team: 'yellow', horseNum: 4, pos: -1 },
+    { id: 9, team: 'yellow', pawnIndex: 0, pos: -1 },
+    { id: 10, team: 'yellow', pawnIndex: 1, pos: -1 },
+    { id: 11, team: 'yellow', pawnIndex: 2, pos: -1 },
+    { id: 12, team: 'yellow', pawnIndex: 3, pos: -1 },
 
-    { id: 13, team: 'blue', horseNum: 1, pos: -1 },
-    { id: 14, team: 'blue', horseNum: 2, pos: -1 },
-    { id: 15, team: 'blue', horseNum: 3, pos: -1 },
-    { id: 16, team: 'blue', horseNum: 4, pos: -1 }
+    { id: 13, team: 'blue', pawnIndex: 0, pos: -1 },
+    { id: 14, team: 'blue', pawnIndex: 1, pos: -1 },
+    { id: 15, team: 'blue', pawnIndex: 2, pos: -1 },
+    { id: 16, team: 'blue', pawnIndex: 3, pos: -1 }
   ]);
 
   const teams: Team[] = ['red', 'green', 'yellow', 'blue'];
-  const aiTimeoutRef = useRef<any>(null);
+  const botTimerRef = useRef<any>(null);
 
-  // Dọn dẹp timer khi unmount
   useEffect(() => {
     return () => {
-      if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+      if (botTimerRef.current) clearTimeout(botTimerRef.current);
     };
   }, []);
 
-  // Tự động hóa lượt chơi cho AI (Đội Lá, Vàng, Lam)
+  // Tự động hóa lượt chơi cho Bot (Green -> Yellow -> Blue)
   useEffect(() => {
-    if (winner) return;
+    if (winner || animatingPawnId !== null) return;
 
     if (currentTurn !== 'red') {
-      // AI Turn: Tự động lắc xúc xắc sau 600ms
-      aiTimeoutRef.current = setTimeout(() => {
-        handleAIRoll();
-      }, 600);
+      botTimerRef.current = setTimeout(() => {
+        handleBotRoll();
+      }, 700);
     }
-  }, [currentTurn, winner]);
+  }, [currentTurn, winner, animatingPawnId]);
 
-  // AI Lắc xúc xắc
-  const handleAIRoll = () => {
-    if (winner) return;
+  // Bot lắc xúc xắc
+  const handleBotRoll = () => {
+    if (winner || animatingPawnId !== null) return;
     setIsRolling(true);
     playSound('dice');
 
@@ -156,69 +173,82 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
       count++;
       if (count > 7) {
         clearInterval(interval);
-        const finalDice = Math.floor(Math.random() * 6) + 1;
-        setDice(finalDice);
+        const finalVal = Math.floor(Math.random() * 6) + 1;
+        setDice(finalVal);
         setIsRolling(false);
         setHasRolled(true);
 
-        // AI suy nghĩ nước đi sau khi đổ xúc xắc
         setTimeout(() => {
-          executeAIMove(finalDice);
+          handleBotMove(finalVal);
         }, 500);
       }
-    }, 50);
+    }, 45);
   };
 
-  // AI thực hiện nước đi tối ưu
-  const executeAIMove = (rollVal: number) => {
-    const myHorses = horses.filter(h => h.team === currentTurn);
-    const canDeploy = rollVal === 1 || rollVal === 6;
+  // Bot tính toán nước đi thông minh
+  const handleBotMove = (rollVal: number) => {
+    const myPawns = pawns.filter(p => p.team === currentTurn);
 
-    // Tìm tất cả các nước đi hợp lệ của AI
-    const validMoves: { horse: Horse; priority: number }[] = [];
+    // Tìm tất cả quân cờ có thể đi được
+    const movableList: { pawn: Pawn; priority: number }[] = [];
 
-    for (const h of myHorses) {
-      if (h.pos === -1 && canDeploy) {
-        // Có thể xuất chuồng: kiểm tra xem có đá được ai ở cửa chuồng không
-        const startTrackIdx = START_INDEX[h.team];
-        const victim = horses.find(other => other.team !== h.team && other.pos >= 0 && other.pos < 52 && (START_INDEX[other.team] + other.pos) % 52 === startTrackIdx);
-        const prio = victim ? 100 : 50;
-        validMoves.push({ horse: h, priority: prio });
-      } else if (h.pos >= 0 && h.pos + rollVal <= 58) {
-        const nextPos = h.pos + rollVal;
-        let prio = 20 + nextPos; // Càng gần đích càng ưu tiên
+    for (const p of myPawns) {
+      if (p.pos === -1) {
+        // Chỉ xuất quân khi lắc được 6 (chuẩn Ludo King)
+        if (rollVal === 6) {
+          const startSquare = START_OFFSETS[p.team];
+          // Kiểm tra xem có đá được ai ở ô xuất phát không
+          const victim = pawns.find(
+            other =>
+              other.team !== p.team &&
+              other.pos >= 0 &&
+              other.pos <= 50 &&
+              (START_OFFSETS[other.team] + other.pos) % 52 === startSquare
+          );
+          movableList.push({ pawn: p, priority: victim ? 120 : 60 });
+        }
+      } else if (p.pos >= 0 && p.pos + rollVal <= 56) {
+        const nextPos = p.pos + rollVal;
+        let prio = 20 + nextPos;
 
-        // Nếu đá được ngựa đối thủ
-        if (nextPos < 52) {
-          const myRealIdx = (START_INDEX[h.team] + nextPos) % 52;
-          const victim = horses.find(other => other.team !== h.team && other.pos >= 0 && other.pos < 52 && (START_INDEX[other.team] + other.pos) % 52 === myRealIdx);
-          if (victim) {
-            prio += 80; // Ưu tiên đá ngựa cực cao!
+        if (nextPos <= 50) {
+          const myRealSquare = (START_OFFSETS[p.team] + nextPos) % 52;
+          const isSafe = SAFE_STAR_INDICES.includes(myRealSquare);
+          if (!isSafe) {
+            // Kiểm tra có đá được đối phương không
+            const victim = pawns.find(
+              other =>
+                other.team !== p.team &&
+                other.pos >= 0 &&
+                other.pos <= 50 &&
+                (START_OFFSETS[other.team] + other.pos) % 52 === myRealSquare
+            );
+            if (victim) {
+              prio += 100; // Ưu tiên đá đối phương cao nhất
+            }
           }
-        } else if (nextPos >= 52) {
-          prio += 60; // Ưu tiên vào chuồng đích
+        } else if (nextPos === 56) {
+          prio += 80; // Về đích
         }
 
-        validMoves.push({ horse: h, priority: prio });
+        movableList.push({ pawn: p, priority: prio });
       }
     }
 
-    if (validMoves.length === 0) {
-      // Không có nước đi nào -> Chuyển lượt
-      showToast('info', `Đội ${TEAM_CONFIG[currentTurn].name} không có nước đi!`);
+    if (movableList.length === 0) {
+      // Không có nước đi
+      showToast('info', `${TEAM_CONFIG[currentTurn].label} không có nước đi!`);
       setTimeout(nextTurn, 800);
       return;
     }
 
-    // Chọn nước đi có độ ưu tiên cao nhất
-    validMoves.sort((a, b) => b.priority - a.priority);
-    const chosen = validMoves[0].horse;
-    handleHorseClick(chosen, rollVal);
+    movableList.sort((a, b) => b.priority - a.priority);
+    executePawnMove(movableList[0].pawn, rollVal);
   };
 
   // Người chơi lắc xúc xắc
   const rollDice = () => {
-    if (hasRolled || isRolling || winner || currentTurn !== 'red') return;
+    if (hasRolled || isRolling || winner || currentTurn !== 'red' || animatingPawnId !== null) return;
 
     setIsRolling(true);
     playSound('dice');
@@ -234,128 +264,158 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
         setIsRolling(false);
         setHasRolled(true);
 
-        // Kiểm tra xem người chơi có nước đi nào không
-        const myHorses = horses.filter(h => h.team === 'red');
-        const canDeploy = finalVal === 1 || finalVal === 6;
-        const canMoveAny = myHorses.some(h => (h.pos === -1 && canDeploy) || (h.pos >= 0 && h.pos + finalVal <= 58));
+        const myPawns = pawns.filter(p => p.team === 'red');
+        const canMoveAny = myPawns.some(p => (p.pos === -1 && finalVal === 6) || (p.pos >= 0 && p.pos + finalVal <= 56));
 
         if (!canMoveAny) {
-          showToast('info', `Bạn không có nước đi nào hợp lệ với xúc xắc [${finalVal}]. Chuyển lượt!`);
+          showToast('info', `Lắc ra [${finalVal}] nhưng không có quân cờ nào đi được. Chuyển lượt!`);
           setTimeout(nextTurn, 1000);
         } else {
-          showToast('success', `Lắc được [${finalVal}]! Hãy nhấp vào ngựa chiến để di chuyển.`);
-        }
-      }
-    }, 50);
-  };
-
-  // Di chuyển quân ngựa
-  const handleHorseClick = (horse: Horse, explicitDice?: number) => {
-    const currentDice = explicitDice ?? dice;
-    if (!hasRolled && explicitDice === undefined) return;
-    if (horse.team !== currentTurn || winner) return;
-
-    const canDeploy = currentDice === 1 || currentDice === 6;
-
-    // 1. Xuất chuồng
-    if (horse.pos === -1) {
-      if (!canDeploy) {
-        playSound('error');
-        showToast('error', 'Cần lắc được 1 hoặc 6 để xuất quân khỏi chuồng!');
-        return;
-      }
-
-      const startTrackIdx = START_INDEX[horse.team];
-
-      // Kiểm tra đá ngựa ở ô xuất phát
-      let kickedOpponent = false;
-      const updated = horses.map(h => {
-        if (h.id === horse.id) {
-          return { ...h, pos: 0 };
-        }
-        if (h.team !== horse.team && h.pos >= 0 && h.pos < 52) {
-          const otherTrackIdx = (START_INDEX[h.team] + h.pos) % 52;
-          if (otherTrackIdx === startTrackIdx) {
-            kickedOpponent = true;
-            return { ...h, pos: -1 }; // Bị đá về chuồng
+          if (finalVal === 6) {
+            playSound('win');
+            showToast('success', '🎉 LẮC RA 6! Bạn có thể xuất quân hoặc đi tiếp và ĐƯỢC THÊM LƯỢT!');
           }
         }
-        return h;
-      });
-
-      setHorses(updated);
-      playSound('move');
-      if (kickedOpponent) {
-        playSound('capture');
-        showToast('success', `💥 ĐÁ VĂNG! Ngựa đội ${TEAM_CONFIG[horse.team].name} xuất chuồng và đá văng đối thủ!`);
-      } else {
-        showToast('success', `Đội ${TEAM_CONFIG[horse.team].name} xuất chuồng ngựa #${horse.horseNum}! 🐎`);
       }
-
-      finishAction(currentDice === 6);
-      return;
-    }
-
-    // 2. Di chuyển trên đường đua
-    const nextPos = horse.pos + currentDice;
-    if (nextPos > 58) {
-      playSound('error');
-      showToast('error', 'Số bước xúc xắc vượt quá đích!');
-      return;
-    }
-
-    let kicked = false;
-    const myRealTrackIndex = (START_INDEX[horse.team] + nextPos) % 52;
-
-    const updated = horses.map(h => {
-      if (h.id === horse.id) {
-        return { ...h, pos: nextPos };
-      }
-      // Nếu ngựa khác đội ở cùng ô trên vòng đua chính (< 52)
-      if (h.team !== horse.team && h.pos >= 0 && h.pos < 52 && nextPos < 52) {
-        const otherRealIdx = (START_INDEX[h.team] + h.pos) % 52;
-        if (otherRealIdx === myRealTrackIndex) {
-          kicked = true;
-          return { ...h, pos: -1 }; // Bị đá về chuồng!
-        }
-      }
-      return h;
-    });
-
-    setHorses(updated);
-
-    if (kicked) {
-      playSound('capture');
-      showToast('success', `💥 TUYỆT KỸ ĐÁ NGỰA! Đội ${TEAM_CONFIG[horse.team].name} đã đá ngựa đối thủ văng về chuồng!`);
-    } else {
-      playSound('move');
-    }
-
-    // Kiểm tra vô địch: nếu đội có 4 ngựa về đích (pos >= 57) hoặc 2 ngựa đầu tiên vào tim đích 58
-    const myFinished = updated.filter(h => h.team === currentTurn && h.pos >= 57);
-    if (myFinished.length >= 2) {
-      setWinner(TEAM_CONFIG[currentTurn].name);
-      playSound('win');
-      triggerConfetti();
-      showToast('success', `🎉 VÔ ĐỊCH! ${TEAM_CONFIG[currentTurn].label} đã dẫn đầu đàn ngựa về đích an toàn!`);
-      if (currentTurn === 'red') {
-        onWin('Cờ Cá Ngựa', 100);
-      }
-      return;
-    }
-
-    finishAction(currentDice === 6);
+    }, 45);
   };
 
-  const finishAction = (bonusRoll: boolean) => {
-    if (bonusRoll) {
-      showToast('info', `Đội ${TEAM_CONFIG[currentTurn].name} đổ được 6! Được thưởng thêm 1 lượt lắc! 🎲`);
+  // Kiểm tra quân cờ có đi được không
+  const canPawnMove = (p: Pawn): boolean => {
+    if (!hasRolled || p.team !== currentTurn || winner || animatingPawnId !== null) return false;
+    if (p.pos === -1) {
+      return dice === 6; // Ludo King chuẩn: CHỈ 6 MỚI ĐƯỢC XUẤT QUÂN
+    }
+    return p.pos + dice <= 56;
+  };
+
+  // Di chuyển quân cờ từng bước mượt mà
+  const executePawnMove = (pawn: Pawn, rollVal: number) => {
+    setAnimatingPawnId(pawn.id);
+
+    // 1. Xuất quân khỏi chuồng
+    if (pawn.pos === -1) {
+      const startSquare = START_OFFSETS[pawn.team];
+      let didKick = false;
+
+      const nextPawns = pawns.map(p => {
+        if (p.id === pawn.id) return { ...p, pos: 0 };
+        // Kiểm tra xem có đá quân đối phương ở ô xuất phát không (ngoại trừ ô sao an toàn)
+        if (p.team !== pawn.team && p.pos >= 0 && p.pos <= 50) {
+          const otherTrackSquare = (START_OFFSETS[p.team] + p.pos) % 52;
+          if (otherTrackSquare === startSquare && !SAFE_STAR_INDICES.includes(startSquare)) {
+            didKick = true;
+            return { ...p, pos: -1 };
+          }
+        }
+        return p;
+      });
+
+      setPawns(nextPawns);
+      playSound('move');
+      setAnimatingPawnId(null);
+
+      if (didKick) {
+        playSound('capture');
+        triggerConfetti();
+        showToast('success', `💥 ĐÁ QUÂN! ${TEAM_CONFIG[pawn.team].label} xuất quân và đá văng đối thủ về chuồng!`);
+        finishAction(true); // Thưởng lượt khi đá quân
+      } else {
+        finishAction(rollVal === 6);
+      }
+      return;
+    }
+
+    // 2. Đi trên đường đua: bước từng bước 1
+    const startPos = pawn.pos;
+    const targetPos = startPos + rollVal;
+
+    let currentStep = startPos;
+    const stepInterval = setInterval(() => {
+      currentStep++;
+      setPawns(prev => prev.map(p => p.id === pawn.id ? { ...p, pos: currentStep } : p));
+      playSound('move');
+
+      if (currentStep >= targetPos) {
+        clearInterval(stepInterval);
+        setAnimatingPawnId(null);
+
+        // Kiểm tra đá quân ở ô đáp xuống
+        let didKick = false;
+        let reachedHome = false;
+
+        const finalPawns = pawns.map(p => {
+          if (p.id === pawn.id) {
+            if (targetPos === 56) reachedHome = true;
+            return { ...p, pos: targetPos };
+          }
+
+          if (p.team !== pawn.team && targetPos <= 50 && p.pos >= 0 && p.pos <= 50) {
+            const mySquare = (START_OFFSETS[pawn.team] + targetPos) % 52;
+            const otherSquare = (START_OFFSETS[p.team] + p.pos) % 52;
+            const isSafe = SAFE_STAR_INDICES.includes(mySquare);
+
+            if (mySquare === otherSquare && !isSafe) {
+              didKick = true;
+              return { ...p, pos: -1 }; // Bị đá về chuồng
+            }
+          }
+          return p;
+        });
+
+        setPawns(finalPawns);
+
+        if (didKick) {
+          playSound('capture');
+          triggerConfetti();
+          showToast('success', `💥 ĐÁ QUÂN! ${TEAM_CONFIG[pawn.team].label} đá văng đối thủ về chuồng!`);
+        }
+
+        if (reachedHome) {
+          playSound('win');
+          showToast('success', `🎉 VÀO ĐÍCH! ${TEAM_CONFIG[pawn.team].label} đưa 1 quân cờ về đích an toàn!`);
+        }
+
+        // Kiểm tra chiến thắng (Đội đầu tiên có đủ 4 quân về đích pos 56)
+        const finishedCount = finalPawns.filter(p => p.team === currentTurn && p.pos === 56).length;
+        if (finishedCount === 4) {
+          setWinner(TEAM_CONFIG[currentTurn].label);
+          playSound('win');
+          triggerConfetti();
+          showToast('success', `🏆 VÔ ĐỊCH! ${TEAM_CONFIG[currentTurn].label} ĐÃ CHIẾN THẮNG TRẬN ĐẤU LUDO KING!`);
+          if (currentTurn === 'red') {
+            onWin('Cờ Cá Ngựa (Ludo King)', 150);
+          }
+          return;
+        }
+
+        // Thưởng thêm lượt nếu: đổ được 6 HOẶC đá được quân HOẶC vào đích
+        const getsBonusTurn = rollVal === 6 || didKick || reachedHome;
+        finishAction(getsBonusTurn);
+      }
+    }, 110);
+  };
+
+  const finishAction = (bonus: boolean) => {
+    if (bonus) {
+      if (dice === 6) {
+        const nextSix = sixCount + 1;
+        if (nextSix === 3) {
+          // Ludo King rule: 3 con 6 liên tiếp sẽ bị phạt mất lượt
+          showToast('warning', '⚠️ Đổ 3 lần 6 liên tiếp! Phạt mất lượt theo luật Ludo King.');
+          setSixCount(0);
+          nextTurn();
+          return;
+        }
+        setSixCount(nextSix);
+      }
+      showToast('info', `✨ ${TEAM_CONFIG[currentTurn].label} được thưởng thêm 1 lượt lắc xúc xắc!`);
       setHasRolled(false);
-      // Nếu là AI và được lắc tiếp
       if (currentTurn !== 'red') {
-        setTimeout(handleAIRoll, 700);
+        setTimeout(handleBotRoll, 600);
       }
     } else {
+      setSixCount(0);
       nextTurn();
     }
   };
@@ -368,392 +428,307 @@ export const LudoGame: React.FC<LudoGameProps> = ({ onWin, showToast }) => {
   };
 
   const resetGame = () => {
-    setHorses([
-      { id: 1, team: 'red', horseNum: 1, pos: -1 },
-      { id: 2, team: 'red', horseNum: 2, pos: -1 },
-      { id: 3, team: 'red', horseNum: 3, pos: -1 },
-      { id: 4, team: 'red', horseNum: 4, pos: -1 },
+    setPawns([
+      { id: 1, team: 'red', pawnIndex: 0, pos: -1 },
+      { id: 2, team: 'red', pawnIndex: 1, pos: -1 },
+      { id: 3, team: 'red', pawnIndex: 2, pos: -1 },
+      { id: 4, team: 'red', pawnIndex: 3, pos: -1 },
 
-      { id: 5, team: 'green', horseNum: 1, pos: -1 },
-      { id: 6, team: 'green', horseNum: 2, pos: -1 },
-      { id: 7, team: 'green', horseNum: 3, pos: -1 },
-      { id: 8, team: 'green', horseNum: 4, pos: -1 },
+      { id: 5, team: 'green', pawnIndex: 0, pos: -1 },
+      { id: 6, team: 'green', pawnIndex: 1, pos: -1 },
+      { id: 7, team: 'green', pawnIndex: 2, pos: -1 },
+      { id: 8, team: 'green', pawnIndex: 3, pos: -1 },
 
-      { id: 9, team: 'yellow', horseNum: 1, pos: -1 },
-      { id: 10, team: 'yellow', horseNum: 2, pos: -1 },
-      { id: 11, team: 'yellow', horseNum: 3, pos: -1 },
-      { id: 12, team: 'yellow', horseNum: 4, pos: -1 },
+      { id: 9, team: 'yellow', pawnIndex: 0, pos: -1 },
+      { id: 10, team: 'yellow', pawnIndex: 1, pos: -1 },
+      { id: 11, team: 'yellow', pawnIndex: 2, pos: -1 },
+      { id: 12, team: 'yellow', pawnIndex: 3, pos: -1 },
 
-      { id: 13, team: 'blue', horseNum: 1, pos: -1 },
-      { id: 14, team: 'blue', horseNum: 2, pos: -1 },
-      { id: 15, team: 'blue', horseNum: 3, pos: -1 },
-      { id: 16, team: 'blue', horseNum: 4, pos: -1 }
+      { id: 13, team: 'blue', pawnIndex: 0, pos: -1 },
+      { id: 14, team: 'blue', pawnIndex: 1, pos: -1 },
+      { id: 15, team: 'blue', pawnIndex: 2, pos: -1 },
+      { id: 16, team: 'blue', pawnIndex: 3, pos: -1 }
     ]);
     setCurrentTurn('red');
     setHasRolled(false);
+    setSixCount(0);
     setWinner(null);
+    setAnimatingPawnId(null);
     playSound('click');
-    showToast('info', 'Đã bắt đầu ván mới!');
+    showToast('info', 'Đã bắt đầu ván đấu Ludo King mới!');
   };
 
-  // Tính toán tọa độ hiển thị (pixel cx, cy trên SVG 600x600) của một con ngựa
-  const getHorsePixelCoord = (h: Horse): { cx: number; cy: number } => {
-    if (h.pos === -1) {
-      // Trong chuồng: lấy theo stall tương ứng với horseNum (0..3)
-      const stall = STALL_POSITIONS[h.team][h.horseNum - 1];
-      return { cx: stall.x, cy: stall.y };
+  // Lấy tọa độ hiển thị (pixel cx, cy trên SVG 600x600)
+  const getPawnPixelCoords = (pawn: Pawn): { cx: number; cy: number } => {
+    if (pawn.pos === -1) {
+      return BASE_POCKETS[pawn.team][pawn.pawnIndex];
     }
 
-    if (h.pos < 52) {
-      // Trên đường đua chính 52 ô
-      const trackIdx = (START_INDEX[h.team] + h.pos) % 52;
-      const [gx, gy] = TRACK_GRID[trackIdx];
+    if (pawn.pos <= 50) {
+      const squareIdx = (START_OFFSETS[pawn.team] + pawn.pos) % 52;
+      const [gx, gy] = TRACK_COORDS[squareIdx];
       return { cx: gx * 40 + 20, cy: gy * 40 + 20 };
     }
 
-    if (h.pos >= 52 && h.pos <= 57) {
-      // Đang leo bậc chuồng đích 1..6
-      const stepIdx = h.pos - 52;
-      const [gx, gy] = HOME_STAIRS[h.team][stepIdx];
+    if (pawn.pos <= 55) {
+      const stepIdx = pawn.pos - 51;
+      const [gx, gy] = HOME_COLUMNS[pawn.team][stepIdx];
       return { cx: gx * 40 + 20, cy: gy * 40 + 20 };
     }
 
-    // Đã vào tim đích (pos 58)
-    const centerOffsets: Record<Team, { cx: number; cy: number }> = {
-      red: { cx: 280, cy: 280 },
-      green: { cx: 320, cy: 280 },
-      yellow: { cx: 320, cy: 320 },
-      blue: { cx: 280, cy: 320 }
+    // Đã vào tim đích (pos 56 / 57)
+    const centerSlots: Record<Team, { cx: number; cy: number }[]> = {
+      red: [{ cx: 280, cy: 300 }, { cx: 270, cy: 290 }, { cx: 270, cy: 310 }, { cx: 260, cy: 300 }],
+      green: [{ cx: 300, cy: 280 }, { cx: 290, cy: 270 }, { cx: 310, cy: 270 }, { cx: 300, cy: 260 }],
+      yellow: [{ cx: 320, cy: 300 }, { cx: 330, cy: 290 }, { cx: 330, cy: 310 }, { cx: 340, cy: 300 }],
+      blue: [{ cx: 300, cy: 320 }, { cx: 290, cy: 330 }, { cx: 310, cy: 330 }, { cx: 300, cy: 340 }]
     };
-    return centerOffsets[h.team];
-  };
-
-  // Kiểm tra xem ngựa có thể đi được ở lượt này không
-  const canHorseMove = (h: Horse): boolean => {
-    if (!hasRolled || h.team !== currentTurn || winner) return false;
-    if (h.pos === -1) {
-      return dice === 1 || dice === 6;
-    }
-    return h.pos + dice <= 58;
+    return centerSlots[pawn.team][pawn.pawnIndex];
   };
 
   return (
-    <div className="game-wrapper ludo-real-wrapper">
-      {/* THANH ĐIỀU KHIỂN & TRẠNG THÁI TRẬN ĐẤU */}
-      <div className="ludo-header-strip">
-        <div className="ludo-turn-indicator">
-          {winner ? (
-            <span className="ludo-win-badge">👑 VÔ ĐỊCH: ĐỘI {winner.toUpperCase()}!</span>
-          ) : (
-            <div className="turn-banner" style={{ borderLeftColor: TEAM_CONFIG[currentTurn].primary }}>
-              <span className="turn-dot" style={{ background: TEAM_CONFIG[currentTurn].primary }} />
-              <span className="turn-title">Lượt Đi:</span>
-              <strong className="turn-team" style={{ color: TEAM_CONFIG[currentTurn].primary }}>
-                {TEAM_CONFIG[currentTurn].label}
-              </strong>
-              {currentTurn === 'red' && !hasRolled && (
-                <span className="turn-hint">👉 Hãy lắc xúc xắc!</span>
-              )}
+    <div className="game-wrapper ludo-king-container">
+      {/* 4 BẢNG ĐIỀU KHIỂN GÓC CHO 4 NGƯỜI CHƠI CHUẨN LUDO KING */}
+      <div className="ludo-corner-hud hud-top-left">
+        <div className={`ludo-player-card ${currentTurn === 'green' ? 'active-player-glow' : ''}`}>
+          <div className="avatar-frame" style={{ borderColor: TEAM_CONFIG.green.primary }}>
+            <span>{TEAM_CONFIG.green.avatar}</span>
+          </div>
+          <div className="player-meta-box">
+            <span className="p-title">Bot Xanh Lá</span>
+            <span className="p-pawns-count">Về đích: {pawns.filter(p => p.team === 'green' && p.pos === 56).length}/4</span>
+          </div>
+          {currentTurn === 'green' && (
+            <div className={`hud-mini-die ${isRolling ? 'die-shake' : ''}`}>
+              <span className={`die-face-mini pip-val-${dice}`}>{dice}</span>
             </div>
           )}
         </div>
-
-        {/* BẢNG TIẾN ĐỘ 4 ĐỘI */}
-        <div className="ludo-score-badges">
-          {teams.map(t => {
-            const finished = horses.filter(h => h.team === t && h.pos >= 57).length;
-            const onTrack = horses.filter(h => h.team === t && h.pos >= 0 && h.pos < 57).length;
-            const isCurrent = currentTurn === t;
-            return (
-              <div key={t} className={`team-badge-pill ${isCurrent ? 'active-pill' : ''}`} style={{ borderColor: isCurrent ? TEAM_CONFIG[t].primary : 'transparent' }}>
-                <span className="t-icon">{TEAM_CONFIG[t].icon}</span>
-                <span className="t-name">{TEAM_CONFIG[t].name}</span>
-                <span className="t-progress" title={`${finished} ngựa về đích, ${onTrack} ngựa đang chạy`}>
-                  🏆 {finished}/4
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        <button className="btn btn-secondary btn-sm" onClick={resetGame} title="Ván Mới">
-          🔄 Ván Mới
-        </button>
       </div>
 
-      {/* KHU VỰC THI ĐẤU CHÍNH */}
-      <div className="ludo-arena-container">
-        {/* BÀN CỜ CÁ NGỰA SVG CHÂN THỰC & SỐNG ĐỘNG (600x600) */}
-        <div className="ludo-board-wrapper">
-          <svg className="ludo-svg-board" viewBox="0 0 600 600">
-            <defs>
-              {/* Bóng đổ 3D cho các ô và quân cờ */}
-              <filter id="tileShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.25" />
-              </filter>
-              <filter id="horseShadow" x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.45" />
-              </filter>
-              <filter id="boardBorderGlow" x="-10%" y="-10%" width="120%" height="120%">
-                <feDropShadow dx="0" dy="8" stdDeviation="12" floodOpacity="0.35" />
-              </filter>
-
-              {/* Gradient cho 4 Chuồng lớn */}
-              <radialGradient id="gradRedYard" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#ef4444" />
-                <stop offset="80%" stopColor="#dc2626" />
-                <stop offset="100%" stopColor="#991b1b" />
-              </radialGradient>
-              <radialGradient id="gradGreenYard" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="80%" stopColor="#16a34a" />
-                <stop offset="100%" stopColor="#14532d" />
-              </radialGradient>
-              <radialGradient id="gradYellowYard" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#facc15" />
-                <stop offset="80%" stopColor="#ca8a04" />
-                <stop offset="100%" stopColor="#854d0e" />
-              </radialGradient>
-              <radialGradient id="gradBlueYard" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="80%" stopColor="#2563eb" />
-                <stop offset="100%" stopColor="#1e3a8a" />
-              </radialGradient>
-            </defs>
-
-            {/* KHUNG GỖ BÀN CỜ BẠCH DƯƠNG CAO CẤP */}
-            <rect x="0" y="0" width="600" height="600" rx="16" fill="#f8fafc" stroke="#334155" strokeWidth="6" filter="url(#boardBorderGlow)" />
-
-            {/* 1. BỐN GÓC CHUỒNG NGỰA RỰC RỠ */}
-            {/* Chuồng Đỏ (Top-Left) */}
-            <g className="yard-group yard-red">
-              <rect x="0" y="0" width="240" height="240" rx="12" fill="url(#gradRedYard)" stroke="#b91c1c" strokeWidth="3" />
-              <circle cx="120" cy="120" r="85" fill="#ffffff" opacity="0.95" filter="url(#tileShadow)" />
-              <text x="120" y="52" fill="#ffffff" fontWeight="900" fontSize="16" textAnchor="middle" letterSpacing="1">🔴 CHUỒNG ĐỎ</text>
-              {/* 4 Đài cắm ngựa */}
-              {STALL_POSITIONS.red.map((st, idx) => (
-                <circle key={idx} cx={st.x} cy={st.y} r="26" fill="#fee2e2" stroke="#dc2626" strokeWidth="3" filter="url(#tileShadow)" />
-              ))}
-            </g>
-
-            {/* Chuồng Lá (Top-Right) */}
-            <g className="yard-group yard-green">
-              <rect x="360" y="0" width="240" height="240" rx="12" fill="url(#gradGreenYard)" stroke="#15803d" strokeWidth="3" />
-              <circle cx="480" cy="120" r="85" fill="#ffffff" opacity="0.95" filter="url(#tileShadow)" />
-              <text x="480" y="52" fill="#ffffff" fontWeight="900" fontSize="16" textAnchor="middle" letterSpacing="1">🟢 CHUỒNG LÁ</text>
-              {STALL_POSITIONS.green.map((st, idx) => (
-                <circle key={idx} cx={st.x} cy={st.y} r="26" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" filter="url(#tileShadow)" />
-              ))}
-            </g>
-
-            {/* Chuồng Vàng (Bottom-Right) */}
-            <g className="yard-group yard-yellow">
-              <rect x="360" y="360" width="240" height="240" rx="12" fill="url(#gradYellowYard)" stroke="#a16207" strokeWidth="3" />
-              <circle cx="480" cy="480" r="85" fill="#ffffff" opacity="0.95" filter="url(#tileShadow)" />
-              <text x="480" y="412" fill="#ffffff" fontWeight="900" fontSize="16" textAnchor="middle" letterSpacing="1">🟡 CHUỒNG VÀNG</text>
-              {STALL_POSITIONS.yellow.map((st, idx) => (
-                <circle key={idx} cx={st.x} cy={st.y} r="26" fill="#fef9c3" stroke="#ca8a04" strokeWidth="3" filter="url(#tileShadow)" />
-              ))}
-            </g>
-
-            {/* Chuồng Lam (Bottom-Left) */}
-            <g className="yard-group yard-blue">
-              <rect x="0" y="360" width="240" height="240" rx="12" fill="url(#gradBlueYard)" stroke="#1d4ed8" strokeWidth="3" />
-              <circle cx="120" cy="480" r="85" fill="#ffffff" opacity="0.95" filter="url(#tileShadow)" />
-              <text x="120" y="412" fill="#ffffff" fontWeight="900" fontSize="16" textAnchor="middle" letterSpacing="1">🔵 CHUỒNG LAM</text>
-              {STALL_POSITIONS.blue.map((st, idx) => (
-                <circle key={idx} cx={st.x} cy={st.y} r="26" fill="#dbeafe" stroke="#2563eb" strokeWidth="3" filter="url(#tileShadow)" />
-              ))}
-            </g>
-
-            {/* 2. TIM ĐÍCH TRUNG TÂM (4 TAM GIÁC MÀU HƯỚNG VÀO TÂM) */}
-            <g className="finish-hub">
-              {/* Tam giác Đỏ (Left) */}
-              <polygon points="240,240 240,360 300,300" fill="#dc2626" opacity="0.9" stroke="#b91c1c" strokeWidth="2" />
-              {/* Tam giác Lá (Top) */}
-              <polygon points="240,240 360,240 300,300" fill="#16a34a" opacity="0.9" stroke="#15803d" strokeWidth="2" />
-              {/* Tam giác Vàng (Right) */}
-              <polygon points="360,240 360,360 300,300" fill="#ca8a04" opacity="0.9" stroke="#a16207" strokeWidth="2" />
-              {/* Tam giác Lam (Bottom) */}
-              <polygon points="240,360 360,360 300,300" fill="#2563eb" opacity="0.9" stroke="#1d4ed8" strokeWidth="2" />
-
-              {/* Ngôi sao / Cúp trung tâm */}
-              <circle cx="300" cy="300" r="28" fill="#facc15" stroke="#713f12" strokeWidth="3" filter="url(#tileShadow)" />
-              <text x="300" y="307" fontSize="22" textAnchor="middle">🏆</text>
-            </g>
-
-            {/* 3. 52 Ô ĐƯỜNG ĐUA CHÍNH (TRACK CELLS) */}
-            {TRACK_GRID.map(([gx, gy], idx) => {
-              const cx = gx * 40 + 20;
-              const cy = gy * 40 + 20;
-
-              // Kiểm tra xem có phải ô xuất chuồng của 4 đội không
-              const isRedStart = idx === START_INDEX.red;
-              const isGreenStart = idx === START_INDEX.green;
-              const isYellowStart = idx === START_INDEX.yellow;
-              const isBlueStart = idx === START_INDEX.blue;
-
-              let fillColor = '#ffffff';
-              let strokeColor = '#cbd5e1';
-              let badge = '';
-
-              if (isRedStart) { fillColor = '#fee2e2'; strokeColor = '#dc2626'; badge = '⭐'; }
-              else if (isGreenStart) { fillColor = '#dcfce7'; strokeColor = '#16a34a'; badge = '⭐'; }
-              else if (isYellowStart) { fillColor = '#fef9c3'; strokeColor = '#ca8a04'; badge = '⭐'; }
-              else if (isBlueStart) { fillColor = '#dbeafe'; strokeColor = '#2563eb'; badge = '⭐'; }
-
-              return (
-                <g key={idx} className="track-step-cell">
-                  <circle cx={cx} cy={cy} r="17" fill={fillColor} stroke={strokeColor} strokeWidth="2.5" filter="url(#tileShadow)" />
-                  {badge && (
-                    <text x={cx} y={cy + 4} fontSize="12" textAnchor="middle" fill="#ca8a04">{badge}</text>
-                  )}
-                </g>
-              );
-            })}
-
-            {/* 4. ĐƯỜNG VỀ ĐÍCH CỦA 4 ĐỘI (BẬC 1 ĐẾN 6) */}
-            {teams.map(t => {
-              const stairs = HOME_STAIRS[t];
-              const cfg = TEAM_CONFIG[t];
-              return stairs.map(([gx, gy], stepIdx) => {
-                const cx = gx * 40 + 20;
-                const cy = gy * 40 + 20;
-                const stepNum = stepIdx + 1; // 1, 2, 3, 4, 5, 6
-                return (
-                  <g key={`${t}-step-${stepNum}`} className="home-stair-step">
-                    <circle cx={cx} cy={cy} r="17" fill={cfg.light} stroke={cfg.primary} strokeWidth="3" filter="url(#tileShadow)" />
-                    <text x={cx} y={cy + 5} fill={cfg.dark} fontWeight="900" fontSize="13" textAnchor="middle">
-                      {stepNum}
-                    </text>
-                  </g>
-                );
-              });
-            })}
-
-            {/* 5. VẼ CÁC QUÂN CỜ CÁ NGỰA 3D CHÂN THỰC */}
-            {horses.map(h => {
-              const { cx, cy } = getHorsePixelCoord(h);
-              const cfg = TEAM_CONFIG[h.team];
-              const activeToMove = canHorseMove(h);
-
-              return (
-                <g
-                  key={h.id}
-                  className={`horse-token-group ${activeToMove ? 'horse-selectable' : ''}`}
-                  onClick={() => handleHorseClick(h)}
-                  style={{ cursor: activeToMove ? 'pointer' : 'default' }}
-                >
-                  {/* Vầng sáng vàng kim khi quân cờ có thể đi */}
-                  {activeToMove && (
-                    <circle cx={cx} cy={cy} r="22" fill="none" stroke="#facc15" strokeWidth="4" className="pulse-glow" />
-                  )}
-
-                  {/* Đế cờ 3D bóng bẩy */}
-                  <circle cx={cx} cy={cy} r="16" fill={cfg.primary} stroke="#ffffff" strokeWidth="2.5" filter="url(#horseShadow)" />
-                  <circle cx={cx} cy={cy} r="12" fill={cfg.secondary} opacity="0.9" />
-
-                  {/* Biểu tượng Đầu Ngựa Chiến 3D */}
-                  <text x={cx} y={cy + 5} fontSize="17" textAnchor="middle" style={{ userSelect: 'none', pointerEvents: 'none' }}>
-                    🐎
-                  </text>
-
-                  {/* Số hiệu của ngựa (1..4) ở góc trên */}
-                  <circle cx={cx + 10} cy={cy - 10} r="7" fill="#ffffff" stroke={cfg.dark} strokeWidth="1.5" />
-                  <text x={cx + 10} y={cy - 7} fontSize="9" fontWeight="900" fill={cfg.dark} textAnchor="middle">
-                    {h.horseNum}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
+      <div className="ludo-corner-hud hud-top-right">
+        <div className={`ludo-player-card ${currentTurn === 'yellow' ? 'active-player-glow' : ''}`}>
+          <div className="avatar-frame" style={{ borderColor: TEAM_CONFIG.yellow.primary }}>
+            <span>{TEAM_CONFIG.yellow.avatar}</span>
+          </div>
+          <div className="player-meta-box">
+            <span className="p-title">Bot Vàng</span>
+            <span className="p-pawns-count">Về đích: {pawns.filter(p => p.team === 'yellow' && p.pos === 56).length}/4</span>
+          </div>
+          {currentTurn === 'yellow' && (
+            <div className={`hud-mini-die ${isRolling ? 'die-shake' : ''}`}>
+              <span className={`die-face-mini pip-val-${dice}`}>{dice}</span>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* BẢNG ĐIỀU KHIỂN XÚC XẮC 3D & LUẬT CHƠI DÂN GIAN */}
-        <div className="ludo-sidebar-panel">
-          {/* QUÂN XÚC XẮC NGÀ VOI CHÂN THỰC (DIE WITH AUTHENTIC PIPS) */}
-          <div className="die-card-wrapper">
-            <span className="die-label">XÚC XẮC CHIẾN ĐẤU</span>
+      <div className="ludo-corner-hud hud-bottom-right">
+        <div className={`ludo-player-card ${currentTurn === 'blue' ? 'active-player-glow' : ''}`}>
+          <div className="avatar-frame" style={{ borderColor: TEAM_CONFIG.blue.primary }}>
+            <span>{TEAM_CONFIG.blue.avatar}</span>
+          </div>
+          <div className="player-meta-box">
+            <span className="p-title">Bot Lam</span>
+            <span className="p-pawns-count">Về đích: {pawns.filter(p => p.team === 'blue' && p.pos === 56).length}/4</span>
+          </div>
+          {currentTurn === 'blue' && (
+            <div className={`hud-mini-die ${isRolling ? 'die-shake' : ''}`}>
+              <span className={`die-face-mini pip-val-${dice}`}>{dice}</span>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div
-              className={`die-cube-3d die-face-${dice} ${isRolling ? 'die-rolling-anim' : ''} ${currentTurn === 'red' && !hasRolled ? 'die-clickable' : ''}`}
+      <div className="ludo-corner-hud hud-bottom-left">
+        <div className={`ludo-player-card ${currentTurn === 'red' ? 'active-player-glow' : ''}`}>
+          <div className="avatar-frame" style={{ borderColor: TEAM_CONFIG.red.primary }}>
+            <span>{TEAM_CONFIG.red.avatar}</span>
+          </div>
+          <div className="player-meta-box">
+            <span className="p-title" style={{ color: '#ed1c24', fontWeight: 800 }}>Bạn (Đỏ)</span>
+            <span className="p-pawns-count">Về đích: {pawns.filter(p => p.team === 'red' && p.pos === 56).length}/4</span>
+          </div>
+          {currentTurn === 'red' && (
+            <button
+              className={`hud-main-dice-btn ${!hasRolled ? 'ready-to-roll' : ''} ${isRolling ? 'die-shake' : ''}`}
               onClick={rollDice}
+              disabled={hasRolled || isRolling || !!winner}
               title="Nhấp để lắc xúc xắc"
             >
-              {/* Mặt 1: Một chấm đỏ lớn ở tâm */}
-              {dice === 1 && <span className="pip pip-center pip-red-large" />}
-
-              {/* Mặt 2: 2 chấm chéo */}
-              {dice === 2 && (
-                <>
-                  <span className="pip pip-top-left" />
-                  <span className="pip pip-bottom-right" />
-                </>
-              )}
-
-              {/* Mặt 3: 3 chấm chéo */}
-              {dice === 3 && (
-                <>
-                  <span className="pip pip-top-left" />
-                  <span className="pip pip-center pip-red" />
-                  <span className="pip pip-bottom-right" />
-                </>
-              )}
-
-              {/* Mặt 4: 4 chấm góc */}
-              {dice === 4 && (
-                <>
-                  <span className="pip pip-top-left pip-red" />
-                  <span className="pip pip-top-right pip-red" />
-                  <span className="pip pip-bottom-left pip-red" />
-                  <span className="pip pip-bottom-right pip-red" />
-                </>
-              )}
-
-              {/* Mặt 5: 5 chấm hoa mai */}
-              {dice === 5 && (
-                <>
-                  <span className="pip pip-top-left" />
-                  <span className="pip pip-top-right" />
-                  <span className="pip pip-center pip-red" />
-                  <span className="pip pip-bottom-left" />
-                  <span className="pip pip-bottom-right" />
-                </>
-              )}
-
-              {/* Mặt 6: 6 chấm hai hàng */}
-              {dice === 6 && (
-                <>
-                  <span className="pip pip-top-left" />
-                  <span className="pip pip-top-right" />
-                  <span className="pip pip-mid-left" />
-                  <span className="pip pip-mid-right" />
-                  <span className="pip pip-bottom-left" />
-                  <span className="pip pip-bottom-right" />
-                </>
-              )}
-            </div>
-
-            <button
-              className="btn btn-primary btn-block ludo-roll-btn"
-              onClick={rollDice}
-              disabled={hasRolled || isRolling || !!winner || currentTurn !== 'red'}
-            >
-              {isRolling ? '🎲 Đang Lắc...' : (hasRolled ? '👉 Chọn Ngựa Để Đi' : (currentTurn === 'red' ? '🎲 Lắc Xúc Xắc' : `⏳ ${TEAM_CONFIG[currentTurn].label} Đang Đi...`))}
+              <div className="dice-pips-cube">
+                {dice === 1 && <span className="p-dot p-center p-red-big" />}
+                {dice === 2 && <><span className="p-dot p-tl" /><span className="p-dot p-br" /></>}
+                {dice === 3 && <><span className="p-dot p-tl" /><span className="p-dot p-center p-red" /><span className="p-dot p-br" /></>}
+                {dice === 4 && <><span className="p-dot p-tl p-red" /><span className="p-dot p-tr p-red" /><span className="p-dot p-bl p-red" /><span className="p-dot p-br p-red" /></>}
+                {dice === 5 && <><span className="p-dot p-tl" /><span className="p-dot p-tr" /><span className="p-dot p-center p-red" /><span className="p-dot p-bl" /><span className="p-dot p-br" /></>}
+                {dice === 6 && <><span className="p-dot p-tl" /><span className="p-dot p-tr" /><span className="p-dot p-ml" /><span className="p-dot p-mr" /><span className="p-dot p-bl" /><span className="p-dot p-br" /></>}
+              </div>
+              {!hasRolled && <span className="roll-label-badge">LẮC</span>}
             </button>
-          </div>
-
-          {/* HƯỚNG DẪN CỜ CÁ NGỰA TRUYỀN THỐNG */}
-          <div className="ludo-rules-card">
-            <h4>📖 LUẬT CỜ CÁ NGỰA CHUẨN:</h4>
-            <ul>
-              <li>🎲 <strong>Xuất chuồng:</strong> Đổ ra <strong>1</strong> hoặc <strong>6</strong> để mở 1 ngựa ra đường đua.</li>
-              <li>⚡ <strong>Thưởng lượt:</strong> Đổ được <strong>6</strong> sẽ được lắc thêm 1 lượt!</li>
-              <li>💥 <strong>Đá ngựa:</strong> Đi đúng vào ô ngựa đối phương sẽ <strong>đá văng họ về chuồng</strong>!</li>
-              <li>🏁 <strong>Lên chuồng:</strong> Đi đủ 1 vòng để leo các bậc <strong>1 $\rightarrow$ 6</strong>. Đưa 2 ngựa đầu tiên vào đích để <strong>Vô Địch</strong>!</li>
-            </ul>
-          </div>
+          )}
         </div>
+      </div>
+
+      {/* KHUNG BÀN CỜ LUDO KING SVG ĐỐI XỨNG TUYỆT HẢO */}
+      <div className="ludo-board-stage">
+        <svg className="ludo-king-svg" viewBox="0 0 600 600">
+          <defs>
+            <filter id="ludoCardShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="6" stdDeviation="6" floodOpacity="0.3" />
+            </filter>
+            <filter id="pawnGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#facc15" floodOpacity="0.8" />
+            </filter>
+            <filter id="pawnBaseShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.4" />
+            </filter>
+          </defs>
+
+          {/* NỀN BÀN CỜ GỖ TƯƠI SÁNG */}
+          <rect x="0" y="0" width="600" height="600" rx="14" fill="#ffffff" stroke="#1e293b" strokeWidth="6" />
+
+          {/* 1. 4 CHUỒNG LỚN (YARDS) CHUẨN LUDO KING */}
+          {/* Green (Top-Left) */}
+          <rect x="0" y="0" width="240" height="240" fill="#00a859" stroke="#1e293b" strokeWidth="4" />
+          <rect x="30" y="30" width="180" height="180" rx="16" fill="#ffffff" stroke="#1e293b" strokeWidth="3" />
+          {BASE_POCKETS.green.map((b, i) => (
+            <circle key={i} cx={b.cx} cy={b.cy} r="22" fill="#00a859" stroke="#14532d" strokeWidth="3" />
+          ))}
+
+          {/* Yellow (Top-Right) */}
+          <rect x="360" y="0" width="240" height="240" fill="#fdb813" stroke="#1e293b" strokeWidth="4" />
+          <rect x="390" y="30" width="180" height="180" rx="16" fill="#ffffff" stroke="#1e293b" strokeWidth="3" />
+          {BASE_POCKETS.yellow.map((b, i) => (
+            <circle key={i} cx={b.cx} cy={b.cy} r="22" fill="#fdb813" stroke="#854d0e" strokeWidth="3" />
+          ))}
+
+          {/* Red (Bottom-Left) */}
+          <rect x="0" y="360" width="240" height="240" fill="#ed1c24" stroke="#1e293b" strokeWidth="4" />
+          <rect x="30" y="390" width="180" height="180" rx="16" fill="#ffffff" stroke="#1e293b" strokeWidth="3" />
+          {BASE_POCKETS.red.map((b, i) => (
+            <circle key={i} cx={b.cx} cy={b.cy} r="22" fill="#ed1c24" stroke="#991b1b" strokeWidth="3" />
+          ))}
+
+          {/* Blue (Bottom-Right) */}
+          <rect x="360" y="360" width="240" height="240" fill="#0072bc" stroke="#1e293b" strokeWidth="4" />
+          <rect x="390" y="390" width="180" height="180" rx="16" fill="#ffffff" stroke="#1e293b" strokeWidth="3" />
+          {BASE_POCKETS.blue.map((b, i) => (
+            <circle key={i} cx={b.cx} cy={b.cy} r="22" fill="#0072bc" stroke="#1e3a8a" strokeWidth="3" />
+          ))}
+
+          {/* 2. CÁC Ô TRÊN ĐƯỜNG ĐUA 52 Ô CHUẨN (TRACK GRIDS) */}
+          {TRACK_COORDS.map(([gx, gy], idx) => {
+            const x = gx * 40;
+            const y = gy * 40;
+
+            const isRedStart = idx === 0;
+            const isBlueStart = idx === 13;
+            const isYellowStart = idx === 26;
+            const isGreenStart = idx === 39;
+            const isStar = SAFE_STAR_INDICES.includes(idx);
+
+            let bg = '#ffffff';
+            let arrowText = '';
+
+            if (isRedStart) { bg = '#ed1c24'; arrowText = '➜'; }
+            else if (isBlueStart) { bg = '#0072bc'; arrowText = '⬆'; }
+            else if (isYellowStart) { bg = '#fdb813'; arrowText = '⬅'; }
+            else if (isGreenStart) { bg = '#00a859'; arrowText = '⬇'; }
+
+            return (
+              <g key={idx} className="track-grid-cell">
+                <rect x={x} y={y} width="40" height="40" fill={bg} stroke="#1e293b" strokeWidth="1.5" />
+                {isStar && !isRedStart && !isBlueStart && !isYellowStart && !isGreenStart && (
+                  <text x={x + 20} y={y + 26} fontSize="18" textAnchor="middle" fill="#eab308">⭐</text>
+                )}
+                {arrowText && (
+                  <text x={x + 20} y={y + 27} fontSize="20" fontWeight="900" textAnchor="middle" fill="#ffffff">
+                    {arrowText}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* 3. ĐƯỜNG VỀ NHÀ (HOME COLUMNS) */}
+          {/* Red Home Lane (gx = 1..5, gy = 7) */}
+          {HOME_COLUMNS.red.slice(0, 5).map(([gx, gy], i) => (
+            <rect key={`rh-${i}`} x={gx * 40} y={gy * 40} width="40" height="40" fill="#ed1c24" stroke="#1e293b" strokeWidth="1.5" />
+          ))}
+
+          {/* Green Home Lane (gx = 7, gy = 1..5) */}
+          {HOME_COLUMNS.green.slice(0, 5).map(([gx, gy], i) => (
+            <rect key={`gh-${i}`} x={gx * 40} y={gy * 40} width="40" height="40" fill="#00a859" stroke="#1e293b" strokeWidth="1.5" />
+          ))}
+
+          {/* Yellow Home Lane (gx = 9..13, gy = 7) */}
+          {HOME_COLUMNS.yellow.slice(0, 5).map(([gx, gy], i) => (
+            <rect key={`yh-${i}`} x={gx * 40} y={gy * 40} width="40" height="40" fill="#fdb813" stroke="#1e293b" strokeWidth="1.5" />
+          ))}
+
+          {/* Blue Home Lane (gx = 7, gy = 9..13) */}
+          {HOME_COLUMNS.blue.slice(0, 5).map(([gx, gy], i) => (
+            <rect key={`bh-${i}`} x={gx * 40} y={gy * 40} width="40" height="40" fill="#0072bc" stroke="#1e293b" strokeWidth="1.5" />
+          ))}
+
+          {/* 4. TIM ĐÍCH TRUNG TÂM (4 TAM GIÁC CHỤM LẠI) */}
+          <polygon points="240,240 240,360 300,300" fill="#ed1c24" stroke="#1e293b" strokeWidth="2" />
+          <polygon points="240,240 360,240 300,300" fill="#00a859" stroke="#1e293b" strokeWidth="2" />
+          <polygon points="360,240 360,360 300,300" fill="#fdb813" stroke="#1e293b" strokeWidth="2" />
+          <polygon points="240,360 360,360 300,300" fill="#0072bc" stroke="#1e293b" strokeWidth="2" />
+
+          {/* Ngôi sao chiến thắng ở tâm tim đích */}
+          <circle cx="300" cy="300" r="18" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <text x="300" y="306" fontSize="16" textAnchor="middle">🏆</text>
+
+          {/* 5. QUÂN CỜ NÓN LUDO KING 3D ĐỘC QUYỀN */}
+          {pawns.map(p => {
+            const { cx, cy } = getPawnPixelCoords(p);
+            const cfg = TEAM_CONFIG[p.team];
+            const isClickable = canPawnMove(p);
+            const isBouncing = isClickable && animatingPawnId === null;
+
+            return (
+              <g
+                key={p.id}
+                className={`ludo-pawn-3d ${isBouncing ? 'pawn-active-bounce' : ''}`}
+                onClick={() => isClickable && executePawnMove(p, dice)}
+                style={{ cursor: isClickable ? 'pointer' : 'default' }}
+                filter={isClickable ? 'url(#pawnGlow)' : 'url(#pawnBaseShadow)'}
+              >
+                {/* Vòng hào quang sáng khi quân đi được */}
+                {isClickable && (
+                  <circle cx={cx} cy={cy + 8} r="18" fill="none" stroke="#facc15" strokeWidth="3" className="halo-ring" />
+                )}
+
+                {/* Đế quân cờ nón */}
+                <ellipse cx={cx} cy={cy + 10} rx="14" ry="6" fill="#1e293b" opacity="0.3" />
+                <ellipse cx={cx} cy={cy + 8} rx="12" ry="5" fill={cfg.dark} />
+
+                {/* Thân nón quân cờ (Peg cone body) */}
+                <path
+                  d={`M ${cx - 9} ${cy + 8} L ${cx - 5} ${cy - 4} L ${cx + 5} ${cy - 4} L ${cx + 9} ${cy + 8} Z`}
+                  fill={cfg.primary}
+                />
+
+                {/* Đầu tròn ngọc bích bóng loáng (Round sphere head) */}
+                <circle cx={cx} cy={cy - 6} r="8.5" fill={cfg.primary} stroke="#ffffff" strokeWidth="1.5" />
+                <circle cx={cx - 2.5} cy={cy - 8.5} r="2.5" fill="#ffffff" opacity="0.8" />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* THANH ĐIỀU KHIỂN & BẬT TẮT THAO TÁC */}
+      <div className="ludo-bottom-bar">
+        <div className="ludo-rules-reminder">
+          <span>🎲 <strong>Luật Ludo King:</strong> Chỉ khi đổ được <strong>6</strong> mới được xuất quân ra bàn cờ. Đổ 6 hoặc Đá quân được thưởng thêm 1 lượt!</span>
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={resetGame}>
+          🔄 Ván Mới
+        </button>
       </div>
     </div>
   );
