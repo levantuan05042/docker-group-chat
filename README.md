@@ -1,69 +1,67 @@
-# TaskHub Pro - Ứng Dụng Quản Lý Công Việc Chuẩn 3 Tầng
+# 🎯 Wayground Live Quiz (Đấu Trường Trắc Nghiệm Trực Tuyến)
 
-Ứng dụng web mẫu hoàn chỉnh với kiến trúc 3 tầng (3-Tier Enterprise Architecture):
-- **Frontend:** React 19 + TypeScript (`.tsx`) + Vite + Dark Glassmorphism UI
-- **Backend:** Java 17 + Spring Boot 3 (REST API + Spring Data JPA + Validation)
-- **Database:** MySQL 8.0 (Quan hệ `User` - `Todo`, tự động sinh bảng)
-- **Containerization:** Docker & Docker Compose
+Hệ thống thi trắc nghiệm tương tác thời gian thực phong cách **Wayground (Quizizz)**, hỗ trợ **200+ người chơi đồng thời** không giật lag.
 
 ---
 
-## 📁 Cấu Trúc Dự Án
+## 🌟 Điểm Nổi Bật
 
-```
-group-chat/
-├── backend/                   # Backend Java Spring Boot
-│   ├── src/main/java/         # Mã nguồn Java (Controllers, Services, Repositories, Entities, DTOs)
-│   ├── src/main/resources/    # Cấu hình application.properties (kết nối MySQL)
-│   ├── pom.xml                # Quản lý thư viện Maven
-│   └── Dockerfile             # Multi-stage build cho Spring Boot JAR
-│
-├── frontend/                  # Frontend React TSX
-│   ├── src/                   # App.tsx, api.ts, types.ts, App.css, index.css
-│   ├── package.json           # Thư viện npm
-│   ├── tsconfig.json          # Cấu hình TypeScript
-│   └── Dockerfile             # Build và phục vụ qua Nginx
-│
-├── docker-compose.yml         # Khởi chạy đồng bộ 3 dịch vụ: MySQL, Backend, Frontend
-└── README.md
-```
-
----
-
-## 🚀 Cách 1: Khởi Chạy Tự Động Toàn Bộ Bằng Docker (Khuyên Dùng)
-
-Chỉ cần bật Docker Desktop trên máy và gõ 1 lệnh duy nhất tại thư mục `group-chat`:
-
-```bash
-docker compose up --build
-```
-
-Sau khi các container khởi động:
-- **Giao diện Web (Frontend):** [http://localhost:3000](http://localhost:3000)
-- **API Server (Backend):** [http://localhost:8080/api](http://localhost:8080/api)
-- **Cơ sở dữ liệu MySQL:** Host `localhost`, Port `3307`, Database `tododb`, User `todouser`, Password `todopassword`
+1. **Cấu Trúc 2 Phần Thi (Mỗi phần 10 câu = 20 câu):**
+   - **Phần 1:** Kiến thức Công Nghệ & Kỹ Thuật Số (10 câu).
+   - **Nghỉ giữa giờ:** Tổng kết điểm số & bảng xếp hạng chặng 1.
+   - **Phần 2:** Thử Thách Logic & Tư Duy Tốc Độ (10 câu).
+2. **Khả Năng Chịu Tải 200+ Người Chơi:**
+   - Sử dụng **Node.js + Socket.io** với bộ nhớ in-memory siêu tốc, độ trễ dưới 30ms.
+   - Có tích hợp sẵn nút **"+50 / +100 Thí Sinh Giả Lập (Bot)"** trong màn hình Quản trò để kiểm tra tải 200 người ngay lập tức mà không cần dùng 200 điện thoại thật.
+3. **Mã PIN & Quét Mã QR:**
+   - Thí sinh quét QR hoặc nhập mã PIN 6 số trên điện thoại di động là vào thi ngay, không cần đăng ký tài khoản.
+4. **Tính Điểm Gamified:**
+   - Điểm cơ bản + Điểm thưởng tốc độ (trả lời càng nhanh điểm càng cao) + Chuỗi đúng liên tiếp (Streak flames 🔥).
+5. **Bảng Xếp Hạng & Bục Vinh Danh Olympic 3D:**
+   - Bảng xếp hạng Top 10 cập nhật thời gian thực sau mỗi câu hỏi.
+   - Bục vinh danh Quán Quân, Á Quân, Hạng Ba kèm pháo giấy (Confetti).
+   - **Xuất file Excel / CSV** danh sách điểm số và độ chính xác của toàn bộ thí sinh.
+6. **Âm Thanh Sống Động:**
+   - Tích hợp sẵn hệ thống âm thanh tổng hợp Web Audio API (không cần tải thêm file mp3).
 
 ---
 
-## 🛠️ Cách 2: Chạy Thủ Công Từng Phần Để Lập Trình & Debug
+## 🚀 Hướng Dẫn Khởi Chạy Nhanh
 
-### 1. Database (MySQL):
-Tạo một database tên `tododb` trên MySQL của bạn:
-```sql
-CREATE DATABASE tododb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### Cách 1: Chạy trực tiếp bằng Node.js (Khuyên dùng thử ngay)
 
-### 2. Backend (Spring Boot):
-Chỉnh sửa mật khẩu MySQL trong [backend/src/main/resources/application.properties](file:///D:/Desktop/Docker/group-chat/backend/src/main/resources/application.properties) nếu cần, sau đó chạy:
-```bash
-cd backend
-mvn spring-boot:run
-```
-Backend sẽ khởi động tại cổng `http://localhost:8080`.
+1. Mở PowerShell hoặc Terminal tại thư mục `wayground-quiz`:
+   ```bash
+   cd D:\Desktop\Docker\wayground-quiz
+   ```
+2. Khởi động máy chủ:
+   ```bash
+   npm start
+   ```
+3. Mở trình duyệt:
+   * **Màn hình chính:** [http://localhost:5000](http://localhost:5000)
+   * Bấm **"Dành Cho Quản Trò (Host)"** để tạo phòng thi và lấy mã PIN / QR Code.
+   * Thí sinh mở [http://localhost:5000](http://localhost:5000) (hoặc địa chỉ IP mạng LAN của máy bạn, ví dụ `http://192.168.1.x:5000`) trên điện thoại để tham gia.
 
-### 3. Frontend (React TSX):
-```bash
-cd frontend
-npm run dev
-```
-Truy cập giao diện tại [http://localhost:5173](http://localhost:5173).
+---
+
+### Cách 2: Chạy bằng Docker Compose
+
+1. Chạy lệnh:
+   ```bash
+   docker compose up --build -d
+   ```
+2. Truy cập hệ thống tại: [http://localhost:5000](http://localhost:5000)
+3. Khi muốn dừng:
+   ```bash
+   docker compose down
+   ```
+
+---
+
+## ⚙️ Hướng Dẫn Tùy Chỉnh 20 Câu Hỏi
+
+Toàn bộ 20 câu hỏi (chia làm 2 phần) nằm trong file:
+👉 `server/questions.js`
+
+Bạn có thể mở file này để thay đổi câu hỏi, đáp án, thời gian đếm ngược (mặc định 15 giây), điểm số và phần giải thích đáp án.

@@ -1,34 +1,26 @@
-# ==========================================
-# GIAI ĐOẠN 1: Build Frontend (React TypeScript)
-# ==========================================
-FROM node:20-alpine AS frontend-builder
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
+# Multi-stage Dockerfile for Wayground Quiz
+FROM node:20-alpine AS builder
+
+WORKDIR /app/client
+COPY client/package*.json ./
 RUN npm install
-COPY frontend/ ./
+COPY client/ ./
 RUN npm run build
 
-# ==========================================
-# GIAI ĐOẠN 2: Build Backend (Java Spring Boot)
-# Đưa toàn bộ file tĩnh của Frontend vào static của Backend
-# ==========================================
-FROM maven:3.9.6-eclipse-temurin-17 AS backend-builder
-WORKDIR /app/backend
-COPY backend/pom.xml .
-COPY backend/src ./src
-# Copy bản build frontend vào thư mục static của Spring Boot
-COPY --from=frontend-builder /app/frontend/dist ./src/main/resources/static
+# Production Server
+FROM node:20-alpine AS runner
 
-RUN mvn clean package -DskipTests -B
-
-# ==========================================
-# GIAI ĐOẠN 3: Chạy ứng dụng (Runtime)
-# ==========================================
-FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=backend-builder /app/backend/target/*.jar app.jar
+COPY server/package*.json ./server/
+RUN cd server && npm install --production
 
-ENV PORT=8080
-EXPOSE 8080
+COPY server/ ./server/
+COPY --from=builder /app/client/dist ./client/dist
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 5000
+
+ENV PORT=5000
+ENV NODE_ENV=production
+
+WORKDIR /app/server
+CMD ["node", "index.js"]
