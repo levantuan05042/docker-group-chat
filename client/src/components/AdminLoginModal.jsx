@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Lock, User, ShieldCheck, X, ArrowRight, AlertCircle, KeyRound } from "lucide-react";
+import { Lock, User, ShieldCheck, X, ArrowRight, AlertCircle } from "lucide-react";
 import AgribankLogo from "./AgribankLogo";
 
 export default function AdminLoginModal({ isOpen, onClose, onSuccess, targetMode = "HOST" }) {
-  const [username, setUsername] = useState("agribank");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,7 +58,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess, targetMode
             XÁC THỰC QUẢN TRÒ (HOST)
           </div>
           <p className="text-xs text-slate-300 mt-1">
-            Khu vực dành riêng cho Ban tổ chức / Quản trị viên Agribank
+            Khu vực bảo mật dành cho Ban tổ chức / Quản trị viên
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess, targetMode
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5">
-              Tài khoản Quản trò (Cố định)
+              Tên tài khoản Quản trị
             </label>
             <div className="relative">
               <User className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -81,16 +81,17 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess, targetMode
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="agribank"
+                placeholder="Nhập tên tài khoản..."
                 required
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700 text-white font-bold text-sm focus:outline-none focus:border-red-400"
+                autoFocus
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700 text-white font-medium text-sm focus:outline-none focus:border-red-400 placeholder-slate-600"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5">
-              Mật khẩu bảo mật
+              Mật khẩu
             </label>
             <div className="relative">
               <Lock className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -98,32 +99,19 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess, targetMode
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu quản trị..."
+                placeholder="Nhập mật khẩu..."
                 required
-                autoFocus
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700 text-white font-bold text-sm focus:outline-none focus:border-red-400"
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700 text-white font-medium text-sm focus:outline-none focus:border-red-400 placeholder-slate-600"
               />
-            </div>
-          </div>
-
-          {/* Fixed Credential Hint */}
-          <div className="bg-red-950/60 border border-red-500/30 rounded-xl p-3 text-left">
-            <div className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5 mb-1">
-              <KeyRound className="w-3.5 h-3.5" />
-              Thông tin đăng nhập mặc định:
-            </div>
-            <div className="text-[11px] font-mono text-slate-300 space-y-0.5">
-              <div>Username: <strong className="text-white">agribank</strong></div>
-              <div>Password: <strong className="text-white">agribank@2026</strong></div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 shadow-xl shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full mt-2 py-4 rounded-xl font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 shadow-xl shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            {loading ? "Đang xác thực..." : "ĐĂNG NHẬP VÀO QUẢN TRÒ"}
+            {loading ? "Đang xác thực..." : "ĐĂNG NHẬP"}
             <ArrowRight className="w-5 h-5" />
           </button>
         </form>
