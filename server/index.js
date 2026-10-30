@@ -24,6 +24,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Fixed Host / Admin account
+const ADMIN_USER = process.env.ADMIN_USER || "agribank";
+const ADMIN_PASS = process.env.ADMIN_PASS || "agribank@2026";
+
+// Admin Login endpoint
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body || {};
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    return res.json({
+      success: true,
+      token: "agribank_verified_host_token",
+      user: { username: ADMIN_USER, name: "Quản Trị Viên Agribank" }
+    });
+  }
+  return res.status(401).json({
+    success: false,
+    message: "Tên đăng nhập hoặc mật khẩu Quản trò không chính xác!"
+  });
+});
+
 // Serve client dist in production
 const clientDist = path.join(__dirname, "../client/dist");
 app.use(express.static(clientDist));

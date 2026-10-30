@@ -3,6 +3,7 @@ import { socket } from "../utils/socket";
 import { sounds } from "../utils/sound";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
+import AgribankLogo from "./AgribankLogo";
 import {
   Trophy,
   Users,
@@ -69,7 +70,9 @@ export default function HostView({ onExit }) {
     socket.on("room:timer_tick", ({ timeLeft: tl }) => {
       setTimeLeft(tl);
       if (tl <= 5 && tl > 0) {
-        sounds.playTick();
+        sounds.playUrgentTick(tl);
+      } else if (tl === 0) {
+        sounds.playTimeUp();
       }
     });
 
@@ -77,7 +80,8 @@ export default function HostView({ onExit }) {
       if (data.status === "QUESTION_RESULT") {
         setStatus("QUESTION_RESULT");
         setResultData(data);
-        sounds.playCorrect();
+        sounds.playTimeUp();
+        setTimeout(() => sounds.playCorrect(), 600);
       } else if (data.status === "LEADERBOARD") {
         setStatus("LEADERBOARD");
         setLeaderboard(data.leaderboard);
@@ -150,31 +154,24 @@ export default function HostView({ onExit }) {
   const joinUrl = `${window.location.origin}?pin=${roomCode}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/60 to-slate-950 text-white flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 via-slate-950 to-emerald-950 text-white flex flex-col font-sans select-none">
       {/* Top Navigation Bar */}
-      <header className="h-16 border-b border-purple-500/20 bg-slate-950/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-16 border-b border-red-500/30 bg-slate-950/70 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/30">
-            W
-          </div>
-          <div>
-            <span className="font-extrabold text-lg tracking-wide bg-gradient-to-r from-purple-300 via-pink-200 to-amber-200 bg-clip-text text-transparent">
-              WAYGROUND LIVE
-            </span>
-            <span className="ml-2 text-xs uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              Host Mode
-            </span>
-          </div>
+          <AgribankLogo size="sm" showSlogan={false} />
+          <span className="text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-red-600/30 text-amber-300 border border-red-500/40">
+            BAN TỔ CHỨC / QUẢN TRÒ
+          </span>
         </div>
 
         {/* Center: PIN Badge */}
         {roomCode && (
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-purple-500/40 px-4 py-1.5 rounded-full shadow-inner">
-            <span className="text-xs text-purple-300 font-semibold uppercase">MÃ PIN:</span>
-            <span className="font-mono font-black text-xl text-amber-400 tracking-widest">{roomCode}</span>
+          <div className="flex items-center gap-2 bg-slate-900/90 border border-red-500/50 px-4 py-1.5 rounded-full shadow-inner">
+            <span className="text-xs text-amber-300 font-bold uppercase">MÃ PIN:</span>
+            <span className="font-mono font-black text-xl text-yellow-300 tracking-widest">{roomCode}</span>
             <button
               onClick={copyJoinLink}
-              className="ml-1 p-1 hover:text-purple-300 transition text-slate-400"
+              className="ml-1 p-1 hover:text-amber-300 transition text-slate-400"
               title="Copy link tham gia"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -189,13 +186,13 @@ export default function HostView({ onExit }) {
             className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
             title={soundEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
           >
-            {soundEnabled ? <Volume2 className="w-5 h-5 text-purple-400" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
+            {soundEnabled ? <Volume2 className="w-5 h-5 text-amber-400" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
           </button>
           <button
             onClick={onExit}
             className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition"
           >
-            Thoát phòng
+            Đăng xuất Quản trò
           </button>
         </div>
       </header>
@@ -206,8 +203,8 @@ export default function HostView({ onExit }) {
         {status === "LOBBY" && (
           <div className="flex-1 flex flex-col lg:flex-row gap-8 items-stretch justify-center py-4">
             {/* Left: Join Box & QR */}
-            <div className="flex-1 bg-slate-900/80 border border-purple-500/30 rounded-3xl p-8 flex flex-col justify-between backdrop-blur-xl shadow-2xl relative overflow-hidden">
-              <div className="absolute -right-16 -top-16 w-56 h-56 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex-1 bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 flex flex-col justify-between backdrop-blur-xl shadow-2xl relative overflow-hidden">
+              <div className="absolute -right-16 -top-16 w-56 h-56 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
 
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-semibold mb-4">
@@ -222,9 +219,9 @@ export default function HostView({ onExit }) {
                 </p>
 
                 {/* Big Game PIN display */}
-                <div className="bg-gradient-to-br from-purple-900/60 to-slate-950 border-2 border-purple-500/50 rounded-2xl p-6 text-center shadow-xl mb-6">
-                  <div className="text-xs uppercase font-bold tracking-wider text-purple-300 mb-1">MÃ PHÒNG (GAME PIN)</div>
-                  <div className="text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 font-mono py-1">
+                <div className="bg-gradient-to-br from-red-950 via-red-900/80 to-slate-950 border-2 border-amber-400/60 rounded-2xl p-6 text-center shadow-xl mb-6 shadow-red-950/80">
+                  <div className="text-xs uppercase font-black tracking-widest text-amber-300 mb-1">MÃ PHÒNG (GAME PIN)</div>
+                  <div className="text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 font-mono py-1 drop-shadow-md">
                     {roomCode}
                   </div>
                 </div>
@@ -360,10 +357,10 @@ export default function HostView({ onExit }) {
               <button
                 disabled={players.length === 0}
                 onClick={startQuiz}
-                className="w-full py-4 rounded-2xl font-black text-lg text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:from-emerald-300 hover:to-teal-200 shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-4 rounded-2xl font-black text-lg text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 shadow-xl shadow-amber-500/30 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer border border-yellow-200"
               >
                 <Play className="w-6 h-6 fill-current" />
-                BẮT ĐẦU CUỘC THI ({players.length})
+                BẮT ĐẦU HỘI THI ({players.length})
               </button>
             </div>
           </div>
@@ -373,9 +370,9 @@ export default function HostView({ onExit }) {
         {status === "QUESTION" && currentQuestion && (
           <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto w-full py-2">
             {/* Top Info Banner */}
-            <div className="flex items-center justify-between bg-slate-900/80 border border-purple-500/30 rounded-2xl px-6 py-3.5 backdrop-blur-md mb-6 shadow-xl">
+            <div className="flex items-center justify-between bg-slate-900/80 border border-red-500/30 rounded-2xl px-6 py-3.5 backdrop-blur-md mb-6 shadow-xl">
               <div className="flex items-center gap-3">
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-600/20 text-amber-300 border border-red-500/40">
                   {currentQuestion.partTitle}
                 </span>
                 <span className="text-sm font-semibold text-slate-300">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { socket } from "../utils/socket";
 import { sounds } from "../utils/sound";
 import confetti from "canvas-confetti";
+import AgribankLogo from "./AgribankLogo";
 import {
   Trophy,
   Timer,
@@ -60,6 +61,8 @@ export default function PlayerView({ initialPin = "", onExit }) {
 
         // Nhận điểm và kết quả ĐƯỢC TÍNH KHI HẾT THỜI GIAN
         const myResult = data.playerResults?.[socket.id];
+        sounds.playTimeUp(); // Chuông hết giờ
+
         if (myResult) {
           setAnswerResult(myResult);
           setPlayer((prev) => ({
@@ -67,11 +70,13 @@ export default function PlayerView({ initialPin = "", onExit }) {
             score: myResult.currentScore,
             streak: myResult.streak
           }));
-          if (myResult.isCorrect) {
-            sounds.playCorrect();
-          } else {
-            sounds.playIncorrect();
-          }
+          setTimeout(() => {
+            if (myResult.isCorrect) {
+              sounds.playCorrect();
+            } else {
+              sounds.playIncorrect();
+            }
+          }, 400);
         }
       } else if (data.status === "LEADERBOARD") {
         setGameStatus("LEADERBOARD");
@@ -89,8 +94,10 @@ export default function PlayerView({ initialPin = "", onExit }) {
 
     socket.on("room:timer_tick", ({ timeLeft: tl }) => {
       setTimeLeft(tl);
-      if (tl <= 5 && tl > 0 && !answerSubmitted) {
-        sounds.playTick();
+      if (tl <= 5 && tl > 0) {
+        sounds.playUrgentTick(tl);
+      } else if (tl === 0) {
+        sounds.playTimeUp();
       }
     });
 
@@ -147,16 +154,15 @@ export default function PlayerView({ initialPin = "", onExit }) {
   // 1. JOIN SCREEN
   if (!joined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/70 to-slate-950 text-white flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md bg-slate-900/90 border border-purple-500/30 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-red-950 via-slate-950 to-emerald-950 text-white flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-slate-900/95 border-2 border-red-500/40 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl shadow-red-950/80 relative overflow-hidden">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center font-black text-3xl mx-auto mb-3 shadow-lg shadow-purple-500/30">
-              W
+            <div className="flex justify-center mb-3">
+              <AgribankLogo size="md" showSlogan={true} />
             </div>
-            <h1 className="text-2xl font-black bg-gradient-to-r from-purple-300 via-pink-200 to-amber-200 bg-clip-text text-transparent">
-              WAYGROUND LIVE
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">Đấu trường trắc nghiệm trực tuyến</p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+              BÀN THI DÀNH CHO THÍ SINH
+            </div>
           </div>
 
           <form onSubmit={handleJoin} className="space-y-4">
@@ -167,7 +173,7 @@ export default function PlayerView({ initialPin = "", onExit }) {
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-purple-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5">
                 Mã Game PIN (6 số)
               </label>
               <input
@@ -176,27 +182,27 @@ export default function PlayerView({ initialPin = "", onExit }) {
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value)}
                 maxLength={6}
-                className="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-purple-500/40 text-center font-mono font-black text-2xl text-amber-300 placeholder-slate-700 focus:outline-none focus:border-amber-400 shadow-inner"
+                className="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-red-500/50 text-center font-mono font-black text-2xl text-amber-300 placeholder-slate-700 focus:outline-none focus:border-amber-400 shadow-inner"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-purple-300 mb-1.5">
-                Họ và tên thí sinh
+              <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5">
+                Họ và tên thí sinh / Cán bộ
               </label>
               <input
                 type="text"
-                placeholder="Nhập tên của bạn..."
+                placeholder="Nhập họ tên của bạn..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={24}
-                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-purple-500/40 text-white placeholder-slate-600 focus:outline-none focus:border-purple-400 text-sm font-semibold"
+                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-red-400 text-sm font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-purple-300 mb-1.5">
-                Chọn Avatar
+              <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5">
+                Chọn Biểu Tượng (Avatar)
               </label>
               <div className="grid grid-cols-6 gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
                 {AVATARS.map((av) => (
@@ -206,7 +212,7 @@ export default function PlayerView({ initialPin = "", onExit }) {
                     onClick={() => setSelectedAvatar(av)}
                     className={`h-10 text-xl rounded-lg flex items-center justify-center transition ${
                       selectedAvatar === av
-                        ? "bg-purple-600 ring-2 ring-purple-400 scale-110 shadow-md"
+                        ? "bg-red-700 ring-2 ring-amber-400 scale-110 shadow-md"
                         : "hover:bg-slate-800"
                     }`}
                   >
@@ -218,9 +224,9 @@ export default function PlayerView({ initialPin = "", onExit }) {
 
             <button
               type="submit"
-              className="w-full mt-4 py-4 rounded-xl font-black text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:from-emerald-300 hover:to-teal-200 shadow-xl shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mt-4 py-4 rounded-xl font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 shadow-xl shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer border border-yellow-200"
             >
-              VÀO THI NGAY
+              VÀO BÀN THI NGAY
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>

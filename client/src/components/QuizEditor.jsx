@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import AgribankLogo from "./AgribankLogo";
 import {
   Save,
   RotateCcw,
@@ -154,9 +155,9 @@ export default function QuizEditor({ onBack, onSaved }) {
   const currentPart = quiz.parts[activePartIndex];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans select-none pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 via-slate-950 to-emerald-950 text-white flex flex-col font-sans select-none pb-12">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-red-500/30 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -164,14 +165,17 @@ export default function QuizEditor({ onBack, onSaved }) {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-lg font-black text-white flex items-center gap-2">
-              Soạn & Quản Lý Câu Hỏi
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                Wayground Admin
-              </span>
-            </h1>
-            <p className="text-xs text-slate-400">Chỉnh sửa 2 phần thi, thời gian và đáp án chính xác</p>
+          <div className="flex items-center gap-3">
+            <AgribankLogo size="sm" showSlogan={false} />
+            <div>
+              <h1 className="text-base font-black text-white flex items-center gap-2">
+                Quản Lý Bộ Đề Hội Thi
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-red-600/30 text-amber-300 border border-red-500/40">
+                  Agribank Admin
+                </span>
+              </h1>
+              <p className="text-xs text-slate-400">Chỉnh sửa 2 phần thi, đáp án đúng và thời gian đếm ngược</p>
+            </div>
           </div>
         </div>
 
@@ -194,7 +198,7 @@ export default function QuizEditor({ onBack, onSaved }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:from-emerald-400 hover:to-teal-300 shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 hover:from-amber-300 hover:to-yellow-200 shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer border border-yellow-200"
           >
             <Save className="w-4 h-4" />
             {saving ? "Đang lưu..." : "Lưu bộ câu hỏi"}

@@ -1,12 +1,12 @@
 export const defaultQuiz = {
-  id: "quiz-standard-20",
-  title: "Đấu Trường Tri Thức - Wayground Live",
-  description: "Bộ câu hỏi gồm 2 phần (mỗi phần 10 câu), hỗ trợ lên đến 200 người chơi đồng thời.",
+  id: "quiz-agribank-20",
+  title: "Hội Thi Nghiệp Vụ & Tri Thức Agribank",
+  description: "Đấu trường trắc nghiệm trực tuyến dành cho cán bộ nhân viên và thí sinh Agribank (2 phần, 20 câu hỏi).",
   parts: [
     {
       partNumber: 1,
-      partTitle: "Phần 1: Kiến thức Công Nghệ & Kỹ Thuật Số",
-      partDescription: "10 câu hỏi kiểm tra độ am hiểu thế giới công nghệ hiện đại",
+      partTitle: "Phần 1: Chuyển Đổi Số & Công Nghệ Ngân Hàng Agribank",
+      partDescription: "10 câu hỏi về chuyển đổi số, ngân hàng số và công nghệ tài chính hiện đại",
       questions: [
         {
           id: 1,
@@ -152,8 +152,8 @@ export const defaultQuiz = {
     },
     {
       partNumber: 2,
-      partTitle: "Phần 2: Tư Duy Nhanh & Thử Thách Logic",
-      partDescription: "10 câu hỏi đòi hỏi tư duy logic, phản xạ tốc độ và quan sát sắc bén",
+      partTitle: "Phần 2: Xử Lý Tình Huống, Logic & Tốc Độ",
+      partDescription: "10 câu hỏi thử thách phản xạ nhanh, nghiệp vụ và tư duy logic",
       questions: [
         {
           id: 11,

@@ -1,4 +1,4 @@
-// Web Audio API Synthesizer for zero-dependency gamified sounds
+// Web Audio API Synthesizer for Agribank Live Quiz
 class SoundManager {
   constructor() {
     this.ctx = null;
@@ -38,21 +38,52 @@ class SoundManager {
     osc.stop(this.ctx.currentTime + 0.05);
   }
 
-  // Timer Tick
-  playTick() {
+  // Urgent Countdown Tick (dồn dập khi còn 5s cuối)
+  playUrgentTick(secondsRemaining = 5) {
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
+
+    // Pitch increases as seconds tick down (5s -> 1s)
+    const baseFreq = 800 + (6 - Math.max(1, Math.min(5, secondsRemaining))) * 120; // 920Hz to 1400Hz
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+    osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.3, this.ctx.currentTime + 0.06);
+
+    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start();
-    osc.stop(this.ctx.currentTime + 0.04);
+    osc.stop(this.ctx.currentTime + 0.08);
+  }
+
+  // Time's Up Sound (Chuông báo HẾT GIỜ đặc trưng)
+  playTimeUp() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    // Triple descending buzzer / gong sound
+    [0, 0.12, 0.24].forEach((delay, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sawtooth";
+      const freq = 350 - idx * 50; // 350Hz, 300Hz, 250Hz
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.7, this.ctx.currentTime + delay + 0.25);
+
+      gain.gain.setValueAtTime(0.25, this.ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.28);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(this.ctx.currentTime + delay);
+      osc.stop(this.ctx.currentTime + delay + 0.3);
+    });
   }
 
   // Correct answer fanfare (uplifting arpeggio)
