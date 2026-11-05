@@ -3,7 +3,7 @@ node_modules/
 target/
 
 # Build outputs
-dist/
+# dist/
 *.jar
 *.war
 

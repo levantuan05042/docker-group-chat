@@ -1,8 +1,7 @@
 {
-  "name": "wayground-quiz-server",
+  "name": "chua-online-3d-server",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },

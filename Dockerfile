@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Wayground Quiz
+# Multi-stage Dockerfile for Chùa Online 3D Metaverse
 FROM node:20-alpine AS builder
 
 WORKDIR /app/client

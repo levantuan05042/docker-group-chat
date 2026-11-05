@@ -1,11 +1,11 @@
 {
-  "name": "wayground-live-quiz",
+  "name": "chua-online-3d",
   "version": "1.0.0",
-  "description": "Interactive live quiz platform for 200+ concurrent players (Quizizz / Wayground style)",
+  "description": "Chùa Online 3D Metaverse - Không gian thiền & tu tập ảo với đồ họa 3D, chat bong bóng trên đầu, gõ mõ, xin xăm, lạy Phật",
+  "type": "module",
   "scripts": {
+    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
     "start": "node server/index.js",
-    "build": "cd client && npm run build",
-    "dev:server": "cd server && node index.js",
-    "dev:client": "cd client && npm run dev"
+    "dev": "npm --prefix client run dev"
   }
 }

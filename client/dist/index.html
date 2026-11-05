@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chùa Online 3D Metaverse • Đại Hùng Bảo Điện</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪷</text></svg>">
+  <script type="module" crossorigin src="/assets/index-BBsieF_1.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DwanLacU.css">
+</head>
+<body>
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+  
+  <!-- CSS2D Container for Crisp 3D Speech Bubbles -->
+  <div id="css2d-container"></div>
+
+  <!-- UI Overlay -->
+  <div id="ui-overlay">
+    <!-- Top Bar -->
+    <header class="top-nav interactive-ui">
+      <div class="temple-branding">
+        <div class="temple-logo">🪷</div>
+        <div class="temple-titles">
+          <h1 id="room-name-display">Đại Hùng Bảo Điện</h1>
+          <p>Chùa Trúc Lâm 3D • Chánh Điện Thiền Định</p>
+        </div>
+      </div>
+
+      <!-- Quick Hint & Camera Reset -->
+      <div class="control-hints-pill">
+        <span>🖱️ <b>Click sàn</b> để bước tới</span>
+        <span class="dot-sep">•</span>
+        <span>🔄 <b>Kéo chuột</b> xoay 360°</span>
+        <button id="btn-reset-cam" class="cam-reset-chip" title="Quay về góc nhìn Chánh Điện kinh điển">📷 Góc Chuẩn</button>
+      </div>
+
+      <!-- Zen Music Player Bar -->
+      <div class="music-player-pill" id="music-player-pill">
+        <button id="btn-toggle-music" class="music-play-btn" title="Phát / Dừng Nhạc Thiền">
+          <span class="music-icon">🎵</span>
+          <span class="music-state-text" id="music-state-text">Bật Nhạc</span>
+        </button>
+
+        <div class="audio-wave" id="audio-wave">
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+        </div>
+
+        <select id="select-track" class="track-select" title="Chọn bản nhạc thiền">
+          <option value="nam-mo-a-di-da-phat" selected>📿 Nam Mô A Di Đà Phật</option>
+          <option value="singing-bowl">🔔 Chuông Xoay Tây Tạng 432Hz</option>
+          <option value="temple-rain">🌧️ Mưa Mái Chùa & Suối Reo</option>
+        </select>
+
+        <div class="volume-box">
+          <span class="vol-icon">🔊</span>
+          <input type="range" id="volume-slider" min="0" max="100" value="65" class="vol-slider" title="Âm lượng nhạc">
+        </div>
+      </div>
+
+      <!-- Top Stats & Identity -->
+      <div class="top-stats">
+        <button id="btn-open-profile" class="profile-chip" title="Đổi pháp danh & màu áo">
+          <span class="my-avatar-dot" id="header-avatar-dot"></span>
+          <span id="header-my-name">Thích thì nhích</span>
+          <span class="edit-badge">✏️</span>
+        </button>
+
+        <div class="stat-chip" title="Tổng công đức tích lũy trong điện">
+          <span class="stat-icon">⭐</span>
+          <span>Công Đức: <b id="total-merit-display" class="highlight">0</b></span>
+        </div>
+        <div class="stat-chip" title="Số đồng tu đang online">
+          <span class="stat-icon">👥</span>
+          <span>Đồng tu: <b id="online-count-display" class="highlight">1</b></span>
+        </div>
+        <div class="nav-actions">
+          <button id="btn-sound" class="icon-btn" title="Bật/Tắt Âm Thanh Hiệu Ứng">🔔</button>
+          <button id="btn-share" class="icon-btn" title="Sao Chép Link Mời Nhóm">🔗</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat History Panel (Floating Left) -->
+    <aside class="chat-panel interactive-ui" id="chat-panel">
+      <div class="chat-panel-header" id="chat-panel-toggle">
+        <div class="panel-title">
+          <span>💬</span>
+          <span>HỘI THOẠI & PHẬT SỰ</span>
+        </div>
+        <span id="chat-toggle-icon">▼</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg system">Nam Mô A Di Đà Phật! Click chuột xuống sàn hoặc bồ đoàn để di chuyển.</div>
+      </div>
+    </aside>
+
+    <!-- Bottom Dock: Actions & Chat -->
+    <footer class="bottom-dock interactive-ui">
+      <!-- Quick Chat Presets (1-tap reaction) -->
+      <div class="quick-presets">
+        <button class="preset-chip" data-msg="A Di Đà Phật 🙏">A Di Đà Phật 🙏</button>
+        <button class="preset-chip" data-msg="Cầu gia đạo bình an, vạn sự cát tường 🪷">Cầu bình an 🪷</button>
+        <button class="preset-chip" data-msg="Chúc thi cử đỗ đạt, công việc hanh thông 🍀">Thi đỗ, phát tài 🍀</button>
+        <button class="preset-chip" data-msg="Công đức vô lượng! Hoan hỷ quá ⭐">Công đức vô lượng ⭐</button>
+        <button class="preset-chip" data-msg="Hôm nay ai bao chè vậy đồng tu? 🍧">Ai bao chè? 🍧</button>
+      </div>
+
+      <!-- Action Dock with Hotkey Badges -->
+      <div class="action-bar">
+        <button class="action-btn" id="act-sit" data-action="sit" title="Ngồi thiền kiết già trên bồ đoàn [Phím 1]">
+          <span class="key-badge">1</span>
+          <span class="btn-icon">🧎</span>
+          <span>Ngồi Thiền</span>
+        </button>
+        <button class="action-btn" id="act-bow" data-action="bow" title="Chắp tay cúi lạy Phật [Phím 2]">
+          <span class="key-badge">2</span>
+          <span class="btn-icon">🙇</span>
+          <span>Lạy Phật</span>
+        </button>
+        <button class="action-btn highlight-gold" id="act-woodfish" title="Gõ mõ tăng công đức [Phím 3]">
+          <span class="key-badge">3</span>
+          <span class="btn-icon">🐟</span>
+          <span>Gõ Mõ (+1)</span>
+        </button>
+        <button class="action-btn" id="act-bell" title="Thỉnh Chuông Bát Nhã [Phím 4]">
+          <span class="key-badge">4</span>
+          <span class="btn-icon">🔔</span>
+          <span>Thỉnh Chuông (+5)</span>
+        </button>
+        <button class="action-btn" id="act-incense" title="Dâng hương Tam Bảo [Phím 5]">
+          <span class="key-badge">5</span>
+          <span class="btn-icon">🪔</span>
+          <span>Thắp Hương (+3)</span>
+        </button>
+        <button class="action-btn" id="act-fortune" title="Lắc ống xăm xin quẻ may mắn [Phím 6]">
+          <span class="key-badge">6</span>
+          <span class="btn-icon">🎋</span>
+          <span>Xin Xăm (+2)</span>
+        </button>
+      </div>
+
+      <!-- Live Chat Bar -->
+      <form class="chat-bar" id="chat-form">
+        <div class="chat-input-wrapper">
+          <span class="chat-bubble-indicator">💭</span>
+          <input 
+            type="text" 
+            id="chat-input" 
+            class="chat-input" 
+            placeholder="Nhắn tin (hiện bong bóng nổi ngay trên đầu chú tiểu)... [Enter]" 
+            maxlength="120"
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="send-btn">
+          <span>Gửi</span>
+          <span>💬</span>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <!-- PROFILE / CUSTOMIZATION MODAL (Opens when clicking profile chip, no longer blocks screen on startup!) -->
+  <div class="modal-overlay" id="profile-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="lotus-avatar-preview" id="avatar-preview-badge">
+          <span class="preview-emoji">🧘</span>
+        </div>
+        <h2>TÙY BIẾN PHẬT TỬ</h2>
+        <p>Chọn Pháp Danh Meme & Màu Áo Cà Sa Của Bạn</p>
+      </div>
+
+      <!-- Quick Name Tag Suggestions -->
+      <div class="quick-names-wrapper">
+        <label>Gợi ý pháp danh meme:</label>
+        <div class="quick-names-list">
+          <span class="name-tag">Thích thì nhích</span>
+          <span class="name-tag">Thích ăn chực</span>
+          <span class="name-tag">Thích tạo nghiệp</span>
+          <span class="name-tag">Thích an lạc</span>
+          <span class="name-tag">Thích ngủ nướng</span>
+          <span class="name-tag">Thích cúng dường</span>
+          <span class="name-tag">Thích ăn vặt</span>
+          <span class="name-tag">Thích trà đạo</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Pháp Danh của bạn:</label>
+        <div class="input-with-button">
+          <input 
+            type="text" 
+            id="input-name" 
+            class="text-input" 
+            placeholder="Nhập pháp danh..." 
+            value="Thích thì nhích" 
+            maxlength="24"
+          />
+          <button type="button" id="btn-random-name" class="random-btn">🎲 Đổi Tên</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Màu Áo Cà Sa / Áo Tràng:</label>
+        <div class="robe-palette">
+          <div class="robe-color-opt selected" data-color="#E69500" style="background: #E69500;" title="Vàng Hoàng Yến"></div>
+          <div class="robe-color-opt" data-color="#7A431D" style="background: #7A431D;" title="Nâu Sồng"></div>
+          <div class="robe-color-opt" data-color="#4F6D7A" style="background: #4F6D7A;" title="Lam Khói"></div>
+          <div class="robe-color-opt" data-color="#E05A1F" style="background: #E05A1F;" title="Cam Sa Di"></div>
+          <div class="robe-color-opt" data-color="#8A1C14" style="background: #8A1C14;" title="Chu Sa"></div>
+          <div class="robe-color-opt" data-color="#C5C6C7" style="background: #C5C6C7;" title="Bạch Y"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Mã Phòng (Nhập chung để vào cùng nhóm):</label>
+        <input 
+          type="text" 
+          id="input-room" 
+          class="text-input" 
+          placeholder="dai-hung-bao-dien" 
+          value="dai-hung-bao-dien" 
+          maxlength="30"
+        />
+      </div>
+
+      <button id="btn-save-profile" class="primary-btn">
+        Lưu & Tiếp Tục Thiền 🙏
+      </button>
+    </div>
+  </div>
+
+  <!-- FORTUNE MODAL (XIN XĂM QUÁN THẾ ÂM) -->
+  <div class="modal-overlay" id="fortune-modal" style="display: none;">
+    <div class="modal-card fortune-card">
+      <div class="fortune-scroll">
+        <div class="fortune-badge">🎋 QUẺ XĂM QUÁN THẾ ÂM 🎋</div>
+        <div class="fortune-title" id="fortune-title">Quẻ Thượng Thượng: Tâm Bình Thế Giới Bình</div>
+        <div class="fortune-poem" id="fortune-poem">Tâm an vạn sự tự an bài...</div>
+        <div class="fortune-advice" id="fortune-advice">Lời khuyên...</div>
+      </div>
+      <button id="btn-close-fortune" class="primary-btn" style="margin-top: 18px;">
+        Hoan Hỷ Tiếp Nhận 🙏
+      </button>
+    </div>
+  </div>
+
+</body>
+</html>

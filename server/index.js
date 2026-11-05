@@ -1,595 +1,313 @@
-import express from "express";
-import http from "http";
-import { Server } from "socket.io";
-import cors from "cors";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import { defaultQuiz } from "./questions.js";
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-let activeQuiz = defaultQuiz;
-const customQuizPath = path.join(__dirname, "custom_quiz.json");
-if (fs.existsSync(customQuizPath)) {
-  try {
-    activeQuiz = JSON.parse(fs.readFileSync(customQuizPath, "utf-8"));
-  } catch (e) {
-    console.error("Error reading custom_quiz.json", e);
-  }
-}
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Fixed Host / Admin account
-const ADMIN_USER = process.env.ADMIN_USER || "agribank";
-const ADMIN_PASS = process.env.ADMIN_PASS || "agribank@2026";
-
-// Admin Login endpoint
-app.post("/api/admin/login", (req, res) => {
-  const { username, password } = req.body || {};
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    return res.json({
-      success: true,
-      token: "agribank_verified_host_token",
-      user: { username: ADMIN_USER, name: "Quản Trị Viên Agribank" }
-    });
-  }
-  return res.status(401).json({
-    success: false,
-    message: "Tên đăng nhập hoặc mật khẩu Quản trò không chính xác!"
-  });
-});
-
-// Serve client dist in production
-const clientDist = path.join(__dirname, "../client/dist");
-app.use(express.static(clientDist));
-
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  },
-  pingTimeout: 30000,
-  pingInterval: 10000
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
 });
 
-// Rooms storage
+// Port from Render environment or default to 5000
+const PORT = process.env.PORT || 5000;
+
+// Locate client dist folder flexibly
+const possibleDistPaths = [
+  path.join(__dirname, '../client/dist'),
+  path.join(__dirname, 'client/dist'),
+  path.join(process.cwd(), '../client/dist'),
+  path.join(process.cwd(), 'client/dist'),
+  path.join(process.cwd(), 'dist')
+];
+
+let clientDistPath = possibleDistPaths[0];
+for (const p of possibleDistPaths) {
+  if (fs.existsSync(p)) {
+    clientDistPath = p;
+    break;
+  }
+}
+
+console.log(`Serving static client files from: ${clientDistPath}`);
+app.use(express.static(clientDistPath));
+
+// Fallback to index.html for SPA
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/socket.io')) return next();
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.send('Chùa Online 3D Backend is running. Building frontend assets...');
+  }
+});
+
+// State
 const rooms = new Map();
 
-function generateRoomCode() {
-  let code;
-  do {
-    code = Math.floor(100000 + Math.random() * 900000).toString();
-  } while (rooms.has(code));
-  return code;
-}
-
-// Helper to flatten 2 parts into an indexed list of 20 questions
-function prepareQuestions(quiz) {
-  const flatQuestions = [];
-  quiz.parts.forEach((part) => {
-    part.questions.forEach((q, idx) => {
-      flatQuestions.push({
-        ...q,
-        partNumber: part.partNumber,
-        partTitle: part.partTitle,
-        partQuestionIndex: idx + 1,
-        totalPartQuestions: part.questions.length
-      });
+function getOrCreateRoom(roomId = 'dai-hung-bao-dien') {
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, {
+      id: roomId,
+      name: roomId === 'dai-hung-bao-dien' ? 'Đại Hùng Bảo Điện' : `Phòng Thiền ${roomId}`,
+      players: new Map(),
+      totalMerit: 0,
+      activeIncense: 0,
+      bellStrikes: 0,
+      chatHistory: []
     });
-  });
-  return flatQuestions;
+  }
+  return rooms.get(roomId);
 }
 
-// Calculate leaderboard for a room
-function getLeaderboard(room) {
-  const players = Array.from(room.players.values()).map(p => ({
-    id: p.id,
-    name: p.name,
-    avatar: p.avatar,
-    score: p.score,
-    streak: p.streak,
-    lastPointsAwarded: p.lastPointsAwarded || 0,
-    rank: 0,
-    answersCount: p.answersCount || 0,
-    correctCount: p.correctCount || 0,
-    totalTimeTaken: p.totalTimeTaken || 0
-  }));
+// 32 Quẻ xăm Phật Pháp & Lời Phật Dạy An Lạc
+const FORTUNES = [
+  { id: 1, title: 'Thượng Thượng: Tâm Bình Thế Giới Bình', poem: 'Tâm an vạn sự tự an bài\nTrí sáng lòng trong vượt chông gai\nHoa sen nở rộ đài thanh tịnh\nPhước đức đong đầy đón tương lai.', advice: 'Hôm nay tâm trí sáng suốt, mọi sự hanh thông, hãy mỉm cười và hoan hỷ đón nhận.' },
+  { id: 2, title: 'Đại Cát: Bát Nhã Tâm Kinh', poem: 'Gieo hạt từ bi gặt phước lành\nĐường đời thênh thang bước bộ hành\nThị phi gác lại bên thềm vắng\nMột đóa sen hồng ngát cành xanh.', advice: 'Tâm từ bi xua tan muộn phiền, công việc và học tập có quý nhân phù trợ.' },
+  { id: 3, title: 'Thượng Cát: Vạn Sự Tùy Duyên', poem: 'Đến đi như gió thoảng mây trôi\nVướng bận làm chi chuyện lỡ rồi\nNở một nụ cười buông chấp niệm\nBình yên ngay tại chốn này thôi.', advice: 'Đừng quá cưỡng cầu, thuận theo tự nhiên sẽ đạt được kết quả êm đẹp ngoài mong đợi.' },
+  { id: 4, title: 'Trung Cát: Nhẫn Nhục Ba La Mật', poem: 'Nhẫn một chút gió yên sóng lặng\nLùi một bước biển rộng trời cao\nLời thô tiếng ác đừng lưu giữ\nTâm định như trăng sáng dạt dào.', advice: 'Hôm nay nên nói lời ái ngữ, giữ hòa khí, tránh tranh cãi với người khác.' },
+  { id: 5, title: 'Thượng Thượng: Hoa Khai Kiến Phật', poem: 'Mỗi bước chân đi chạm đất lành\nChuông chiều ngân vọng chốn thiền thanh\nTài lộc duyên may cùng hội tụ\nCông đức vun bồi phúc tự sinh.', advice: 'Rất may mắn về tình bạn bè, thi cử và công việc. Nhớ chia sẻ niềm vui với người thân.' },
+  { id: 6, title: 'Cát: Tự Tại Tiêu Dao', poem: 'Sáng ngắm mây bay chiều gió đưa\nLòng không vướng bận chuyện hơn thua\nCơm chay thanh đạm vui ngày tháng\nPhước báo lưu truyền tựa bóng xưa.', advice: 'Tâm hồn thảnh thơi, hãy dành thời gian chăm sóc sức khỏe và ngủ một giấc thật ngon.' },
+  { id: 7, title: 'Đại Cát: Lục Độ Vạn Hạnh', poem: 'Bố thí cho đi phước lại về\nĐoạn trừ chấp trước khỏi u mê\nÁnh sáng Như Lai soi muôn lối\nCùng nhau vượt khỏi chốn bến mê.', advice: 'Làm việc thiện nhỏ hôm nay sẽ mang lại may mắn lớn vào ngày mai.' },
+  { id: 8, title: 'Thượng Cát: Tĩnh Lặng Quán Chiếu', poem: 'Ngồi lại bên nhau tĩnh lặng thiền\nBao nhiêu phiền não hóa mây yên\nMõ khua tỉnh giấc người mê ngủ\nÁnh mắt trao nhau vẹn chữ duyên.', advice: 'Hãy chậm lại một nhịp trước khi ra quyết định quan trọng.' }
+];
 
-  // Sort descending by score, tie-break by fastest total answer time
-  players.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.totalTimeTaken - b.totalTimeTaken;
-  });
+io.on('connection', (socket) => {
+  let currentRoomId = 'dai-hung-bao-dien';
+  let playerInfo = null;
 
-  players.forEach((p, idx) => {
-    p.rank = idx + 1;
-  });
+  socket.on('join', ({ name, roomId = 'dai-hung-bao-dien', robeColor = '#E69500', hat = 'none', beads = true }) => {
+    currentRoomId = roomId || 'dai-hung-bao-dien';
+    const room = getOrCreateRoom(currentRoomId);
+    socket.join(currentRoomId);
 
-  return players;
-}
+    // Xuất phát từ Cửa Chùa (Temple Entrance Door)
+    const spawnX = (Math.random() - 0.5) * 2.2;
+    const spawnZ = 18.2;
 
-io.on("connection", (socket) => {
-  // HOST: Create Room
-  socket.on("host:create_room", (customQuiz, callback) => {
-    const code = generateRoomCode();
-    const quiz = customQuiz || activeQuiz;
-    const questions = prepareQuestions(quiz);
-
-    const room = {
-      code,
-      hostSocketId: socket.id,
-      quizMeta: {
-        title: quiz.title,
-        description: quiz.description,
-        totalQuestions: questions.length,
-        parts: quiz.parts.map(p => ({
-          partNumber: p.partNumber,
-          partTitle: p.partTitle,
-          questionsCount: p.questions.length
-        }))
-      },
-      questions,
-      currentQuestionIndex: -1, // -1 means Lobby
-      currentPart: 1,
-      status: "LOBBY", // LOBBY, PART_INTRO, QUESTION, QUESTION_RESULT, LEADERBOARD, PART_SUMMARY, GAME_OVER
-      timer: 0,
-      timerInterval: null,
-      players: new Map(), // socketId -> player
-      answersReceived: new Map() // socketId -> { optionIndex, timeRemaining, isCorrect, points }
-    };
-
-    rooms.set(code, room);
-    socket.join(code);
-    socket.join(`host:${code}`);
-
-    console.log(`[Room ${code}] Created by host ${socket.id}`);
-    callback({ success: true, roomCode: code, quizMeta: room.quizMeta });
-  });
-
-  // PLAYER: Join Room
-  socket.on("player:join", ({ roomCode, name, avatar }, callback) => {
-    const room = rooms.get(roomCode);
-    if (!room) {
-      return callback({ success: false, message: "Mã phòng không tồn tại hoặc đã kết thúc!" });
-    }
-
-    if (room.status !== "LOBBY" && room.status !== "PART_INTRO") {
-      return callback({ success: false, message: "Cuộc thi đã bắt đầu, không thể tham gia lúc này!" });
-    }
-
-    if (room.players.size >= 300) {
-      return callback({ success: false, message: "Phòng đã đạt giới hạn tối đa người chơi!" });
-    }
-
-    const player = {
+    playerInfo = {
       id: socket.id,
-      name: (name || "Người chơi").trim().slice(0, 24),
-      avatar: avatar || "🚀",
-      score: 0,
-      streak: 0,
-      answersCount: 0,
-      correctCount: 0,
-      isBot: false,
-      connected: true
+      name: name || `Đồng tu #${socket.id.slice(0, 4)}`,
+      robeColor: robeColor || '#E69500',
+      hat: hat || 'none',
+      beads: beads !== false,
+      x: spawnX,
+      y: 0,
+      z: spawnZ,
+      rotY: Math.PI, // Facing Buddha into the hall
+      action: 'stand',
+      merit: 0,
+      currentBubble: null,
+      bubbleTimer: null
     };
 
-    room.players.set(socket.id, player);
-    socket.join(roomCode);
+    room.players.set(socket.id, playerInfo);
 
-    // Notify host & room
-    io.to(`host:${roomCode}`).emit("room:players_updated", {
-      playersCount: room.players.size,
-      players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score }))
+    socket.emit('initRoom', {
+      yourId: socket.id,
+      roomId: currentRoomId,
+      roomName: room.name,
+      totalMerit: room.totalMerit,
+      activeIncense: room.activeIncense,
+      bellStrikes: room.bellStrikes,
+      players: Array.from(room.players.values()).map(p => ({
+        id: p.id,
+        name: p.name,
+        robeColor: p.robeColor,
+        hat: p.hat,
+        beads: p.beads,
+        x: p.x,
+        y: p.y,
+        z: p.z,
+        rotY: p.rotY,
+        action: p.action,
+        merit: p.merit,
+        currentBubble: p.currentBubble
+      })),
+      chatHistory: room.chatHistory.slice(-20)
     });
 
-    callback({
-      success: true,
-      roomCode,
-      player,
-      quizMeta: room.quizMeta,
-      currentStatus: room.status
+    socket.to(currentRoomId).emit('playerJoined', {
+      id: playerInfo.id,
+      name: playerInfo.name,
+      robeColor: playerInfo.robeColor,
+      hat: playerInfo.hat,
+      beads: playerInfo.beads,
+      x: playerInfo.x,
+      y: playerInfo.y,
+      z: playerInfo.z,
+      rotY: playerInfo.rotY,
+      action: playerInfo.action,
+      merit: playerInfo.merit
     });
 
-    console.log(`[Room ${roomCode}] Player ${player.name} (${socket.id}) joined. Total: ${room.players.size}`);
+    const systemMsg = {
+      id: 'sys_' + Date.now(),
+      senderId: 'system',
+      senderName: 'Chính Điện',
+      text: `Đồng tu [${playerInfo.name}] vừa bước qua cửa Chùa. Nam Mô A Di Đà Phật!`,
+      timestamp: Date.now()
+    };
+    room.chatHistory.push(systemMsg);
+    io.to(currentRoomId).emit('newChatMessage', systemMsg);
   });
 
-  // HOST: Add Simulation Bots (for load testing 200 players)
-  socket.on("host:add_bots", ({ roomCode, count }, callback) => {
-    const room = rooms.get(roomCode);
-    if (!room) return callback?.({ success: false });
+  socket.on('move', (coords) => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-    const avatars = ["🦊", "🐯", "🦁", "🐼", "🐨", "🦄", "🐙", "🐬", "🦅", "🐝", "⚡", "🚀", "🔥", "🎯", "⭐"];
-    const surnames = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương"];
-    const midnames = ["Văn", "Thị", "Hải", "Minh", "Đức", "Anh", "Bảo", "Gia", "Thanh", "Tuấn"];
-    const firstnames = ["An", "Bình", "Châu", "Dũng", "Em", "Hà", "Hải", "Khoa", "Linh", "Long", "Mai", "Nam", "Nhi", "Phúc", "Quân", "Sơn", "Tâm", "Thảo", "Trí", "Việt"];
-
-    const currentCount = room.players.size;
-    const addCount = Math.min(count || 50, 250 - currentCount);
-
-    for (let i = 0; i < addCount; i++) {
-      const botId = `bot_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-      const randomName = `${surnames[Math.floor(Math.random() * surnames.length)]} ${midnames[Math.floor(Math.random() * midnames.length)]} ${firstnames[Math.floor(Math.random() * firstnames.length)]}`;
-      const bot = {
-        id: botId,
-        name: randomName,
-        avatar: avatars[Math.floor(Math.random() * avatars.length)],
-        score: 0,
-        streak: 0,
-        answersCount: 0,
-        correctCount: 0,
-        isBot: true,
-        connected: true
-      };
-      room.players.set(botId, bot);
+    playerInfo.x = coords.x;
+    playerInfo.y = coords.y || 0;
+    playerInfo.z = coords.z;
+    if (typeof coords.rotY === 'number') {
+      playerInfo.rotY = coords.rotY;
     }
 
-    io.to(`host:${roomCode}`).emit("room:players_updated", {
-      playersCount: room.players.size,
-      players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score }))
-    });
-
-    callback?.({ success: true, count: room.players.size });
-  });
-
-  // HOST: Start Quiz
-  socket.on("host:start_quiz", ({ roomCode, overrideTimeLimit }) => {
-    const room = rooms.get(roomCode);
-    if (!room || room.hostSocketId !== socket.id) return;
-
-    if (overrideTimeLimit && Number(overrideTimeLimit) > 0) {
-      room.overrideTimeLimit = Number(overrideTimeLimit);
-    }
-
-    room.currentQuestionIndex = 0;
-    sendQuestion(room);
-  });
-
-  // HOST: Next Question
-  socket.on("host:next_question", ({ roomCode }) => {
-    const room = rooms.get(roomCode);
-    if (!room || room.hostSocketId !== socket.id) return;
-
-    if (room.timerInterval) clearInterval(room.timerInterval);
-
-    room.currentQuestionIndex++;
-    if (room.currentQuestionIndex < room.questions.length) {
-      // Check if we just entered Part 2 (Question index 10)
-      if (room.currentQuestionIndex === 10 && room.status !== "PART_SUMMARY") {
-        room.status = "PART_SUMMARY";
-        io.to(roomCode).emit("room:state", {
-          status: "PART_SUMMARY",
-          completedPart: 1,
-          nextPart: 2,
-          leaderboard: getLeaderboard(room).slice(0, 10)
-        });
-        return;
-      }
-
-      sendQuestion(room);
-    } else {
-      // Game Over
-      endGame(room);
-    }
-  });
-
-  // HOST: Show Leaderboard
-  socket.on("host:show_leaderboard", ({ roomCode }) => {
-    const room = rooms.get(roomCode);
-    if (!room || room.hostSocketId !== socket.id) return;
-
-    room.status = "LEADERBOARD";
-    const leaderboard = getLeaderboard(room);
-    io.to(roomCode).emit("room:state", {
-      status: "LEADERBOARD",
-      questionIndex: room.currentQuestionIndex,
-      totalQuestions: room.questions.length,
-      leaderboard: leaderboard.slice(0, 10),
-      totalPlayers: leaderboard.length
+    socket.to(currentRoomId).emit('playerMoved', {
+      id: socket.id,
+      x: playerInfo.x,
+      y: playerInfo.y,
+      z: playerInfo.z,
+      rotY: playerInfo.rotY
     });
   });
 
-  // PLAYER: Submit Answer
-  socket.on("player:submit_answer", ({ roomCode, questionId, optionIndex, timeRemaining }, callback) => {
-    const room = rooms.get(roomCode);
-    if (!room || room.status !== "QUESTION") {
-      return callback?.({ success: false, message: "Hết giờ hoặc câu hỏi không hợp lệ!" });
-    }
+  socket.on('action', ({ action }) => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-    const currentQ = room.questions[room.currentQuestionIndex];
-    if (currentQ.id !== questionId) {
-      return callback?.({ success: false, message: "Câu hỏi đã thay đổi!" });
-    }
-
-    if (room.answersReceived.has(socket.id)) {
-      return callback?.({ success: false, message: "Bạn đã trả lời câu này rồi!" });
-    }
-
-    const player = room.players.get(socket.id);
-    if (!player) return callback?.({ success: false });
-
-    const timeSpent = Math.max(0, currentQ.timeLimit - timeRemaining);
-
-    // Chỉ ghi nhận câu trả lời, ĐIỂM SẼ ĐƯỢC TÍNH VÀ CỘNG KHI HẾT THỜI GIAN
-    room.answersReceived.set(socket.id, {
-      optionIndex,
-      timeRemaining,
-      timeSpent
-    });
-
-    // Notify Host about progress
-    io.to(`host:${roomCode}`).emit("host:answer_stat", {
-      answeredCount: room.answersReceived.size,
-      totalPlayers: room.players.size
-    });
-
-    callback?.({
-      success: true,
-      recorded: true
-    });
-
-    // If all real players answered, can early end question
-    const realPlayers = Array.from(room.players.values()).filter(p => !p.isBot);
-    const realAnswers = Array.from(room.answersReceived.keys()).filter(id => !id.startsWith("bot_"));
-    if (realAnswers.length >= realPlayers.length && realPlayers.length > 0) {
-      // Early countdown trigger or let timer run
-    }
-  });
-
-  socket.on("disconnect", () => {
-    // If host disconnected
-    rooms.forEach((room, code) => {
-      if (room.hostSocketId === socket.id) {
-        console.log(`[Room ${code}] Host disconnected.`);
-      } else if (room.players.has(socket.id)) {
-        const player = room.players.get(socket.id);
-        player.connected = false;
-        io.to(`host:${code}`).emit("room:players_updated", {
-          playersCount: room.players.size,
-          players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score }))
-        });
-      }
+    playerInfo.action = action;
+    io.to(currentRoomId).emit('playerActionChanged', {
+      id: socket.id,
+      action
     });
   });
-});
 
-// Function to send a question & run timer
-function sendQuestion(room) {
-  if (room.timerInterval) clearInterval(room.timerInterval);
-  room.answersReceived.clear();
+  // Chat message (appears above head in 3D & in chatbox)
+  socket.on('chat', ({ text }) => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-  const q = room.questions[room.currentQuestionIndex];
-  const effectiveTimeLimit = room.overrideTimeLimit || q.timeLimit || 15;
+    const trimmed = (text || '').trim().slice(0, 150);
+    if (!trimmed) return;
 
-  room.status = "QUESTION";
-  room.timer = effectiveTimeLimit;
+    const msgObj = {
+      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      senderId: socket.id,
+      senderName: playerInfo.name,
+      text: trimmed,
+      timestamp: Date.now()
+    };
 
-  // Broadcast to players (without the correctIndex for security!)
-  const playerQuestion = {
-    id: q.id,
-    question: q.question,
-    options: q.options,
-    timeLimit: effectiveTimeLimit,
-    points: q.points,
-    partNumber: q.partNumber,
-    partTitle: q.partTitle,
-    partQuestionIndex: q.partQuestionIndex,
-    totalPartQuestions: q.totalPartQuestions,
-    overallIndex: room.currentQuestionIndex + 1,
-    totalQuestions: room.questions.length
-  };
+    room.chatHistory.push(msgObj);
+    if (room.chatHistory.length > 50) room.chatHistory.shift();
 
-  io.to(room.code).emit("room:state", {
-    status: "QUESTION",
-    question: playerQuestion
+    playerInfo.currentBubble = {
+      text: trimmed,
+      expireAt: Date.now() + 6000
+    };
+
+    io.to(currentRoomId).emit('newChatMessage', msgObj);
+    io.to(currentRoomId).emit('showBubble', {
+      playerId: socket.id,
+      text: trimmed,
+      duration: 6000
+    });
   });
 
-  // Host also receives correct index for presentation
-  io.to(`host:${room.code}`).emit("host:question_view", {
-    ...playerQuestion,
-    correctIndex: q.correctIndex,
-    explanation: q.explanation
+  socket.on('strikeWoodfish', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
+
+    playerInfo.merit += 1;
+    room.totalMerit += 1;
+
+    io.to(currentRoomId).emit('woodfishStruck', {
+      playerId: socket.id,
+      playerName: playerInfo.name,
+      playerMerit: playerInfo.merit,
+      totalMerit: room.totalMerit
+    });
   });
 
-  // Simulate bot answers staggered over question time
-  simulateBots(room, { ...q, timeLimit: effectiveTimeLimit });
+  socket.on('strikeBell', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-  // Start Server-side Timer
-  room.timerInterval = setInterval(() => {
-    room.timer--;
-    io.to(room.code).emit("room:timer_tick", { timeLeft: room.timer });
+    room.bellStrikes += 1;
+    playerInfo.merit += 5;
+    room.totalMerit += 5;
 
-    if (room.timer <= 0) {
-      clearInterval(room.timerInterval);
-      finishQuestion(room);
-    }
-  }, 1000);
-}
-
-// Bot simulation for load testing 200 players
-function simulateBots(room, question) {
-  const bots = Array.from(room.players.values()).filter(p => p.isBot);
-  bots.forEach(bot => {
-    // Random answer delay between 2s and timeLimit - 1s
-    const delay = Math.floor(Math.random() * (question.timeLimit - 3) + 2) * 1000;
-    setTimeout(() => {
-      if (room.status !== "QUESTION") return;
-      // 70% chance bot answers correctly
-      const willBeCorrect = Math.random() < 0.75;
-      const optionIndex = willBeCorrect
-        ? question.correctIndex
-        : (question.correctIndex + 1 + Math.floor(Math.random() * 3)) % 4;
-
-      const delaySec = Math.round(delay / 1000);
-      const timeRemaining = Math.max(1, question.timeLimit - delaySec);
-      const timeSpent = Math.max(0, question.timeLimit - timeRemaining);
-
-      room.answersReceived.set(bot.id, {
-        optionIndex,
-        timeRemaining,
-        timeSpent
-      });
-
-      io.to(`host:${room.code}`).emit("host:answer_stat", {
-        answeredCount: room.answersReceived.size,
-        totalPlayers: room.players.size
-      });
-    }, delay);
-  });
-}
-
-// Finish question, award points to all players, and reveal stats
-function finishQuestion(room) {
-  room.status = "QUESTION_RESULT";
-  const q = room.questions[room.currentQuestionIndex];
-
-  // Calculate option pick distributions & compute individual points
-  const distribution = [0, 0, 0, 0];
-  const playerResults = {};
-
-  room.players.forEach((player, playerId) => {
-    const ans = room.answersReceived.get(playerId);
-    if (ans) {
-      if (ans.optionIndex >= 0 && ans.optionIndex < 4) {
-        distribution[ans.optionIndex]++;
-      }
-
-      const isCorrect = (ans.optionIndex === q.correctIndex);
-      let pointsAwarded = 0;
-      let tierPercent = 0;
-
-      if (isCorrect) {
-        // Phân rã mốc thời gian 5s:
-        // 0s - 5s: 100% (100đ)
-        // 5s - 10s: 50% (50đ)
-        // 10s - 15s: 25% (25đ)
-        // 15s - 20s: 12.5% (~13đ)
-        // 20s - 25s: 6.25% (~6đ)
-        let interval = 0;
-        if (ans.timeSpent > 5) {
-          interval = Math.floor((ans.timeSpent - 0.001) / 5);
-        }
-        const multiplier = Math.pow(0.5, interval);
-        tierPercent = Math.round(multiplier * 1000) / 10;
-        const maxPoints = q.points || 100;
-        pointsAwarded = Math.max(1, Math.round(maxPoints * multiplier));
-
-        player.streak = (player.streak || 0) + 1;
-        player.score += pointsAwarded;
-        player.correctCount = (player.correctCount || 0) + 1;
-      } else {
-        player.streak = 0;
-      }
-
-      player.totalTimeTaken = (player.totalTimeTaken || 0) + ans.timeSpent;
-      player.answersCount = (player.answersCount || 0) + 1;
-      player.lastPointsAwarded = pointsAwarded;
-
-      playerResults[playerId] = {
-        isCorrect,
-        pointsAwarded,
-        tierPercent,
-        timeSpent: Math.round(ans.timeSpent * 10) / 10,
-        currentScore: player.score,
-        streak: player.streak
-      };
-    } else {
-      // Hết giờ mà không nộp câu trả lời
-      player.streak = 0;
-      player.lastPointsAwarded = 0;
-      playerResults[playerId] = {
-        isCorrect: false,
-        notAnswered: true,
-        pointsAwarded: 0,
-        currentScore: player.score,
-        streak: 0
-      };
-    }
+    io.to(currentRoomId).emit('bellStruck', {
+      playerId: socket.id,
+      playerName: playerInfo.name,
+      playerMerit: playerInfo.merit,
+      totalMerit: room.totalMerit
+    });
   });
 
-  io.to(room.code).emit("room:state", {
-    status: "QUESTION_RESULT",
-    questionId: q.id,
-    correctIndex: q.correctIndex,
-    explanation: q.explanation,
-    distribution,
-    playerResults,
-    totalAnswered: room.answersReceived.size,
-    totalPlayers: room.players.size
-  });
-}
+  socket.on('lightIncense', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-function endGame(room) {
-  if (room.timerInterval) clearInterval(room.timerInterval);
-  room.status = "GAME_OVER";
-  const fullLeaderboard = getLeaderboard(room);
+    room.activeIncense += 3;
+    playerInfo.merit += 3;
+    room.totalMerit += 3;
 
-  io.to(room.code).emit("room:state", {
-    status: "GAME_OVER",
-    leaderboard: fullLeaderboard,
-    podium: fullLeaderboard.slice(0, 3),
-    totalPlayers: fullLeaderboard.length
-  });
-}
-
-// Export Results CSV
-app.get("/api/room/:code/export", (req, res) => {
-  const room = rooms.get(req.params.code);
-  if (!room) return res.status(404).json({ error: "Phòng không tồn tại" });
-
-  const leaderboard = getLeaderboard(room);
-  let csv = "Hang,Ten thi sinh,Diem tong,So cau dung,Tong so cau,Ty le chinh xac (%)\n";
-  leaderboard.forEach(p => {
-    const accuracy = p.answersCount > 0 ? Math.round((p.correctCount / room.questions.length) * 100) : 0;
-    csv += `${p.rank},"${p.name.replace(/"/g, '""')}",${p.score},${p.correctCount},${room.questions.length},${accuracy}%\n`;
+    io.to(currentRoomId).emit('incenseLit', {
+      playerId: socket.id,
+      playerName: playerInfo.name,
+      activeIncense: room.activeIncense,
+      totalMerit: room.totalMerit
+    });
   });
 
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="Ket_Qua_Wayground_${room.code}.csv"`);
-  res.send("\uFEFF" + csv); // Include BOM for Excel UTF-8 support
-});
+  socket.on('drawFortune', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
 
-// Quiz CRUD API
-app.get("/api/quiz", (req, res) => {
-  res.json(activeQuiz);
-});
+    const randomFortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
+    playerInfo.merit += 2;
+    room.totalMerit += 2;
 
-app.post("/api/quiz", (req, res) => {
-  if (req.body && req.body.parts) {
-    activeQuiz = req.body;
-    try {
-      fs.writeFileSync(customQuizPath, JSON.stringify(activeQuiz, null, 2), "utf-8");
-    } catch (e) {
-      console.error("Error saving custom quiz", e);
-    }
-    return res.json({ success: true, quiz: activeQuiz });
-  }
-  res.status(400).json({ error: "Dữ liệu không hợp lệ" });
-});
+    socket.emit('fortuneResult', randomFortune);
 
-app.post("/api/quiz/reset", (req, res) => {
-  activeQuiz = defaultQuiz;
-  if (fs.existsSync(customQuizPath)) {
-    fs.unlinkSync(customQuizPath);
-  }
-  res.json({ success: true, quiz: defaultQuiz });
-});
+    const announce = {
+      id: 'fortune_' + Date.now(),
+      senderId: 'system',
+      senderName: 'Xin Xăm Quán Âm',
+      text: `Đồng tu [${playerInfo.name}] vừa gieo được quẻ: "${randomFortune.title}"! Chúc vạn sự cát tường!`,
+      timestamp: Date.now()
+    };
+    room.chatHistory.push(announce);
+    io.to(currentRoomId).emit('newChatMessage', announce);
+  });
 
-// Single Page App fallback
-app.get("*", (req, res) => {
-  res.sendFile(path.join(clientDist, "index.html"), (err) => {
-    if (err) {
-      res.status(200).send("Wayground Quiz Server is running. Client is building or dev mode.");
+  socket.on('disconnect', () => {
+    const room = rooms.get(currentRoomId);
+    if (room && playerInfo) {
+      room.players.delete(socket.id);
+      socket.to(currentRoomId).emit('playerLeft', { id: socket.id, name: playerInfo.name });
     }
   });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`[Wayground Quiz] Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`===============================================`);
+  console.log(`🌸 CHÙA ONLINE 3D METAVERSE ĐANG HOẠT ĐỘNG 🌸`);
+  console.log(`👉 Cổng máy chủ: http://0.0.0.0:${PORT}`);
+  console.log(`===============================================`);
 });
