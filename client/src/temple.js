@@ -308,64 +308,12 @@ export class TempleScene {
       templeGroup.add(p, base, ringTop);
     });
 
-    // 4. BỨC BẢO ẢNH PHẬT TỔ LINH THIÊNG CHUẨN XÁC THEO ẢNH CỦA NGƯỜI DÙNG
-    const textureLoader = new THREE.TextureLoader();
-    const phatToTexture = textureLoader.load('/phat-to.jpg');
-    phatToTexture.colorSpace = THREE.SRGBColorSpace;
-
-    const frameW = 6.8;
-    const frameH = 9.2;
-    const pictureMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(frameW, frameH),
-      new THREE.MeshStandardMaterial({
-        map: phatToTexture,
-        roughness: 0.25,
-        metalness: 0.1,
-        emissive: 0x221305,
-        emissiveIntensity: 0.25
-      })
-    );
-    pictureMesh.position.set(0, 8.0, -9.45);
-
-    // Khung tranh chạm rồng gỗ gụ & viền chỉ dát vàng 24K
-    const outerFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(frameW + 1.1, frameH + 1.1, 0.25),
-      new THREE.MeshStandardMaterial({ color: 0x220b06, roughness: 0.4 })
-    );
-    outerFrame.position.set(0, 8.0, -9.56);
-
-    const innerGoldFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(frameW + 0.42, frameH + 0.42, 0.16),
-      new THREE.MeshStandardMaterial({
-        color: 0xf5ba2a,
-        roughness: 0.16,
-        metalness: 0.92,
-        emissive: 0x5a3d08,
-        emissiveIntensity: 0.4
-      })
-    );
-    innerGoldFrame.position.set(0, 8.0, -9.5);
-
-    // Mái ngói đao cong che trên linh ảnh
-    const canopyRoof = new THREE.Mesh(
-      new THREE.BoxGeometry(frameW + 1.8, 0.5, 1.4),
-      new THREE.MeshStandardMaterial({ color: 0x8a241c, roughness: 0.55 })
-    );
-    canopyRoof.position.set(0, 13.0, -9.0);
-
-    const canopyTrim = new THREE.Mesh(
-      new THREE.BoxGeometry(frameW + 2.1, 0.18, 1.55),
-      new THREE.MeshStandardMaterial({ color: 0xf5c33b, metalness: 0.85, roughness: 0.25 })
-    );
-    canopyTrim.position.set(0, 13.25, -9.0);
-
-    // Đèn rọi chuyên dụng chiếu sáng linh ảnh Phật Tổ
-    const altarSpot = new THREE.SpotLight(0xfffaea, 5.5, 30, Math.PI / 3.0, 0.45);
-    altarSpot.position.set(0, 11.5, -2.2);
-    altarSpot.target = pictureMesh;
+    // 4. HỆ THỐNG CHIẾU SÁNG & ĐÈN RỌI TÔN TƯỢNG PHẬT ĐIỆN
+    const altarSpot = new THREE.SpotLight(0xfffaea, 6.5, 35, Math.PI / 3.2, 0.35);
+    altarSpot.position.set(0, 12.0, 0);
+    altarSpot.target.position.set(0, 6.5, -8.0);
     templeGroup.add(altarSpot);
-
-    templeGroup.add(outerFrame, innerGoldFrame, pictureMesh, canopyRoof, canopyTrim);
+    templeGroup.add(altarSpot.target);
 
     // 5. HOÀNH PHI ĐẠI TỰ THƯ PHÁP CHỮ VÀNG CHÍNH ĐIỆN (GRAND CALLIGRAPHY SIGNBOARDS)
     // Hoành phi trung tâm số 1: "ĐẠI HÙNG BẢO ĐIỆN"
@@ -597,7 +545,7 @@ export class TempleScene {
       altarGroup.add(trim);
     }
 
-    // TÒA SEN VÀNG BÁT GIÁC CỬU PHẨM (NINE-TIER OCTAGONAL GOLDEN LOTUS THRONE)
+    // 1. TÒA SEN VÀNG BÁT GIÁC CỬU PHẨM (NINE-TIER OCTAGONAL GOLDEN LOTUS THRONE)
     const lotusMat = new THREE.MeshStandardMaterial({
       color: 0xffd24d,
       roughness: 0.16,
@@ -606,38 +554,89 @@ export class TempleScene {
       emissiveIntensity: 0.35
     });
 
-    const lotusPed = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 4.2, 1.2, 8), lotusMat);
-    lotusPed.position.set(0, 1.95, -0.6);
+    // Đế sen nâng đỡ bên dưới khám thờ (không che khuất ảnh)
+    const lotusPed = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 4.2, 1.1, 8), lotusMat);
+    lotusPed.position.set(0, 1.75, 0);
     altarGroup.add(lotusPed);
 
-    // 2 lớp cánh sen vàng chạm trổ ôm đỡ lấy khám thờ
-    for (let l = 0; l < 2; l++) {
-      const pRad = 3.8 - l * 0.4;
-      const pY = 2.4 + l * 0.45;
-      const pCount = 16 - l * 2;
-      for (let i = 0; i < pCount; i++) {
-        const ang = (i / pCount) * Math.PI * 2 + (l * Math.PI) / pCount;
-        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.3, 5), lotusMat);
-        petal.position.set(Math.cos(ang) * pRad, pY, Math.sin(ang) * pRad - 0.6);
-        petal.rotation.x = Math.PI / 4.2;
-        petal.rotation.y = -ang + Math.PI / 2;
-        petal.scale.set(1.15, 1.0, 0.45);
-        altarGroup.add(petal);
-      }
+    // Cánh sen vàng tỏa tròn nâng đỡ chân khám thờ
+    const pRad = 3.8;
+    const pCount = 16;
+    for (let i = 0; i < pCount; i++) {
+      const ang = (i / pCount) * Math.PI * 2;
+      const petal = new THREE.Mesh(new THREE.ConeGeometry(0.52, 1.1, 5), lotusMat);
+      petal.position.set(Math.cos(ang) * pRad, 2.2, Math.sin(ang) * pRad);
+      petal.rotation.x = Math.PI / 4.6;
+      petal.rotation.y = -ang + Math.PI / 2;
+      petal.scale.set(1.1, 0.9, 0.4);
+      altarGroup.add(petal);
     }
 
-    // VẦNG HÀO QUANG CẦU VỒNG NGŨ SẮC NAN HOA XOAY VẦN (RAINBOW AURA HALO)
+    // 2. TRỌNG TÂM: BỨC BẢO ẢNH ĐỨC PHẬT BỔN SƯ THÍCH CA LINH THIÊNG RỰC RỠ
+    const textureLoader = new THREE.TextureLoader();
+    const phatToTexture = textureLoader.load('/phat-to.jpg');
+    phatToTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const picW = 5.6;
+    const picH = 8.0;
+    const pictureMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(picW, picH),
+      new THREE.MeshStandardMaterial({
+        map: phatToTexture,
+        roughness: 0.14,
+        metalness: 0.04,
+        emissive: 0x3d2708,
+        emissiveIntensity: 0.38
+      })
+    );
+    pictureMesh.position.set(0, 6.4, 0.15); // Đặt phía trước, nổi bật ở trung tâm Chánh Điện
+    this.buddhaPictureMesh = pictureMesh;
+
+    // Khung gỗ gụ quý & viền chạm rồng dát vàng 24K hoàng gia
+    const outerFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(picW + 1.0, picH + 1.0, 0.22),
+      new THREE.MeshStandardMaterial({ color: 0x240c06, roughness: 0.4 })
+    );
+    outerFrame.position.set(0, 6.4, 0.02);
+
+    const innerGoldBorder = new THREE.Mesh(
+      new THREE.BoxGeometry(picW + 0.35, picH + 0.35, 0.14),
+      new THREE.MeshStandardMaterial({
+        color: 0xf5ba2a,
+        roughness: 0.16,
+        metalness: 0.92,
+        emissive: 0x5a3d08,
+        emissiveIntensity: 0.35
+      })
+    );
+    innerGoldBorder.position.set(0, 6.4, 0.08);
+
+    // Mái ngói đao cong 3 tầng dát vàng cung đình uy nghiêm trên đỉnh khám thờ
+    const shrineRoof = new THREE.Mesh(
+      new THREE.BoxGeometry(picW + 1.8, 0.55, 1.4),
+      new THREE.MeshStandardMaterial({ color: 0x8a241c, roughness: 0.55 })
+    );
+    shrineRoof.position.set(0, 10.75, 0.4);
+
+    const shrineTrim = new THREE.Mesh(
+      new THREE.BoxGeometry(picW + 2.2, 0.18, 1.6),
+      new THREE.MeshStandardMaterial({ color: 0xf5c33b, metalness: 0.88, roughness: 0.22 })
+    );
+    shrineTrim.position.set(0, 11.05, 0.4);
+
+    altarGroup.add(outerFrame, innerGoldBorder, pictureMesh, shrineRoof, shrineTrim);
+
+    // 3. VẦNG HÀO QUANG CẦU VỒNG NGŨ SẮC NAN HOA NẰM PHÍA SAU KHÁM THỜ (TỎA RẠNG HÀO QUANG)
     const haloCanvas = document.createElement('canvas');
     haloCanvas.width = 512;
     haloCanvas.height = 512;
     const hctx = haloCanvas.getContext('2d');
     hctx.translate(256, 256);
 
-    const hgrad = hctx.createRadialGradient(0, 0, 10, 0, 0, 250);
-    hgrad.addColorStop(0, '#ffffff');
-    hgrad.addColorStop(0.2, '#fff4b8');
-    hgrad.addColorStop(0.5, '#ffd15c');
-    hgrad.addColorStop(0.85, 'rgba(255, 140, 0, 0.6)');
+    const hgrad = hctx.createRadialGradient(0, 0, 80, 0, 0, 250);
+    hgrad.addColorStop(0, 'rgba(255, 245, 180, 0.9)');
+    hgrad.addColorStop(0.4, 'rgba(255, 210, 80, 0.7)');
+    hgrad.addColorStop(0.85, 'rgba(255, 140, 0, 0.4)');
     hgrad.addColorStop(1, 'rgba(180, 40, 0, 0)');
     hctx.fillStyle = hgrad;
     hctx.beginPath();
@@ -652,11 +651,11 @@ export class TempleScene {
       hctx.save();
       hctx.rotate(rayAngle);
       hctx.fillStyle = rainbowColors[ray % rainbowColors.length];
-      hctx.globalAlpha = 0.38;
+      hctx.globalAlpha = 0.45;
       hctx.beginPath();
       hctx.moveTo(0, 0);
-      hctx.lineTo(-4, 250);
-      hctx.lineTo(4, 250);
+      hctx.lineTo(-5, 250);
+      hctx.lineTo(5, 250);
       hctx.closePath();
       hctx.fill();
       hctx.restore();
@@ -670,8 +669,9 @@ export class TempleScene {
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    const rainbowHalo = new THREE.Mesh(new THREE.PlaneGeometry(9.6, 9.6), haloMat);
-    rainbowHalo.position.set(0, 7.8, -1.35);
+    // Hào quang đặt PHÍA SAU bức ảnh (Z = -0.35), bán kính 11m tỏa đều quanh khám thờ
+    const rainbowHalo = new THREE.Mesh(new THREE.PlaneGeometry(11.2, 11.2), haloMat);
+    rainbowHalo.position.set(0, 6.8, -0.35);
     altarGroup.add(rainbowHalo);
     this.haloMesh = rainbowHalo;
 
