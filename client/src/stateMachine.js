@@ -208,7 +208,7 @@ export class RitualStateMachine {
     this.app.audio.playWoodfish();
     if (this.app.socket) this.app.socket.emit('strikeWoodfish');
     const st = this.app.temple.interactiveStations.woodfish;
-    this.app.temple.spawnClickRipple(st.x + 1.2, st.z);
+    this.app.temple.spawnClickRipple(st.x, -2.2);
     this.app.showFloatingMerit('+1 Công Đức', this.app.controller.position);
   }
 
@@ -238,7 +238,7 @@ export class RitualStateMachine {
       setTimeout(() => {
         if (this.currentState !== PlayerState.STRIKING_BELL) return;
         this.app.audio.playBell();
-        this.app.temple.spawnClickRipple(st.x - 1.4, st.z);
+        this.app.temple.spawnClickRipple(st.x, -2.2);
         if (this.app.socket) this.app.socket.emit('strikeBell');
         this.app.showToast('Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)');
         this.app.showFloatingMerit('+5 Thỉnh Chuông', this.app.controller.position);
@@ -352,7 +352,7 @@ export class RitualStateMachine {
         }
 
         // Stick physically shoots out and lands on table/floor
-        this.app.temple.spawnDroppingFortuneStick(st.x, st.z + 0.5, () => {
+        this.app.temple.spawnDroppingFortuneStick(st.x, st.z - 0.8, () => {
           // ONLY WHEN STICK DROPS: Request fortune from server and reveal modal!
           this.app.audio.playWoodfish();
           if (this.app.socket) this.app.socket.emit('drawFortune');

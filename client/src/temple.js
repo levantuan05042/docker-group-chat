@@ -13,11 +13,11 @@ export class TempleScene {
     this.ripples = [];
     this.cushionPositions = [];
     this.interactiveStations = {
-      woodfish: { x: 6.8, z: -2.0, rotY: -Math.PI / 2 },
-      bell: { x: -6.8, z: -2.0, rotY: Math.PI / 2 },
-      incenseTable: { x: -3.6, z: -4.3, rotY: Math.PI },
-      incenseBurner: { x: 0, z: -4.8, rotY: Math.PI },
-      fortuneTable: { x: 3.6, z: -4.3, rotY: Math.PI }
+      woodfish: { x: 7.5, z: -0.7, rotY: Math.PI },
+      bell: { x: -7.5, z: -0.6, rotY: Math.PI },
+      incenseTable: { x: -3.8, z: -0.8, rotY: Math.PI },
+      incenseBurner: { x: 0, z: -1.2, rotY: Math.PI },
+      fortuneTable: { x: 3.8, z: -0.8, rotY: Math.PI }
     };
 
     this.createEnvironment();
@@ -653,44 +653,6 @@ export class TempleScene {
       altarGroup.add(stand, candle, flame, cLight);
     });
 
-    // 9. LƯ HƯƠNG ĐỒNG LỚN TRƯỚC BÀN PHẬT
-    const burnerGroup = new THREE.Group();
-    burnerGroup.position.set(0, 1.1, 1.8);
-    const burner = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.72, 0.58, 0.65, 20),
-      new THREE.MeshStandardMaterial({ color: 0x9e7b42, metalness: 0.82, roughness: 0.28 })
-    );
-    const burnerRim = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.08, 12, 28), trimGoldMat);
-    burnerRim.rotation.x = Math.PI / 2;
-    burnerRim.position.y = 0.32;
-    burnerGroup.add(burner, burnerRim);
-
-    // Cát vàng mịn trong lư hương
-    const sand = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.68, 0.68, 0.1, 18),
-      new THREE.MeshStandardMaterial({ color: 0xd4b07b, roughness: 0.9 })
-    );
-    sand.position.y = 0.28;
-    burnerGroup.add(sand);
-
-    // 3 nén hương bén lửa khói bay ban đầu
-    for (let i = -1; i <= 1; i++) {
-      const stick = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.012, 0.012, 0.85),
-        new THREE.MeshBasicMaterial({ color: 0xaa2211 })
-      );
-      stick.position.set(i * 0.14, 0.75, 0);
-
-      const tip = new THREE.Mesh(
-        new THREE.SphereGeometry(0.035, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xff4500 })
-      );
-      tip.position.set(i * 0.14, 1.18, 0);
-      burnerGroup.add(stick, tip);
-    }
-    this.burnerGroup = burnerGroup;
-    altarGroup.add(burnerGroup);
-
     // Ánh sáng vàng quang minh rực rỡ từ Phật
     this.buddhaAuraLight = new THREE.PointLight(0xffbe4d, 5.0, 22);
     this.buddhaAuraLight.position.set(0, 6.0, 1.8);
@@ -866,18 +828,110 @@ export class TempleScene {
   }
 
   // =========================================================================
-  // CÁC KHU TƯƠNG TÁC: CHUÔNG BÁT NHÃ, MÕ GỖ, BÀN LẤY HƯƠNG, BÀN XIN XĂM
+  // CÁC KHU TƯƠNG TÁC: BÀN ÁN HƯƠNG LƯ ĐỒNG, CHUÔNG BÁT NHÃ, MÕ GỖ, BÀN XIN XĂM
   // =========================================================================
   createInteractiveStations() {
-    // 1. ĐẠI HỒNG CHUNG (CHUÔNG ĐỒNG & CHÀY GÕ)
+    // 0. BÀN ÁN HƯƠNG & LƯ ĐỒNG TAM BẢO TRƯỚC PHẬT ĐIỆN (GRAND INCENSE ALTAR TABLE)
+    // Đặt trang trọng ở trung tâm, thoáng đãng tại z = -2.7, hoàn toàn không bị đài sen che khuất!
+    const frontAltarGroup = new THREE.Group();
+    frontAltarGroup.position.set(0, 0, -2.7);
+
+    // Bàn án hương gỗ gụ chạm hoa sen & viền chỉ vàng
+    const frontTable = new THREE.Mesh(
+      new THREE.BoxGeometry(4.2, 1.05, 1.3),
+      new THREE.MeshStandardMaterial({ color: 0x2e0e07, roughness: 0.42 })
+    );
+    frontTable.position.y = 0.525;
+    frontTable.castShadow = true;
+    frontTable.receiveShadow = true;
+
+    // Khăn phủ gấm vàng kim thêu hoa văn
+    const tableRunner = new THREE.Mesh(
+      new THREE.BoxGeometry(4.0, 0.04, 1.15),
+      new THREE.MeshStandardMaterial({ color: 0xd49b28, roughness: 0.55, metalness: 0.25 })
+    );
+    tableRunner.position.y = 1.07;
+
+    // Lư hương đồng tam bảo chạm rồng đặt giữa bàn
+    const burnerGroup = new THREE.Group();
+    burnerGroup.position.set(0, 1.09, 0);
+
+    const burner = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.55, 0.44, 0.55, 20),
+      new THREE.MeshStandardMaterial({ color: 0xa8843c, metalness: 0.85, roughness: 0.25 })
+    );
+    burner.position.y = 0.28;
+    const burnerRim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.57, 0.065, 12, 28),
+      new THREE.MeshStandardMaterial({ color: 0xffd24d, metalness: 0.9, roughness: 0.2 })
+    );
+    burnerRim.rotation.x = Math.PI / 2;
+    burnerRim.position.y = 0.55;
+
+    // Chân vạc 3 chân đồng vững chãi
+    for (let f = 0; f < 3; f++) {
+      const foot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.08, 0.28, 8),
+        new THREE.MeshStandardMaterial({ color: 0x8a6a2a, metalness: 0.8 })
+      );
+      const fang = (f / 3) * Math.PI * 2;
+      foot.position.set(Math.cos(fang) * 0.38, 0.1, Math.sin(fang) * 0.38);
+      burnerGroup.add(foot);
+    }
+
+    // Cát vàng mịn trong lư
+    const sand = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.52, 0.52, 0.08, 18),
+      new THREE.MeshStandardMaterial({ color: 0xd4b07b, roughness: 0.9 })
+    );
+    sand.position.y = 0.51;
+    burnerGroup.add(burner, burnerRim, sand);
+
+    // 3 nén tâm hương bén lửa đỏ rực khói bay nghi ngút
+    for (let i = -1; i <= 1; i++) {
+      const stick = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.01, 0.75, 6),
+        new THREE.MeshBasicMaterial({ color: 0xaa2211 })
+      );
+      stick.position.set(i * 0.12, 0.88, 0);
+      const tip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.026, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff3b00 })
+      );
+      tip.position.set(i * 0.12, 1.25, 0);
+      burnerGroup.add(stick, tip);
+    }
+    this.burnerGroup = burnerGroup;
+
+    // Đôi đĩa hoa sen ngọc & ngũ quả dâng cúng
+    [-1.4, 1.4].forEach(dx => {
+      const plate = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.36, 0.24, 0.08, 16),
+        new THREE.MeshStandardMaterial({ color: 0xbfa018, metalness: 0.85, roughness: 0.2 })
+      );
+      plate.position.set(dx, 1.11, 0);
+      const lotusOff = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 12, 12),
+        new THREE.MeshStandardMaterial({ color: 0xf57297, roughness: 0.4 })
+      );
+      lotusOff.scale.set(1.2, 0.7, 1.2);
+      lotusOff.position.set(dx, 1.22, 0);
+      frontAltarGroup.add(plate, lotusOff);
+    });
+
+    frontAltarGroup.add(frontTable, tableRunner, burnerGroup);
+    this.scene.add(frontAltarGroup);
+
+    // 1. ĐẠI HỒNG CHUNG (CHUÔNG ĐỒNG & KHUNG GỖ BÁT NHÃ)
+    // Đặt tại x = -7.5, z = -2.2. Hai cột trụ ở -8.9 và -6.1, người chơi đứng ở giữa x = -7.5 không bao giờ bị kẹt cột!
     const bellGroup = new THREE.Group();
-    bellGroup.position.set(-8.2, 0, -2);
+    bellGroup.position.set(-7.5, 0, -2.2);
 
     const woodPostMat = new THREE.MeshStandardMaterial({ color: 0x3d170f, roughness: 0.65 });
     const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 6.2, 14), woodPostMat);
-    post1.position.set(-1.3, 3.1, 0);
+    post1.position.set(-1.4, 3.1, 0);
     const post2 = post1.clone();
-    post2.position.set(1.3, 3.1, 0);
+    post2.position.set(1.4, 3.1, 0);
 
     const cross = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.45, 0.45), woodPostMat);
     cross.position.set(0, 5.9, 0);
@@ -899,129 +953,130 @@ export class TempleScene {
       new THREE.MeshStandardMaterial({ color: 0x5a2312, roughness: 0.5 })
     );
     striker.rotation.z = Math.PI / 2;
-    striker.position.set(1.4, 3.8, 0);
+    striker.position.set(0, 3.6, 0.6);
     this.bellStrikerMesh = striker;
 
     bellGroup.add(post1, post2, cross, bell, striker);
     this.scene.add(bellGroup);
 
     // 2. MÕ GỖ BÁT NHÃ & KỆ GỖ TRẦM
+    // Đặt tại x = 7.5, z = -2.2. Người chơi đứng tại z = -0.7 quay mặt về phía mõ gõ tự nhiên
     const woodfishGroup = new THREE.Group();
-    woodfishGroup.position.set(8.2, 0, -2);
+    woodfishGroup.position.set(7.5, 0, -2.2);
 
     const tableMat = new THREE.MeshStandardMaterial({ color: 0x3d0e07, roughness: 0.45 });
-    const table = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.35, 1.2, 20), tableMat);
-    table.position.y = 0.6;
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.35, 1.1, 20), tableMat);
+    table.position.y = 0.55;
 
     const cushion = new THREE.Mesh(
       new THREE.CylinderGeometry(1.05, 1.15, 0.35, 20),
       new THREE.MeshStandardMaterial({ color: 0x9e1a1a, roughness: 0.75 })
     );
-    cushion.position.y = 1.35;
+    cushion.position.y = 1.25;
 
     // Mõ gỗ chạm trổ hình ngư vảy cá dát màu cánh gián bóng
     const wf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.72, 20, 20),
+      new THREE.SphereGeometry(0.68, 20, 20),
       new THREE.MeshStandardMaterial({ color: 0x7c3817, roughness: 0.32, metalness: 0.15 })
     );
     wf.scale.set(1.25, 0.88, 1.05);
-    wf.position.set(0, 1.9, 0);
+    wf.position.set(0, 1.78, 0);
     this.woodfishMesh = wf;
 
     // Dùi mõ cán bọc vải đỏ đặt cạnh mõ
     const malletStick = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 1.1, 10),
+      new THREE.CylinderGeometry(0.035, 0.035, 0.95, 10),
       new THREE.MeshStandardMaterial({ color: 0xd49b56, roughness: 0.4 })
     );
     malletStick.rotation.z = Math.PI / 3;
-    malletStick.position.set(-0.3, 1.95, 0.6);
+    malletStick.position.set(-0.25, 1.82, 0.5);
 
     const malletHead = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.SphereGeometry(0.11, 12, 12),
       new THREE.MeshStandardMaterial({ color: 0x8a1515, roughness: 0.6 })
     );
-    malletHead.position.set(-0.75, 2.2, 0.6);
+    malletHead.position.set(-0.65, 2.05, 0.5);
 
     woodfishGroup.add(table, cushion, wf, malletStick, malletHead);
     this.scene.add(woodfishGroup);
 
     // 3. BÀN LẤY HƯƠNG TRẦM (INCENSE STATION)
     const incenseTableGroup = new THREE.Group();
-    incenseTableGroup.position.set(-3.6, 0, -5.5);
+    incenseTableGroup.position.set(-3.8, 0, -2.0);
 
     const tableIncense = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 1.1, 0.9),
+      new THREE.BoxGeometry(1.4, 1.05, 0.85),
       new THREE.MeshStandardMaterial({ color: 0x3d170f, roughness: 0.5 })
     );
-    tableIncense.position.y = 0.55;
+    tableIncense.position.y = 0.525;
 
     // Khay vàng đựng hương
     const tray = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 0.08, 0.6),
+      new THREE.BoxGeometry(1.1, 0.08, 0.55),
       new THREE.MeshStandardMaterial({ color: 0xbfa018, metalness: 0.85, roughness: 0.25 })
     );
-    tray.position.y = 1.14;
+    tray.position.y = 1.09;
 
     // Bó nhang trầm thơm hương đỏ
     const bundle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.14, 0.14, 0.8, 14),
+      new THREE.CylinderGeometry(0.12, 0.12, 0.75, 14),
       new THREE.MeshStandardMaterial({ color: 0x8f2214, roughness: 0.8 })
     );
     bundle.rotation.z = Math.PI / 2;
-    bundle.position.set(0, 1.25, 0);
+    bundle.position.set(0, 1.19, 0);
 
     // Ngọn nến thắp hương
     const candleMini = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, 0.35, 10),
+      new THREE.CylinderGeometry(0.05, 0.05, 0.32, 10),
       new THREE.MeshStandardMaterial({ color: 0xffffff })
     );
-    candleMini.position.set(0.42, 1.3, 0.15);
+    candleMini.position.set(0.4, 1.23, 0.12);
     const flameMini = new THREE.Mesh(
       new THREE.ConeGeometry(0.04, 0.12, 8),
       new THREE.MeshBasicMaterial({ color: 0xff6600 })
     );
-    flameMini.position.set(0.42, 1.54, 0.15);
+    flameMini.position.set(0.4, 1.45, 0.12);
 
     incenseTableGroup.add(tableIncense, tray, bundle, candleMini, flameMini);
     this.scene.add(incenseTableGroup);
 
     // 4. BÀN XIN XĂM QUÁN ÂM (FORTUNE TUBE STATION)
     const fortuneTableGroup = new THREE.Group();
-    fortuneTableGroup.position.set(3.6, 0, -5.5);
+    fortuneTableGroup.position.set(3.8, 0, -2.0);
 
     const tableFortune = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 1.1, 0.9),
+      new THREE.BoxGeometry(1.4, 1.05, 0.85),
       new THREE.MeshStandardMaterial({ color: 0x3d170f, roughness: 0.5 })
     );
-    tableFortune.position.y = 0.55;
+    tableFortune.position.y = 0.525;
 
     // Khăn phủ gấm vàng
     const cloth = new THREE.Mesh(
       new THREE.BoxGeometry(1.25, 0.04, 0.75),
       new THREE.MeshStandardMaterial({ color: 0xe6a817, roughness: 0.65 })
     );
-    cloth.position.y = 1.12;
+    cloth.position.y = 1.07;
 
     // ỐNG XĂM BẰNG TRE TRÊN BÀN (BAMBOO FORTUNE TUBE)
     const tubeGroup = new THREE.Group();
-    tubeGroup.position.set(0, 1.14, 0);
+    tubeGroup.position.set(0, 1.09, 0);
 
     const tube = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.16, 0.75, 16),
+      new THREE.CylinderGeometry(0.17, 0.15, 0.72, 16),
       new THREE.MeshStandardMaterial({ color: 0xa1773a, roughness: 0.55 })
     );
-    tube.position.y = 0.38;
+    tube.position.y = 0.36;
     tubeGroup.add(tube);
 
     // Các que xăm nhô lên khỏi miệng ống
     for (let s = 0; s < 12; s++) {
       const stick = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.015, 0.85, 6),
+        new THREE.CylinderGeometry(0.015, 0.015, 0.82, 6),
         new THREE.MeshStandardMaterial({ color: 0xd4b07b, roughness: 0.6 })
       );
       const ang = (s / 12) * Math.PI * 2;
       const r = 0.09 * (s % 2 === 0 ? 0.7 : 1.0);
-      stick.position.set(Math.cos(ang) * r, 0.52 + (s % 3) * 0.04, Math.sin(ang) * r);
+      stick.position.set(Math.cos(ang) * r, 0.5 + (s % 3) * 0.04, Math.sin(ang) * r);
       stick.rotation.z = (Math.random() - 0.5) * 0.12;
       tubeGroup.add(stick);
     }
@@ -1107,36 +1162,36 @@ export class TempleScene {
         icon: '🪵',
         title: 'Mõ Gỗ Bát Nhã',
         sub: 'Click để gõ mõ liên tục',
-        x: this.interactiveStations.woodfish.x,
-        y: 1.85,
-        z: this.interactiveStations.woodfish.z,
+        x: 7.5,
+        y: 2.1,
+        z: -2.2,
         action: () => app.fsm.startWoodfish()
       },
       {
         icon: '🔔',
         title: 'Đại Hồng Chung',
         sub: 'Click để thỉnh 1 tiếng ngân',
-        x: this.interactiveStations.bell.x,
-        y: 3.3,
-        z: this.interactiveStations.bell.z,
+        x: -7.5,
+        y: 3.5,
+        z: -2.2,
         action: () => app.fsm.startBell()
       },
       {
         icon: '🪔',
         title: 'Lư Đồng Tam Bảo',
         sub: 'Click thỉnh 3 nén hương dâng Phật',
-        x: this.interactiveStations.incenseBurner.x,
-        y: 2.1,
-        z: this.interactiveStations.incenseBurner.z,
+        x: 0,
+        y: 2.2,
+        z: -2.7,
         action: () => app.fsm.startIncense()
       },
       {
         icon: '🎋',
         title: 'Ống Xăm Quán Âm',
         sub: 'Click xóc ống xin quẻ',
-        x: this.interactiveStations.fortuneTable.x,
-        y: 1.85,
-        z: this.interactiveStations.fortuneTable.z,
+        x: 3.8,
+        y: 2.0,
+        z: -2.0,
         action: () => app.fsm.startFortune()
       },
       {
@@ -1153,8 +1208,8 @@ export class TempleScene {
         title: 'Lễ Phật Tam Bái',
         sub: 'Click chắp tay lạy 3 lạy',
         x: 0,
-        y: 2.1,
-        z: -2.8,
+        y: 1.6,
+        z: 0.0,
         action: () => app.fsm.startBowing()
       }
     ];
@@ -1189,8 +1244,8 @@ export class TempleScene {
 
     for (let i = 0; i < smokeCount; i++) {
       smokePos[i * 3] = (Math.random() - 0.5) * 0.25;
-      smokePos[i * 3 + 1] = 2.1 + Math.random() * 2.6;
-      smokePos[i * 3 + 2] = -6.2 + (Math.random() - 0.5) * 0.25;
+      smokePos[i * 3 + 1] = 1.9 + Math.random() * 2.6;
+      smokePos[i * 3 + 2] = -2.7 + (Math.random() - 0.5) * 0.25;
       smokeVel.push({
         vx: (Math.random() - 0.5) * 0.016,
         vy: 0.012 + Math.random() * 0.01,
@@ -1282,8 +1337,8 @@ export class TempleScene {
         pos[i * 3] += Math.sin(time * 3 + i) * 0.004 + this.smokeVel[i].vx;
         if (pos[i * 3 + 1] > 5.2) {
           pos[i * 3] = (Math.random() - 0.5) * 0.16;
-          pos[i * 3 + 1] = 2.1;
-          pos[i * 3 + 2] = -6.2 + (Math.random() - 0.5) * 0.16;
+          pos[i * 3 + 1] = 1.9;
+          pos[i * 3 + 2] = -2.7 + (Math.random() - 0.5) * 0.16;
         }
       }
       this.smokeParticles.geometry.attributes.position.needsUpdate = true;

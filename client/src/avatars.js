@@ -188,23 +188,28 @@ export class AvatarManager {
     // =========================================================================
     // PROPS GẮN TAY (DÙI MÕ, CHÀY CHUÔNG, 3 NÉN HƯƠNG, ỐNG XĂM)
     // =========================================================================
-    // Dùi gõ mõ
+    // Dùi gõ mõ cầm chắc chắn trên tay phải hướng về phía trước gõ xuống mõ
     const malletProp = new THREE.Group();
-    const mStick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 8), woodMat);
-    const mHead = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), new THREE.MeshStandardMaterial({ color: 0x8a1515, roughness: 0.4 }));
-    mHead.position.y = 0.28;
+    const mStick = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.52, 10), woodMat);
+    mStick.rotation.x = Math.PI / 2;
+    mStick.position.set(0, 0, 0.22);
+    const mHead = new THREE.Mesh(
+      new THREE.SphereGeometry(0.068, 12, 12),
+      new THREE.MeshStandardMaterial({ color: 0x9b1b1b, roughness: 0.35 })
+    );
+    mHead.position.set(0, 0, 0.46);
     malletProp.add(mStick, mHead);
-    malletProp.rotation.x = Math.PI / 2;
-    malletProp.position.set(0, 0.08, 0.22);
+    malletProp.position.set(0, -0.05, 0.12);
     malletProp.visible = false;
     foreArmR.add(malletProp);
 
-    // Chày thỉnh chuông
+    // Chày thỉnh chuông cầm ngang tay phải hướng về đại hồng chung
     const bellStrikerProp = new THREE.Group();
-    const bWood = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 8), woodMat);
+    const bWood = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.04, 0.75, 12), woodMat);
+    bWood.rotation.x = Math.PI / 2;
+    bWood.position.set(0, 0, 0.32);
     bellStrikerProp.add(bWood);
-    bellStrikerProp.rotation.x = Math.PI / 2.2;
-    bellStrikerProp.position.set(0, 0.08, 0.25);
+    bellStrikerProp.position.set(0, -0.05, 0.12);
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
@@ -480,14 +485,16 @@ export class AvatarManager {
         av.legRGroup.rotation.set(0, 0, 0);
         av.spineGroup.rotation.set(0.12, 0, 0);
 
-        av.armLGroup.rotation.set(0.5, 0, -0.25);
-        av.foreArmL.rotation.set(0.7, 0.3, 0);
+        // Tay trái chắp trước ngực hoặc đặt nhẹ niệm Phật
+        av.armLGroup.rotation.set(0.65, 0, -0.25);
+        av.foreArmL.rotation.set(0.85, 0.4, 0);
 
-        const tapCycle = (av.actionTimer * 6.0) % (Math.PI * 2);
+        // Tay phải cầm dùi gõ đều đặn nhịp nhàng xuống mõ gỗ phía trước
+        const tapCycle = (av.actionTimer * 6.2) % (Math.PI * 2);
         const strike = Math.sin(tapCycle);
-        av.armRGroup.rotation.set(0.75 + Math.max(0, strike) * 0.28, 0, 0.05);
-        av.foreArmR.rotation.set(0.85 + Math.max(0, strike) * 0.35, 0, 0);
-        av.headGroup.rotation.x = Math.max(0, strike) * 0.08;
+        av.armRGroup.rotation.set(0.55 + Math.max(0, strike) * 0.18, -0.12, 0.05);
+        av.foreArmR.rotation.set(0.42 + Math.max(0, strike) * 0.35, 0, 0);
+        av.headGroup.rotation.x = Math.max(0, strike) * 0.05;
         return;
       }
 
@@ -497,16 +504,20 @@ export class AvatarManager {
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
+        av.armLGroup.rotation.set(0.5, 0, -0.3);
+        av.foreArmL.rotation.set(0.8, 0.4, 0);
+
         if (av.actionTimer < 1.0) {
           const windup = av.actionTimer / 1.0;
-          av.spineGroup.rotation.set(0, -windup * 0.3, 0);
-          av.armRGroup.rotation.set(1.2 * windup, 0, 0.3);
-          av.foreArmR.rotation.set(0.8 * windup, 0, 0);
+          av.spineGroup.rotation.set(0, -windup * 0.25, 0);
+          av.armRGroup.rotation.set(0.35 + windup * 0.3, windup * 0.25, 0.1);
+          av.foreArmR.rotation.set(0.3 + windup * 0.3, 0, 0);
         } else if (av.actionTimer < 1.8) {
           const strikePhase = (av.actionTimer - 1.0) / 0.8;
-          av.spineGroup.rotation.set(0.15, 0.2, 0);
-          av.armRGroup.rotation.set(1.4 - strikePhase * 0.6, 0, -0.2);
-          av.foreArmR.rotation.set(1.2 - strikePhase * 0.5, 0, 0);
+          const thrust = Math.sin(strikePhase * Math.PI);
+          av.spineGroup.rotation.set(0.12 * thrust, 0.15 * thrust, 0);
+          av.armRGroup.rotation.set(0.65 + thrust * 0.45, -0.12, 0.05);
+          av.foreArmR.rotation.set(0.55 + thrust * 0.35, 0, 0);
         }
         return;
       }
@@ -518,18 +529,22 @@ export class AvatarManager {
         av.legRGroup.rotation.set(0, 0, 0);
 
         if (av.actionTimer < 3.8) {
-          const vPhase = Math.sin(av.actionTimer * 4.5);
+          // Thành kính chắp tay giữ 3 nén hương trước ngực vái 3 vái
+          const vPhase = Math.sin(av.actionTimer * 3.8);
           av.spineGroup.rotation.x = 0.15 + Math.max(0, vPhase) * 0.35;
           av.headGroup.rotation.x = Math.max(0, vPhase) * 0.2;
-          av.armLGroup.rotation.set(0.85, 0, -0.2);
-          av.armRGroup.rotation.set(0.85, 0, 0.2);
-          av.foreArmL.rotation.set(1.1, 0.5, 0);
-          av.foreArmR.rotation.set(1.1, -0.5, 0);
+          av.armLGroup.rotation.set(0.72, 0, -0.22);
+          av.armRGroup.rotation.set(0.72, 0, 0.22);
+          av.foreArmL.rotation.set(0.9, 0.45, 0);
+          av.foreArmR.rotation.set(0.9, -0.45, 0);
         } else if (av.actionTimer < 5.5) {
+          // Nghiêng người vươn tay cắm hương vào lư đồng
           const plantPhase = Math.sin(((av.actionTimer - 3.8) / 1.7) * Math.PI);
-          av.spineGroup.rotation.x = plantPhase * 0.55;
-          av.armLGroup.rotation.set(1.0 + plantPhase * 0.3, 0, -0.1);
-          av.armRGroup.rotation.set(1.0 + plantPhase * 0.3, 0, 0.1);
+          av.spineGroup.rotation.x = plantPhase * 0.45;
+          av.armLGroup.rotation.set(0.8 + plantPhase * 0.35, 0, -0.1);
+          av.armRGroup.rotation.set(0.8 + plantPhase * 0.35, 0, 0.1);
+          av.foreArmL.rotation.set(0.65 + plantPhase * 0.25, 0.3, 0);
+          av.foreArmR.rotation.set(0.65 + plantPhase * 0.25, -0.3, 0);
         }
         return;
       }
