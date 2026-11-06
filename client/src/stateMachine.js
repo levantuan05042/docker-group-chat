@@ -290,6 +290,10 @@ export class RitualStateMachine {
         if (this.currentState !== PlayerState.INCENSE_FETCH) return;
         // Step 3: Walk to grand bronze burner before Buddha
         this.currentState = PlayerState.INCENSE_WALK_TO_ALTAR;
+        if (this.app.controller) {
+          this.app.controller.targetCamPitch = 0.32;
+          this.app.controller.targetCamDistance = 5.4;
+        }
         this.navigateTo(stBurner.x, stBurner.z, stBurner.rotY, () => {
           this.currentState = PlayerState.INCENSE_PLANT;
           this.app.showToast('Cung kính vái 3 vái và cắm hương vào lư đồng...');

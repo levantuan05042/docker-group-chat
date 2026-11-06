@@ -13,11 +13,11 @@ export class TempleScene {
     this.ripples = [];
     this.cushionPositions = [];
     this.interactiveStations = {
-      woodfish: { x: 7.5, z: -0.7, rotY: Math.PI },
-      bell: { x: -7.5, z: -0.6, rotY: Math.PI },
-      incenseTable: { x: -3.8, z: -0.8, rotY: Math.PI },
-      incenseBurner: { x: 0, z: -1.2, rotY: Math.PI },
-      fortuneTable: { x: 3.8, z: -0.8, rotY: Math.PI }
+      woodfish: { x: 7.5, z: -1.2, rotY: Math.PI },
+      bell: { x: -7.5, z: -1.0, rotY: Math.PI },
+      incenseTable: { x: -3.8, z: -1.0, rotY: Math.PI },
+      incenseBurner: { x: 0, z: -1.35, rotY: Math.PI },
+      fortuneTable: { x: 3.8, z: -1.0, rotY: Math.PI }
     };
 
     this.createEnvironment();
