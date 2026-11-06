@@ -154,85 +154,10 @@ body, html {
 }
 
 /* ========================================================
-   3D FLOATING INTERACTION BEACONS (TRỰC QUAN DỄ DÙNG)
+   VIRTUAL D-PAD (Ẩn để giao diện sạch sẽ, thoáng đãng)
    ======================================================== */
-.station-beacon {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(26, 14, 8, 0.92);
-  backdrop-filter: blur(14px);
-  border: 1.5px solid var(--primary-gold);
-  border-radius: 22px;
-  padding: 6px 14px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 14px rgba(245, 175, 25, 0.45);
-  cursor: pointer;
-  pointer-events: auto;
-  user-select: none;
-  transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  animation: beaconPulse 2.8s infinite ease-in-out;
-}
-
-@keyframes beaconPulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-6px) scale(1.05); }
-}
-
-.station-beacon:hover {
-  transform: translateY(-8px) scale(1.15) !important;
-  background: linear-gradient(135deg, #f5af19, #ffd166);
-  border-color: #ffffff;
-  box-shadow: 0 8px 24px rgba(245, 175, 25, 0.8), 0 0 20px #ffffff;
-}
-
-.station-beacon:hover .beacon-title {
-  color: #120b08;
-}
-
-.station-beacon:hover .beacon-sub {
-  color: #3d240d;
-}
-
-.beacon-icon {
-  font-size: 20px;
-}
-
-.beacon-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.beacon-title {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #ffea79;
-  letter-spacing: 0.2px;
-  line-height: 1.2;
-}
-
-.beacon-sub {
-  font-size: 10px;
-  color: rgba(255, 245, 230, 0.7);
-  letter-spacing: 0.1px;
-}
-
-/* VIRTUAL D-PAD (DIRECTIONAL PAD) */
 .virtual-dpad {
-  position: absolute;
-  bottom: 24px;
-  left: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: rgba(24, 14, 8, 0.72);
-  backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(245, 175, 25, 0.3);
-  padding: 8px;
-  border-radius: 26px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  z-index: 15;
-  touch-action: none;
+  display: none !important;
 }
 
 .dpad-middle {

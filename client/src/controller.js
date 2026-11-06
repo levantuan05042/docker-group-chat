@@ -11,7 +11,7 @@ export class PlayerController {
     // Movement state - Đứng trang nghiêm trước Phật điện
     this.position = new THREE.Vector3(0, 0, 7.5);
     this.rotationY = Math.PI; // Face Buddha (-Z) into the temple
-    this.moveSpeed = 5.2;
+    this.moveSpeed = 4.8;
     this.keys = {
       forward: false,
       backward: false,
@@ -19,12 +19,12 @@ export class PlayerController {
       right: false
     };
 
-    // Smooth Orbit Camera parameters with Damping
-    this.camDistance = 5.8;
-    this.targetCamDistance = 5.8;
-    this.camHeight = 2.2;
-    this.camPitch = 0.22; // Góc nhìn Chánh Điện ngước nhìn tôn tượng Đức Phật
-    this.targetCamPitch = 0.22;
+    // Smooth Orbit Camera parameters with Damping (Góc nhìn toàn cảnh thoáng đãng uy nghiêm)
+    this.camDistance = 7.5;
+    this.targetCamDistance = 7.5;
+    this.camHeight = 2.8;
+    this.camPitch = 0.35; // Góc nhìn Chánh Điện thoáng rộng, ngắm trọn vẹn Phật tượng và chánh điện
+    this.targetCamPitch = 0.35;
     this.camYaw = 0; // Hướng camera thẳng về phía Phật điện (-Z)
     this.targetCamYaw = 0;
 
@@ -69,20 +69,20 @@ export class PlayerController {
 
   setCameraMainHall() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.22;
-    this.targetCamDistance = 5.8;
+    this.targetCamPitch = 0.35;
+    this.targetCamDistance = 7.5;
   }
 
   setCameraBuddhaCloseUp() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.08;
-    this.targetCamDistance = 3.2;
+    this.targetCamPitch = 0.16;
+    this.targetCamDistance = 4.8;
   }
 
   setCameraFollow() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.32;
-    this.targetCamDistance = 4.2;
+    this.targetCamPitch = 0.38;
+    this.targetCamDistance = 5.2;
   }
 
   initEventListeners() {
@@ -229,7 +229,7 @@ export class PlayerController {
       const stations = this.temple.interactiveStations;
 
       // 1. Clicked near Woodfish table:
-      if (stations && stations.woodfish && Math.hypot(hitPoint.x - stations.woodfish.x, hitPoint.z - stations.woodfish.z) < 2.2) {
+      if (stations && stations.woodfish && Math.hypot(hitPoint.x - stations.woodfish.x, hitPoint.z - stations.woodfish.z) < 2.0) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startWoodfish();
           return;
@@ -237,7 +237,7 @@ export class PlayerController {
       }
 
       // 2. Clicked near Great Bell:
-      if (stations && stations.bell && Math.hypot(hitPoint.x - stations.bell.x, hitPoint.z - stations.bell.z) < 2.5) {
+      if (stations && stations.bell && Math.hypot(hitPoint.x - stations.bell.x, hitPoint.z - stations.bell.z) < 2.2) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startBell();
           return;
@@ -245,7 +245,7 @@ export class PlayerController {
       }
 
       // 3. Clicked near Fortune table:
-      if (stations && stations.fortuneTable && Math.hypot(hitPoint.x - stations.fortuneTable.x, hitPoint.z - stations.fortuneTable.z) < 2.2) {
+      if (stations && stations.fortuneTable && Math.hypot(hitPoint.x - stations.fortuneTable.x, hitPoint.z - stations.fortuneTable.z) < 2.0) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startFortune();
           return;
@@ -253,7 +253,7 @@ export class PlayerController {
       }
 
       // 4. Clicked near Incense Burner / Altar table:
-      if (stations && stations.incenseBurner && Math.hypot(hitPoint.x - stations.incenseBurner.x, hitPoint.z - stations.incenseBurner.z) < 2.2) {
+      if (stations && stations.incenseBurner && Math.hypot(hitPoint.x - stations.incenseBurner.x, hitPoint.z - stations.incenseBurner.z) < 2.0) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startIncense();
           return;
@@ -261,7 +261,7 @@ export class PlayerController {
       }
 
       // 5. Clicked near Grand Buddha Altar (Bow 3 times):
-      if (Math.hypot(hitPoint.x, hitPoint.z - (-7.5)) < 3.2) {
+      if (Math.hypot(hitPoint.x, hitPoint.z - (-4.8)) < 2.8) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startBowing();
           return;
@@ -271,7 +271,7 @@ export class PlayerController {
       // 6. Clicked near any cushion (Meditate):
       if (this.temple.cushionPositions) {
         for (const c of this.temple.cushionPositions) {
-          if (Math.hypot(hitPoint.x - c.x, hitPoint.z - c.z) < 1.0) {
+          if (Math.hypot(hitPoint.x - c.x, hitPoint.z - c.z) < 0.9) {
             if (this.app && this.app.fsm) {
               this.app.fsm.startMeditation();
               return;
@@ -282,8 +282,8 @@ export class PlayerController {
 
       // 7. Otherwise: walk to target point on floor!
       this.cancelAutoMovement();
-      const clampedX = Math.max(-15, Math.min(15, hitPoint.x));
-      const clampedZ = Math.max(-6, Math.min(18, hitPoint.z));
+      const clampedX = Math.max(-12, Math.min(12, hitPoint.x));
+      const clampedZ = Math.max(-3.5, Math.min(18.5, hitPoint.z));
       this.targetMovePoint = new THREE.Vector3(clampedX, 0, clampedZ);
 
       if (this.temple && this.temple.spawnClickRipple) {
@@ -362,8 +362,8 @@ export class PlayerController {
         const nextX = this.position.x + moveX * this.moveSpeed * delta;
         const nextZ = this.position.z + moveZ * this.moveSpeed * delta;
 
-        this.position.x = Math.max(-15.5, Math.min(15.5, nextX));
-        this.position.z = Math.max(-6.2, Math.min(19.2, nextZ));
+        this.position.x = Math.max(-12.0, Math.min(12.0, nextX));
+        this.position.z = Math.max(-3.5, Math.min(19.0, nextZ));
 
         this.rotationY = Math.atan2(moveX, moveZ);
       }
