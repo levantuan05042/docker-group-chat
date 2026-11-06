@@ -3,8 +3,8 @@ class TempleAudio {
   constructor() {
     this.ctx = null;
     this.isPlaying = false;
-    this.currentTrack = 'nam-mo-a-di-da-phat'; // DEFAULT: Nam Mô A Di Đà Phật
-    this.volume = 0.45; // Gentle, relaxing volume
+    this.currentTrack = 'woodfish-chant'; // DEFAULT: Tiếng gõ mõ thiền tĩnh tâm
+    this.volume = 0.55; // Gentle, relaxing volume
 
     // Master nodes
     this.masterGain = null;
@@ -166,6 +166,9 @@ class TempleAudio {
     }
 
     switch (this.currentTrack) {
+      case 'woodfish-chant':
+        this.startWoodfishChantTrack();
+        break;
       case 'singing-bowl':
         this.startSingingBowlTrack();
         break;
@@ -173,10 +176,98 @@ class TempleAudio {
         this.startTempleRainTrack();
         break;
       case 'nam-mo-a-di-da-phat':
-      default:
         this.startNamMoADiDaPhatTrack();
         break;
+      default:
+        this.startWoodfishChantTrack();
+        break;
     }
+  }
+
+  // =========================================================================
+  // 🪵 TIẾNG GÕ MÕ THIỀN ĐỊNH (CHUẨN CHÙA TRÚC LÂM - TRẦM ẤM, THANH TỊNH, AN NHIÊN)
+  // Nhịp mõ gõ đều đặn trầm ấm khoảng 55 BPM, kết hợp tiếng chuông đồng ngân nga
+  // =========================================================================
+  startWoodfishChantTrack() {
+    if (!this.isPlaying || !this.ctx) return;
+
+    let beatCount = 0;
+    const intervalMs = 1080; // Nhịp mõ thiền tĩnh tâm ~55 BPM
+
+    const playRhythmicStrike = () => {
+      if (!this.isPlaying || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      beatCount++;
+
+      // 1. Tiếng Mõ Trầm (Deep Wooden Fish Body)
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const strikeVelocity = 0.85 + (Math.sin(beatCount * 1.5) * 0.08);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(680, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.11);
+
+      gain.gain.setValueAtTime(0.68 * strikeVelocity, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(now);
+      osc.stop(now + 0.17);
+
+      // 2. Tiếng gõ lóc cóc của dùi gỗ chạm vỏ mõ (Wood click transient)
+      const clickOsc = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      clickOsc.type = 'triangle';
+      clickOsc.frequency.setValueAtTime(980, now);
+      clickOsc.frequency.exponentialRampToValueAtTime(320, now + 0.025);
+
+      clickGain.gain.setValueAtTime(0.32 * strikeVelocity, now);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+      clickOsc.connect(clickGain);
+      clickGain.connect(this.musicGain);
+      clickOsc.start(now);
+      clickOsc.stop(now + 0.04);
+
+      // 3. Mỗi 8 nhịp mõ (chu kỳ 1 câu kinh), điểm thêm một tiếng chuông bát nhã ngân xa
+      if (beatCount % 8 === 0) {
+        this.playGentleBellAccent();
+      }
+    };
+
+    // Strike immediately then loop
+    playRhythmicStrike();
+    const timer = setInterval(() => {
+      playRhythmicStrike();
+    }, intervalMs);
+
+    this.musicTimers.push(timer);
+  }
+
+  playGentleBellAccent() {
+    if (!this.ctx || !this.isPlaying) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const baseFreq = 220; // A3
+
+    [1.0, 1.414, 2.76].forEach((ratio, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq * ratio, now);
+
+      const amp = (0.28 / (idx + 1));
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(amp, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 6.5);
+
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(now);
+      osc.stop(now + 6.6);
+    });
   }
 
   stopMusic() {

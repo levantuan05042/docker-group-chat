@@ -21,8 +21,8 @@ const io = new Server(server, {
   }
 });
 
-// Port from Render environment or default to 5000
-const PORT = process.env.PORT || 5000;
+// Port from Render environment or default to 10000 (Render default) or 5000
+const PORT = process.env.PORT || 10000;
 
 // Locate client dist folder flexibly
 const possibleDistPaths = [

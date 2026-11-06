@@ -23,8 +23,8 @@ export class TempleScene {
   }
 
   createEnvironment() {
-    this.scene.background = new THREE.Color(0x120a07);
-    this.scene.fog = new THREE.FogExp2(0x120a07, 0.015);
+    this.scene.background = new THREE.Color(0x2d1c14);
+    this.scene.fog = new THREE.FogExp2(0x2d1c14, 0.008);
 
     // Misty mountain backdrop visible through lattice windows
     const mountainMat = new THREE.MeshStandardMaterial({
@@ -49,12 +49,12 @@ export class TempleScene {
   createArchitecture() {
     const templeGroup = new THREE.Group();
 
-    // Sàn gỗ mun đen bóng phản chiếu ánh nến (Dark polished timber floor)
+    // Sàn gỗ mun ấm bóng phản chiếu ánh sáng (Warm polished temple timber floor)
     const floorGeo = new THREE.PlaneGeometry(36, 48, 16, 16);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x24140d,
-      roughness: 0.28,
-      metalness: 0.2
+      color: 0x3d251a,
+      roughness: 0.32,
+      metalness: 0.12
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -631,12 +631,16 @@ export class TempleScene {
   // ÁNH SÁNG ẤM CÚNG & VOLUMETRIC GOD RAYS TỪ CỬA SỔ
   // =========================================================================
   createAtmosphericLighting() {
-    // Ambient light warm
-    const ambientLight = new THREE.AmbientLight(0xffebd2, 0.82);
+    // 1. Ánh sáng môi trường dịu dàng, ấm cúng làm sáng toàn bộ chánh điện
+    const ambientLight = new THREE.AmbientLight(0xfff2e0, 1.45);
     this.scene.add(ambientLight);
 
-    // Directional light chiếu xiên từ cửa sổ bên trái (như ảnh gốc)
-    const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.4);
+    // 2. Bán cầu ánh sáng chiếu từ trần vàng ấm xuống và hắt từ sàn lên
+    const hemiLight = new THREE.HemisphereLight(0xfffaea, 0x5a3b25, 1.35);
+    this.scene.add(hemiLight);
+
+    // 3. Ánh nắng ban mai rực rỡ chiếu xiên từ hàng cửa sổ ô trám bên trái
+    const sunLight = new THREE.DirectionalLight(0xffeed2, 2.1);
     sunLight.position.set(-20, 16, 6);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
@@ -644,9 +648,19 @@ export class TempleScene {
     sunLight.shadow.bias = -0.001;
     this.scene.add(sunLight);
 
-    // Warm glow at the entrance door
-    const entranceLight = new THREE.PointLight(0xff9922, 1.6, 12);
-    entranceLight.position.set(0, 5.5, 19.0);
+    // 4. Ánh sáng diện diện từ hướng cửa chính vào trung tâm giúp nhân vật và tượng rõ nét
+    const frontLight = new THREE.DirectionalLight(0xffe2bf, 1.25);
+    frontLight.position.set(0, 14, 24);
+    this.scene.add(frontLight);
+
+    // 5. Đèn chùm vàng ấm trên cao lan tỏa
+    const ceilingGlow = new THREE.PointLight(0xffbb55, 1.8, 35);
+    ceilingGlow.position.set(0, 9.5, 4);
+    this.scene.add(ceilingGlow);
+
+    // 6. Ánh nến ấm áp tại ngạch Cửa Chùa
+    const entranceLight = new THREE.PointLight(0xffaa33, 2.0, 14);
+    entranceLight.position.set(0, 5.5, 18.5);
     this.scene.add(entranceLight);
   }
 

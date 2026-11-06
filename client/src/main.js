@@ -64,7 +64,7 @@ class ChuaOnlineApp {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.18;
+    this.renderer.toneMappingExposure = 1.38;
     this.canvasContainer.appendChild(this.renderer.domElement);
 
     this.css2dRenderer = new CSS2DRenderer();
@@ -125,11 +125,11 @@ class ChuaOnlineApp {
     const updateUIState = (isPlaying) => {
       if (isPlaying) {
         btnToggle.classList.add('playing');
-        stateText.textContent = 'Đang Phát';
+        stateText.textContent = 'Đang Gõ Mõ';
         wave.classList.add('active');
       } else {
         btnToggle.classList.remove('playing');
-        stateText.textContent = 'Bật Nhạc';
+        stateText.textContent = 'Bật Mõ Thiền';
         wave.classList.remove('active');
       }
     };
