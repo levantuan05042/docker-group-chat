@@ -18,6 +18,11 @@ export class AvatarManager {
   // Đầu tròn nhẵn mịn phúc hậu, áo lam thanh nhã, vạt cà sa vàng rực rỡ,
   // Dáng ngồi kiết già vững chãi trên bồ đoàn vuông, nametag chữ trắng sắc nét
   // =========================================================================
+  // TẠO HÌNH NHÂN VẬT SƯ THẦY / PHẬT TỬ CHUẨN XÁC TỈ LỆ NGƯỜI THẬT
+  // Gương mặt từ bi, sống mũi, mắt phượng, 6 chấm giới điệp trên trán,
+  // Chuỗi tràng hạt bồ đề 108 hạt gỗ đàn hương, y cà sa vắt chéo cài khoen ngọc,
+  // Ống tay áo thụng rộng, giày vải tu sĩ, cử chỉ chắp tay hoa sen trang nghiêm
+  // =========================================================================
   createAvatar(data) {
     const group = new THREE.Group();
     group.position.set(data.x || 0, data.y || 0, data.z || 0);
@@ -27,59 +32,74 @@ export class AvatarManager {
 
     const robeSashColorHex = parseInt((data.robeColor || '#f5a623').replace('#', '0x'), 16);
 
-    // MATERIALS VẢI VÀ DA MỊN MÀNG (STUDIO PBR MATERIALS)
+    // CHẤT LIỆU VẢI VÀ DA NGƯỜI CHUẨN PBR
     const innerRobeMat = new THREE.MeshStandardMaterial({
-      color: 0xdedee6, // Vải áo tràng màu tro lam / xám trắng thanh tịnh
-      roughness: 0.65,
-      metalness: 0.05
+      color: 0x4a5d6e, // Áo tràng màu lam thanh tịnh
+      roughness: 0.72,
+      metalness: 0.04
+    });
+
+    const collarMat = new THREE.MeshStandardMaterial({
+      color: 0x37474f, // Nẹp cổ áo giao lĩnh vạt chéo
+      roughness: 0.65
     });
 
     const sashRobeMat = new THREE.MeshStandardMaterial({
-      color: robeSashColorHex, // Sắc y cà sa vàng nghệ tươi tắn
-      roughness: 0.52,
+      color: robeSashColorHex, // Sắc y cà sa vàng cam rực rỡ
+      roughness: 0.55,
       metalness: 0.08
     });
 
     const skinMat = new THREE.MeshStandardMaterial({
-      color: 0xffdfbe, // Làn da sáng hồng mịn màng phúc tướng
-      roughness: 0.38,
+      color: 0xfad1b0, // Làn da sáng hồng mịn màng phúc hậu
+      roughness: 0.42,
       metalness: 0.0
     });
 
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2411, roughness: 0.5 });
-    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x221711, roughness: 0.75 });
+    const scalpMat = new THREE.MeshStandardMaterial({
+      color: 0x8a9ba8, // Bóng xanh da đầu cạo trọc của tu sĩ thanh tịnh
+      roughness: 0.65
+    });
 
-    // 1. PELVIS & SKIRT
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2411, roughness: 0.4 });
+    const beadMat = new THREE.MeshStandardMaterial({ color: 0x542813, roughness: 0.32, metalness: 0.1 });
+    const goldBroochMat = new THREE.MeshStandardMaterial({ color: 0xf5ba2a, metalness: 0.88, roughness: 0.2 });
+    const sockMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.6 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x2e1d14, roughness: 0.75 });
+
+    // 1. PELVIS & PLEATED SKIRT (HÔNG & TÀ ÁO TRÀNG DẬP LY)
     const pelvis = new THREE.Group();
-    pelvis.position.y = 0.66;
+    pelvis.position.y = 0.68;
     group.add(pelvis);
 
-    // Tà áo tràng phủ xuống gối (Robe Skirt)
-    const skirtGeo = new THREE.CylinderGeometry(0.32, 0.45, 0.56, 20);
+    // Tà áo tràng xòe nhẹ phủ qua đầu gối
+    const skirtGeo = new THREE.CylinderGeometry(0.3, 0.44, 0.58, 20);
     const skirt = new THREE.Mesh(skirtGeo, innerRobeMat);
-    skirt.position.y = -0.15;
+    skirt.position.y = -0.16;
+    skirt.castShadow = true;
     pelvis.add(skirt);
 
-    // Dải y cà sa rủ sau lưng
-    const sashBack = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.46, 0.06), sashRobeMat);
-    sashBack.position.set(-0.1, -0.12, -0.22);
-    pelvis.add(sashBack);
+    // Vạt cà sa rủ xéo qua hông phải
+    const kesaHem = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.54, 0.06), sashRobeMat);
+    kesaHem.position.set(-0.12, -0.14, 0.2);
+    kesaHem.rotation.z = -0.12;
+    pelvis.add(kesaHem);
 
-    // 2. LEGS & MONK SHOES (ĐÔI CHÂN ĐI LẠI TỰ NHIÊN)
-    const legGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.44, 12);
-    const shoeGeo = new THREE.BoxGeometry(0.13, 0.085, 0.23);
+    // 2. LEGS, SOCKS & MONK SHOES (CHÂN, TẤT TRẮNG & GIÀY VẢI TU SĨ)
+    const legGeo = new THREE.CylinderGeometry(0.085, 0.08, 0.45, 14);
+    const shoeGeo = new THREE.BoxGeometry(0.12, 0.08, 0.24);
 
     const legLGroup = new THREE.Group();
-    legLGroup.position.set(-0.14, -0.22, 0);
-    const legLMesh = new THREE.Mesh(legGeo, innerRobeMat);
+    legLGroup.position.set(-0.13, -0.22, 0);
+    const legLMesh = new THREE.Mesh(legGeo, sockMat); // Tất trắng tu sĩ
     legLMesh.position.y = -0.18;
     const footL = new THREE.Mesh(shoeGeo, shoeMat);
     footL.position.set(0, -0.4, 0.04);
     legLGroup.add(legLMesh, footL);
 
     const legRGroup = new THREE.Group();
-    legRGroup.position.set(0.14, -0.22, 0);
-    const legRMesh = new THREE.Mesh(legGeo, innerRobeMat);
+    legRGroup.position.set(0.13, -0.22, 0);
+    const legRMesh = new THREE.Mesh(legGeo, sockMat);
     legRMesh.position.y = -0.18;
     const footR = new THREE.Mesh(shoeGeo, shoeMat);
     footR.position.set(0, -0.4, 0.04);
@@ -87,100 +107,185 @@ export class AvatarManager {
 
     pelvis.add(legLGroup, legRGroup);
 
-    // 3. SPINE & TORSO (THÂN TRÊN VỚI VẠT CÀ SA ĐẸP MẮT)
+    // 3. SPINE & TORSO (THÂN TRÊN VỚI ÁO CÀ SA & CỔ GIAO LĨNH)
     const spineGroup = new THREE.Group();
-    spineGroup.position.y = 0.08;
+    spineGroup.position.y = 0.1;
     pelvis.add(spineGroup);
 
-    const torsoGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.52, 20);
+    // Thân áo tràng bên trong
+    const torsoGeo = new THREE.CylinderGeometry(0.26, 0.3, 0.54, 20);
     const torsoMesh = new THREE.Mesh(torsoGeo, innerRobeMat);
-    torsoMesh.position.y = 0.26;
+    torsoMesh.position.y = 0.27;
     torsoMesh.castShadow = true;
     spineGroup.add(torsoMesh);
 
-    // Vạt cà sa vắt chéo qua vai trái (Saffron Sash Torus)
-    const stoleGeo = new THREE.TorusGeometry(0.34, 0.08, 12, 24, Math.PI * 1.25);
-    const stole = new THREE.Mesh(stoleGeo, sashRobeMat);
-    stole.rotation.z = -Math.PI / 3.2;
-    stole.rotation.y = Math.PI / 12;
-    stole.position.set(0.04, 0.32, 0.06);
-    spineGroup.add(stole);
+    // Cổ áo giao lĩnh vạt chéo truyền thống của nhà chùa
+    const collarL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.03), collarMat);
+    collarL.rotation.z = -Math.PI / 4.5;
+    collarL.position.set(-0.06, 0.42, 0.27);
+    const collarR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.03), collarMat);
+    collarR.rotation.z = Math.PI / 4.5;
+    collarR.position.set(0.06, 0.42, 0.27);
+    spineGroup.add(collarL, collarR);
 
-    // Chuỗi hạt bồ đề đeo quanh cổ rủ trước ngực
-    const rosary = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.02, 8, 24), woodMat);
-    rosary.rotation.x = Math.PI / 2.6;
-    rosary.position.set(0, 0.44, 0.12);
-    spineGroup.add(rosary);
+    // Y CÀ SA VẮT CHÉO TỪ VAI TRÁI QUA HÔNG PHẢI
+    const kesaDrape = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.09, 12, 28, Math.PI * 1.3), sashRobeMat);
+    kesaDrape.rotation.z = -Math.PI / 3.4;
+    kesaDrape.rotation.y = Math.PI / 14;
+    kesaDrape.position.set(0.04, 0.34, 0.07);
+    spineGroup.add(kesaDrape);
+
+    // Khoen ngọc cài vai dát vàng (Jade Brooch Ring on shoulder)
+    const brooch = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 8, 16), goldBroochMat);
+    brooch.position.set(-0.22, 0.48, 0.16);
+    spineGroup.add(brooch);
+
+    // CHUỖI TRÀNG HẠT BỒ ĐỀ 108 HẠT GỖ ĐÀN HƯƠNG ĐEO QUANH CỔ
+    const rosaryGroup = new THREE.Group();
+    rosaryGroup.position.set(0, 0.46, 0.12);
+    for (let b = 0; b < 24; b++) {
+      const bAng = (b / 24) * Math.PI * 2;
+      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), beadMat);
+      bead.position.set(Math.cos(bAng) * 0.19, -Math.sin(bAng) * 0.25, Math.sin(bAng) * 0.08);
+      rosaryGroup.add(bead);
+    }
+    // Hạt hồ lô & dây cát tường đỏ rủ trước ngực
+    const gourd = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), goldBroochMat);
+    gourd.position.set(0, -0.26, 0.12);
+    const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.02, 0.14, 6), new THREE.MeshBasicMaterial({ color: 0xaa1818 }));
+    tassel.position.set(0, -0.34, 0.12);
+    rosaryGroup.add(gourd, tassel);
+    spineGroup.add(rosaryGroup);
 
     const chestGroup = new THREE.Group();
-    chestGroup.position.y = 0.48;
+    chestGroup.position.y = 0.5;
     spineGroup.add(chestGroup);
 
-    // 4. ĐẦU TIỂU ĐỒNG TU TRÒN TRĨNH PHÚC HẬU (ADORABLE NOVICE MONK HEAD)
+    // 4. ĐẦU SƯ THẦY / PHẬT TỬ TỪ BI TỈ LỆ NGƯỜI THẬT
     const headGroup = new THREE.Group();
-    headGroup.position.y = 0.22;
+    headGroup.position.y = 0.24;
     chestGroup.add(headGroup);
 
-    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 28, 28), skinMat);
-    headMesh.scale.set(1.0, 1.05, 1.0);
-    headMesh.position.y = 0.18;
-    headMesh.castShadow = true;
-    headGroup.add(headMesh);
+    // Hộp sọ & gương mặt trái xoan phúc tướng
+    const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.28, 26, 26), skinMat);
+    cranium.scale.set(0.92, 1.04, 0.96);
+    cranium.position.y = 0.16;
+    cranium.castShadow = true;
+    headGroup.add(cranium);
 
-    // Nụ cười & đôi mắt từ bi an lạc (Stylized peaceful eyes)
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x2b1c11 });
-    [-0.1, 0.1].forEach(ex => {
-      // Đôi mắt khép hờ tĩnh tâm (arc curve)
-      const eyeArc = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.012, 6, 12, Math.PI), eyeMat);
-      eyeArc.rotation.z = Math.PI;
-      eyeArc.position.set(ex, 0.19, 0.30);
-      headGroup.add(eyeArc);
+    // Vòm da đầu cạo trọc xanh lam mờ (Shaved monk scalp tone)
+    const scalpCap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.282, 22, 22, 0, Math.PI * 2, 0, Math.PI / 1.7),
+      scalpMat
+    );
+    scalpCap.scale.set(0.92, 1.04, 0.96);
+    scalpCap.position.y = 0.16;
+    headGroup.add(scalpCap);
+
+    // 6 CHẤM GIỚI ĐIỆP ĐỎ SON TRÊN ĐỈNH ĐẦU (SIX MONASTIC ORDINATION DOTS)
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0xcc2222 });
+    [-0.04, 0.04].forEach(dx => {
+      [0.34, 0.38, 0.42].forEach(dy => {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), dotMat);
+        dot.position.set(dx, dy, 0.22);
+        headGroup.add(dot);
+      });
     });
 
-    // Môi mỉm cười nhẹ nhõm
-    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 6, 10, Math.PI * 0.8), eyeMat);
-    smile.rotation.x = Math.PI / 2.4;
-    smile.rotation.z = Math.PI;
-    smile.position.set(0, 0.08, 0.31);
-    headGroup.add(smile);
+    // SỐNG MŨI THANH TÚ & ĐẦU MŨI TRÒN NHỎ
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.16, 6), skinMat);
+    nose.rotation.x = -0.22;
+    nose.position.set(0, 0.14, 0.285);
+    headGroup.add(nose);
 
-    // Đôi tai tròn nhỏ dễ thương
-    [-0.32, 0.32].forEach(earX => {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), skinMat);
-      ear.scale.set(0.5, 1.0, 0.8);
-      ear.position.set(earX, 0.17, 0.02);
-      headGroup.add(ear);
+    // ĐÔI MẮT PHƯỢNG TỪ BI KHÉP HỜ TĨNH LẶNG
+    const eyeBrowMat = new THREE.MeshBasicMaterial({ color: 0x3d271d });
+    [-0.09, 0.09].forEach(ex => {
+      // Cung mày cong thanh tú
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.018, 0.02), eyeBrowMat);
+      brow.rotation.z = ex > 0 ? -0.15 : 0.15;
+      brow.position.set(ex, 0.22, 0.27);
+
+      // Mí mắt khép hờ nhìn xuống
+      const eyeLid = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.012, 6, 12, Math.PI), eyeBrowMat);
+      eyeLid.rotation.z = Math.PI;
+      eyeLid.position.set(ex, 0.17, 0.275);
+
+      headGroup.add(brow, eyeLid);
     });
 
-    // 5. HAI TAY & VẬT PHẨM CẦM TAY (ARMS & PROPS)
-    const armGeo = new THREE.CylinderGeometry(0.09, 0.12, 0.38, 14);
+    // MÔI SON TỪ BI MỈM CƯỜI HOAN HỶ
+    const lipMat = new THREE.MeshStandardMaterial({ color: 0xc45e5e, roughness: 0.4 });
+    const lips = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.011, 6, 12, Math.PI * 0.85), lipMat);
+    lips.rotation.x = Math.PI / 2.3;
+    lips.rotation.z = Math.PI;
+    lips.position.set(0, 0.065, 0.28);
+    headGroup.add(lips);
 
-    const createHand = () => {
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 12), skinMat);
-      hand.scale.set(0.9, 1.0, 0.8);
-      return hand;
+    // ĐÔI TAI PHẬT DÁI TAI DÀY PHÚC HẬU
+    [-0.27, 0.27].forEach(earX => {
+      const earGroup = new THREE.Group();
+      earGroup.position.set(earX, 0.14, 0);
+
+      const earUpper = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), skinMat);
+      earUpper.scale.set(0.4, 1.0, 0.7);
+
+      const earLobe = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.12, 8), skinMat);
+      earLobe.position.set(0, -0.07, 0);
+
+      earGroup.add(earUpper, earLobe);
+      headGroup.add(earGroup);
+    });
+
+    // 5. HAI TAY VỚI ỐNG TAY ÁO THỤNG RỘNG & BÀN TAY 5 NGÓN
+    const sleeveGeo = new THREE.CylinderGeometry(0.14, 0.18, 0.38, 14);
+
+    const createHandRealistic = () => {
+      const handG = new THREE.Group();
+      // Lòng bàn tay
+      const palm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.04), skinMat);
+      handG.add(palm);
+
+      // 4 ngón tay thon dài
+      for (let f = 0; f < 4; f++) {
+        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.008, 0.11, 6), skinMat);
+        finger.position.set(-0.03 + f * 0.02, 0.1, 0);
+        handG.add(finger);
+      }
+      // Ngón cái
+      const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.009, 0.08, 6), skinMat);
+      thumb.rotation.z = Math.PI / 4;
+      thumb.position.set(-0.045, 0.02, 0.01);
+      handG.add(thumb);
+
+      handG.scale.set(0.9, 0.9, 0.9);
+      return handG;
     };
 
     const armLGroup = new THREE.Group();
-    armLGroup.position.set(-0.32, 0.1, 0);
-    const upperArmL = new THREE.Mesh(armGeo, sashRobeMat);
+    armLGroup.position.set(-0.33, 0.1, 0);
+    const upperArmL = new THREE.Mesh(sleeveGeo, sashRobeMat);
     upperArmL.position.set(0, -0.16, 0);
     const foreArmL = new THREE.Group();
     foreArmL.position.set(0, -0.32, 0);
-    const handL = createHand();
-    handL.position.set(0, -0.05, 0.12);
-    foreArmL.add(handL);
+    const sleeveL = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.28, 12), sashRobeMat);
+    sleeveL.position.set(0, -0.08, 0);
+    const handL = createHandRealistic();
+    handL.position.set(0, -0.18, 0.06);
+    foreArmL.add(sleeveL, handL);
     armLGroup.add(upperArmL, foreArmL);
 
     const armRGroup = new THREE.Group();
-    armRGroup.position.set(0.32, 0.1, 0);
-    const upperArmR = new THREE.Mesh(armGeo, innerRobeMat);
+    armRGroup.position.set(0.33, 0.1, 0);
+    const upperArmR = new THREE.Mesh(sleeveGeo, innerRobeMat);
     upperArmR.position.set(0, -0.16, 0);
     const foreArmR = new THREE.Group();
     foreArmR.position.set(0, -0.32, 0);
-    const handR = createHand();
-    handR.position.set(0, -0.05, 0.12);
-    foreArmR.add(handR);
+    const sleeveR = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.28, 12), innerRobeMat);
+    sleeveR.position.set(0, -0.08, 0);
+    const handR = createHandRealistic();
+    handR.position.set(0, -0.18, 0.06);
+    foreArmR.add(sleeveR, handR);
     armRGroup.add(upperArmR, foreArmR);
 
     chestGroup.add(armLGroup, armRGroup);
@@ -199,7 +304,7 @@ export class AvatarManager {
     );
     mHead.position.set(0, 0, 0.46);
     malletProp.add(mStick, mHead);
-    malletProp.position.set(0, -0.05, 0.12);
+    malletProp.position.set(0, -0.16, 0.12);
     malletProp.visible = false;
     foreArmR.add(malletProp);
 
@@ -209,18 +314,18 @@ export class AvatarManager {
     bWood.rotation.x = Math.PI / 2;
     bWood.position.set(0, 0, 0.32);
     bellStrikerProp.add(bWood);
-    bellStrikerProp.position.set(0, -0.05, 0.12);
+    bellStrikerProp.position.set(0, -0.16, 0.12);
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
     // 3 nén hương bén lửa
     const incenseProp = new THREE.Group();
-    incenseProp.position.set(0, 0.16, 0.3);
+    incenseProp.position.set(0, 0.18, 0.32);
     for (let s = -1; s <= 1; s++) {
-      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5), new THREE.MeshBasicMaterial({ color: 0xaa2211 }));
-      stick.position.set(s * 0.04, 0.15, 0);
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.52), new THREE.MeshBasicMaterial({ color: 0xaa2211 }));
+      stick.position.set(s * 0.04, 0.18, 0);
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
-      tip.position.set(s * 0.04, 0.4, 0);
+      tip.position.set(s * 0.04, 0.44, 0);
       incenseProp.add(stick, tip);
     }
     incenseProp.visible = false;
@@ -228,7 +333,7 @@ export class AvatarManager {
 
     // Ống xăm tre
     const fortuneProp = new THREE.Group();
-    fortuneProp.position.set(0, 0.12, 0.32);
+    fortuneProp.position.set(0, 0.14, 0.34);
     const fTube = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.11, 0.48, 14), new THREE.MeshStandardMaterial({ color: 0xa1773a, roughness: 0.5 }));
     fortuneProp.add(fTube);
     for (let k = 0; k < 6; k++) {
@@ -266,7 +371,7 @@ export class AvatarManager {
     uiContainer.appendChild(tagEl);
 
     const css2dObject = new CSS2DObject(uiContainer);
-    css2dObject.position.set(0, 1.88, 0);
+    css2dObject.position.set(0, 1.95, 0);
     group.add(css2dObject);
 
     this.scene.add(group);
@@ -405,179 +510,184 @@ export class AvatarManager {
       while (diffRot > Math.PI) diffRot -= Math.PI * 2;
       av.group.rotation.y += diffRot * 0.25;
 
-      // 1. WALKING GAIT (ĐI LẠI TỰ NHIÊN, ĐONG ĐƯA HÔNG)
+      // 1. BƯỚC ĐI THIỀN HÀNH AN NHIÊN (MINDFUL WALKING GAIT)
       if (av.isMoving) {
-        av.walkCycle += delta * 11;
+        av.walkCycle += delta * 9.5;
         const cycle = av.walkCycle;
 
-        const legSwing = Math.sin(cycle) * 0.55;
+        // Chân bước dồn trọng tâm tự nhiên
+        const legSwing = Math.sin(cycle) * 0.48;
         av.legLGroup.rotation.x = legSwing;
         av.legRGroup.rotation.x = -legSwing;
 
-        av.pelvis.position.y = 0.64 + Math.abs(Math.sin(cycle)) * 0.04;
-        av.pelvis.rotation.y = Math.sin(cycle) * 0.06;
-        av.pelvis.rotation.z = Math.cos(cycle) * 0.025;
+        // Nhấc chân và nhún gối nhẹ
+        av.pelvis.position.y = 0.68 + Math.abs(Math.sin(cycle)) * 0.035;
+        av.pelvis.rotation.y = Math.sin(cycle) * 0.05;
+        av.pelvis.rotation.z = Math.cos(cycle) * 0.02;
 
-        av.spineGroup.rotation.y = -Math.sin(cycle) * 0.08;
-        av.spineGroup.rotation.x = 0.08;
+        av.spineGroup.rotation.y = -Math.sin(cycle) * 0.06;
+        av.spineGroup.rotation.x = 0.04;
 
-        av.armLGroup.rotation.x = -Math.sin(cycle) * 0.45;
-        av.armLGroup.rotation.z = -0.15;
-        av.armRGroup.rotation.x = Math.sin(cycle) * 0.45;
-        av.armRGroup.rotation.z = 0.15;
+        // Tay chắp nhẹ trước ngực hoặc đong đưa thanh thoát khi thiền hành
+        av.armLGroup.rotation.set(0.65 - Math.sin(cycle) * 0.15, 0.1, -0.2);
+        av.armRGroup.rotation.set(0.65 + Math.sin(cycle) * 0.15, -0.1, 0.2);
+        av.foreArmL.rotation.set(0.9, 0.5, 0);
+        av.foreArmR.rotation.set(0.9, -0.5, 0);
 
-        av.foreArmL.rotation.x = 0.2 + Math.max(0, -Math.sin(cycle) * 0.25);
-        av.foreArmR.rotation.x = 0.2 + Math.max(0, Math.sin(cycle) * 0.25);
-
-        av.headGroup.rotation.x = Math.sin(cycle * 2) * 0.03;
-        av.headGroup.rotation.y = 0;
+        av.headGroup.rotation.x = Math.sin(cycle * 2) * 0.025;
+        av.headGroup.rotation.y = Math.sin(cycle) * 0.02;
         return;
       }
 
-      // 2. NGỒI THIỀN TRÊN BỒ ĐOÀN (SITTING MEDITATION AS IN MEME)
+      // 2. NGỒI THIỀN KIẾT GIÀ TRÊN BỒ ĐOÀN (LOTUS MEDITATION)
       if (av.action === 'sit') {
-        av.pelvis.position.y = 0.26;
+        av.pelvis.position.y = 0.28;
         av.pelvis.rotation.set(0, 0, 0);
 
-        av.legLGroup.rotation.set(Math.PI / 2.3, 0.35, -0.2);
-        av.legRGroup.rotation.set(Math.PI / 2.3, -0.35, 0.2);
+        // Chân xếp bằng kiết già
+        av.legLGroup.rotation.set(Math.PI / 2.3, 0.38, -0.22);
+        av.legRGroup.rotation.set(Math.PI / 2.3, -0.38, 0.22);
 
         av.spineGroup.rotation.set(0, 0, 0);
 
-        // Hai tay đặt ngửa trong lòng (Thiền Định Ấn)
-        av.armLGroup.rotation.set(0.4, 0, -0.3);
-        av.armRGroup.rotation.set(0.4, 0, 0.3);
-        av.foreArmL.rotation.set(0.7, 0.4, 0);
-        av.foreArmR.rotation.set(0.7, -0.4, 0);
+        // Hai tay kết Thiền Định Ấn (Dhyana Mudra) đặt ngửa thanh thản trong lòng
+        av.armLGroup.rotation.set(0.45, 0, -0.28);
+        av.armRGroup.rotation.set(0.45, 0, 0.28);
+        av.foreArmL.rotation.set(0.75, 0.45, 0);
+        av.foreArmR.rotation.set(0.75, -0.45, 0);
 
-        av.headGroup.rotation.set(0.06, 0, 0);
+        av.headGroup.rotation.set(0.05, 0, 0);
 
-        const breathe = Math.sin(time * 1.6) * 0.025;
-        av.chestGroup.scale.set(1 + breathe, 1 + breathe * 0.8, 1 + breathe);
+        const breathe = Math.sin(time * 1.5) * 0.022;
+        av.chestGroup.scale.set(1 + breathe, 1 + breathe * 0.7, 1 + breathe);
         return;
       }
 
-      // 3. LẠY PHẬT 3 LẠY (BOWING 3 TIMES)
+      // 3. ĐẢNH LỄ TAM BẢO 3 LẠY NGŨ THỂ ĐẦU ĐỊA (3 DEVOUT PROSTRATIONS)
       if (av.action === 'bow' || av.action === 'bow3Times') {
         const bowCycleDuration = 2.4;
         const cycleProgress = (av.actionTimer % bowCycleDuration) / bowCycleDuration;
         const bowPhase = Math.sin(cycleProgress * Math.PI);
 
-        av.pelvis.position.y = 0.65 - bowPhase * 0.45;
-        av.spineGroup.rotation.x = bowPhase * 1.05;
+        // Hạ người quỳ gối ngũ thể đầu địa
+        av.pelvis.position.y = 0.68 - bowPhase * 0.48;
+        av.spineGroup.rotation.x = bowPhase * 1.15;
         av.headGroup.rotation.x = bowPhase * 0.45;
 
-        av.legLGroup.rotation.x = -bowPhase * 0.6;
-        av.legRGroup.rotation.x = -bowPhase * 0.6;
+        av.legLGroup.rotation.x = -bowPhase * 0.65;
+        av.legRGroup.rotation.x = -bowPhase * 0.65;
 
-        av.armLGroup.rotation.set(0.7 + bowPhase * 0.5, 0, -0.2 - bowPhase * 0.3);
-        av.armRGroup.rotation.set(0.7 + bowPhase * 0.5, 0, 0.2 + bowPhase * 0.3);
-        av.foreArmL.rotation.set(1.0 + bowPhase * 0.3, 0.6, 0);
-        av.foreArmR.rotation.set(1.0 + bowPhase * 0.3, -0.6, 0);
+        // Hai tay dâng lên cung mày rồi phủ phục chạm bồ đoàn ngửa lòng bàn tay
+        av.armLGroup.rotation.set(0.75 + bowPhase * 0.65, 0.1, -0.25 - bowPhase * 0.25);
+        av.armRGroup.rotation.set(0.75 + bowPhase * 0.65, -0.1, 0.25 + bowPhase * 0.25);
+        av.foreArmL.rotation.set(1.0 + bowPhase * 0.35, 0.65, 0);
+        av.foreArmR.rotation.set(1.0 + bowPhase * 0.35, -0.65, 0);
         return;
       }
 
-      // 4. GÕ MÕ LIÊN TỤC (STRIKE WOODFISH)
+      // 4. GÕ MÕ TỤNG KINH LIÊN TỤC (RHYTHMIC WOODFISH STRIKING)
       if (av.action === 'strikeWoodfish') {
-        av.pelvis.position.y = 0.65;
+        av.pelvis.position.y = 0.68;
         av.pelvis.rotation.set(0, 0, 0);
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
-        av.spineGroup.rotation.set(0.12, 0, 0);
+        av.spineGroup.rotation.set(0.08, 0, 0);
 
-        // Tay trái chắp trước ngực hoặc đặt nhẹ niệm Phật
-        av.armLGroup.rotation.set(0.65, 0, -0.25);
-        av.foreArmL.rotation.set(0.85, 0.4, 0);
+        // Tay trái giữ chuỗi tràng hạt trước ngực niệm Phật
+        av.armLGroup.rotation.set(0.68, 0.15, -0.22);
+        av.foreArmL.rotation.set(0.9, 0.5, 0);
 
         // Tay phải cầm dùi gõ đều đặn nhịp nhàng xuống mõ gỗ phía trước
         const tapCycle = (av.actionTimer * 6.2) % (Math.PI * 2);
         const strike = Math.sin(tapCycle);
-        av.armRGroup.rotation.set(0.55 + Math.max(0, strike) * 0.18, -0.12, 0.05);
-        av.foreArmR.rotation.set(0.42 + Math.max(0, strike) * 0.35, 0, 0);
-        av.headGroup.rotation.x = Math.max(0, strike) * 0.05;
+        av.armRGroup.rotation.set(0.52 + Math.max(0, strike) * 0.18, -0.12, 0.05);
+        av.foreArmR.rotation.set(0.40 + Math.max(0, strike) * 0.35, 0, 0);
+        av.headGroup.rotation.x = Math.max(0, strike) * 0.04;
         return;
       }
 
-      // 5. THỈNH CHUÔNG (STRIKE BELL)
+      // 5. THỈNH ĐẠI HỒNG CHUNG (STRIKE GREAT BELL)
       if (av.action === 'strikeBell') {
-        av.pelvis.position.y = 0.65;
+        av.pelvis.position.y = 0.68;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
-        av.armLGroup.rotation.set(0.5, 0, -0.3);
-        av.foreArmL.rotation.set(0.8, 0.4, 0);
+        av.armLGroup.rotation.set(0.55, 0, -0.25);
+        av.foreArmL.rotation.set(0.85, 0.45, 0);
 
         if (av.actionTimer < 1.0) {
           const windup = av.actionTimer / 1.0;
-          av.spineGroup.rotation.set(0, -windup * 0.25, 0);
-          av.armRGroup.rotation.set(0.35 + windup * 0.3, windup * 0.25, 0.1);
+          av.spineGroup.rotation.set(0, -windup * 0.22, 0);
+          av.armRGroup.rotation.set(0.35 + windup * 0.3, windup * 0.22, 0.08);
           av.foreArmR.rotation.set(0.3 + windup * 0.3, 0, 0);
         } else if (av.actionTimer < 1.8) {
           const strikePhase = (av.actionTimer - 1.0) / 0.8;
           const thrust = Math.sin(strikePhase * Math.PI);
-          av.spineGroup.rotation.set(0.12 * thrust, 0.15 * thrust, 0);
+          av.spineGroup.rotation.set(0.12 * thrust, 0.14 * thrust, 0);
           av.armRGroup.rotation.set(0.65 + thrust * 0.45, -0.12, 0.05);
           av.foreArmR.rotation.set(0.55 + thrust * 0.35, 0, 0);
         }
         return;
       }
 
-      // 6. THẮP HƯƠNG (INCENSE)
+      // 6. THÀNH KÍNH DÂNG HƯƠNG (INCENSE RITUAL)
       if (av.action === 'incense' || av.action === 'plantIncense') {
-        av.pelvis.position.y = 0.65;
+        av.pelvis.position.y = 0.68;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
         if (av.actionTimer < 3.8) {
-          // Thành kính chắp tay giữ 3 nén hương trước ngực vái 3 vái
+          // Thành kính chắp tay giữ 3 nén hương giơ ngang mày xá 3 xá
           const vPhase = Math.sin(av.actionTimer * 3.8);
-          av.spineGroup.rotation.x = 0.15 + Math.max(0, vPhase) * 0.35;
-          av.headGroup.rotation.x = Math.max(0, vPhase) * 0.2;
-          av.armLGroup.rotation.set(0.72, 0, -0.22);
-          av.armRGroup.rotation.set(0.72, 0, 0.22);
-          av.foreArmL.rotation.set(0.9, 0.45, 0);
-          av.foreArmR.rotation.set(0.9, -0.45, 0);
+          av.spineGroup.rotation.x = 0.12 + Math.max(0, vPhase) * 0.32;
+          av.headGroup.rotation.x = Math.max(0, vPhase) * 0.18;
+          av.armLGroup.rotation.set(0.75, 0.12, -0.18);
+          av.armRGroup.rotation.set(0.75, -0.12, 0.18);
+          av.foreArmL.rotation.set(0.95, 0.45, 0);
+          av.foreArmR.rotation.set(0.95, -0.45, 0);
         } else if (av.actionTimer < 5.5) {
-          // Nghiêng người vươn tay cắm hương vào lư đồng
+          // Nghiêng người vươn tay cắm 3 nén hương vào lư đồng
           const plantPhase = Math.sin(((av.actionTimer - 3.8) / 1.7) * Math.PI);
-          av.spineGroup.rotation.x = plantPhase * 0.45;
-          av.armLGroup.rotation.set(0.8 + plantPhase * 0.35, 0, -0.1);
-          av.armRGroup.rotation.set(0.8 + plantPhase * 0.35, 0, 0.1);
-          av.foreArmL.rotation.set(0.65 + plantPhase * 0.25, 0.3, 0);
-          av.foreArmR.rotation.set(0.65 + plantPhase * 0.25, -0.3, 0);
+          av.spineGroup.rotation.x = plantPhase * 0.42;
+          av.armLGroup.rotation.set(0.82 + plantPhase * 0.35, 0, -0.1);
+          av.armRGroup.rotation.set(0.82 + plantPhase * 0.35, 0, 0.1);
+          av.foreArmL.rotation.set(0.68 + plantPhase * 0.25, 0.25, 0);
+          av.foreArmR.rotation.set(0.68 + plantPhase * 0.25, -0.25, 0);
         }
         return;
       }
 
-      // 7. XIN XĂM (SHAKE FORTUNE)
+      // 7. XIN XĂM QUÁN ÂM (SHAKE FORTUNE TUBE)
       if (av.action === 'shakeFortune') {
-        av.pelvis.position.y = 0.65;
-        av.spineGroup.rotation.set(0.1, 0, 0);
+        av.pelvis.position.y = 0.68;
+        av.spineGroup.rotation.set(0.08, 0, 0);
 
         const rattle = Math.sin(av.actionTimer * 18);
-        av.armLGroup.rotation.set(0.85 + rattle * 0.15, 0, -0.25);
-        av.armRGroup.rotation.set(0.85 + rattle * 0.15, 0, 0.25);
-        av.foreArmL.rotation.set(1.15 + rattle * 0.2, 0.4, 0);
-        av.foreArmR.rotation.set(1.15 + rattle * 0.2, -0.4, 0);
-        av.headGroup.rotation.x = 0.1 + Math.abs(rattle) * 0.05;
+        av.armLGroup.rotation.set(0.82 + rattle * 0.14, 0.1, -0.22);
+        av.armRGroup.rotation.set(0.82 + rattle * 0.14, -0.1, 0.22);
+        av.foreArmL.rotation.set(1.1 + rattle * 0.18, 0.42, 0);
+        av.foreArmR.rotation.set(1.1 + rattle * 0.18, -0.42, 0);
+        av.headGroup.rotation.x = 0.08 + Math.abs(rattle) * 0.04;
         return;
       }
 
-      // 8. TƯ THẾ ĐỨNG CHẮP TAY AN NHIÊN (STANDING IDLE)
-      av.pelvis.position.y = 0.65;
+      // 8. TƯ THẾ ĐỨNG CHẮP TAY HOA SEN AN NHIÊN (DEVOUT ANJALI MUDRA IDLE)
+      av.pelvis.position.y = 0.68;
       av.pelvis.rotation.set(0, 0, 0);
       av.legLGroup.rotation.set(0, 0, 0);
       av.legRGroup.rotation.set(0, 0, 0);
       av.spineGroup.rotation.set(0, 0, 0);
 
-      av.armLGroup.rotation.set(0.65, 0, -0.35);
-      av.armRGroup.rotation.set(0.65, 0, 0.35);
-      av.foreArmL.rotation.set(0.95, 0.55, 0);
-      av.foreArmR.rotation.set(0.95, -0.55, 0);
+      // Hai bàn tay chắp thành hình búp sen thanh tịnh ngay trước ngực (Anjali Mudra)
+      av.armLGroup.rotation.set(0.72, 0.15, -0.24);
+      av.armRGroup.rotation.set(0.72, -0.15, 0.24);
+      av.foreArmL.rotation.set(1.05, 0.68, 0);
+      av.foreArmR.rotation.set(1.05, -0.68, 0);
 
-      const idleBreathe = Math.sin(time * 1.8) * 0.015;
+      const idleBreathe = Math.sin(time * 1.6) * 0.018;
       av.chestGroup.scale.set(1 + idleBreathe, 1 + idleBreathe * 0.6, 1 + idleBreathe);
-      av.headGroup.rotation.x = Math.sin(time * 1.2) * 0.02;
+      av.headGroup.rotation.x = Math.sin(time * 1.1) * 0.02;
+      av.headGroup.rotation.y = Math.sin(time * 0.7) * 0.02;
       av.headGroup.rotation.y = Math.sin(time * 0.8) * 0.025;
     });
   }
