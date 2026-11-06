@@ -34,6 +34,9 @@ export class PlayerController {
 
     // Click to move target
     this.targetMovePoint = null;
+    this.targetRotYArrival = Math.PI;
+    this.onArriveCallback = null;
+    this.onCancelCallback = null;
     this.raycaster = new THREE.Raycaster();
     this.mouseVec = new THREE.Vector2();
 
@@ -41,6 +44,20 @@ export class PlayerController {
     this.sendInterval = 1000 / 30; // 30Hz network update
 
     this.initEventListeners();
+  }
+
+  runToTarget(targetX, targetZ, targetRotY, onArrive) {
+    this.targetMovePoint = new THREE.Vector3(targetX, 0, targetZ);
+    this.targetRotYArrival = typeof targetRotY === 'number' ? targetRotY : Math.PI;
+    this.onArriveCallback = onArrive || null;
+  }
+
+  cancelAutoMovement() {
+    this.targetMovePoint = null;
+    this.onArriveCallback = null;
+    if (this.onCancelCallback) {
+      this.onCancelCallback();
+    }
   }
 
   resetToIconicView() {
@@ -93,22 +110,22 @@ export class PlayerController {
       case 'KeyW':
       case 'ArrowUp':
         this.keys.forward = true;
-        this.targetMovePoint = null;
+        this.cancelAutoMovement();
         break;
       case 'KeyS':
       case 'ArrowDown':
         this.keys.backward = true;
-        this.targetMovePoint = null;
+        this.cancelAutoMovement();
         break;
       case 'KeyA':
       case 'ArrowLeft':
         this.keys.left = true;
-        this.targetMovePoint = null;
+        this.cancelAutoMovement();
         break;
       case 'KeyD':
       case 'ArrowRight':
         this.keys.right = true;
-        this.targetMovePoint = null;
+        this.cancelAutoMovement();
         break;
     }
   }
@@ -203,14 +220,18 @@ export class PlayerController {
       const dz = this.targetMovePoint.z - this.position.z;
       const dist = Math.hypot(dx, dz);
 
-      if (dist > 0.12) {
+      if (dist > 0.16) {
         moveX = dx / dist;
         moveZ = dz / dist;
         isMoving = true;
       } else {
         this.targetMovePoint = null;
-        // When arrived at destination, automatically face Buddha (-Z)
-        this.rotationY = Math.PI;
+        this.rotationY = this.targetRotYArrival || Math.PI;
+        if (this.onArriveCallback) {
+          const cb = this.onArriveCallback;
+          this.onArriveCallback = null;
+          cb();
+        }
       }
     }
 

@@ -304,26 +304,13 @@ class ChuaOnlineApp {
       });
     });
 
-    // Action Toolbar buttons
-    document.getElementById('act-sit').addEventListener('click', () => this.toggleAction('sit'));
-    document.getElementById('act-bow').addEventListener('click', () => this.toggleAction('bow'));
-    document.getElementById('act-woodfish').addEventListener('click', () => {
-      if (!this.socket) return;
-      this.socket.emit('strikeWoodfish');
-      this.toggleAction('strikeWoodfish');
-    });
-    document.getElementById('act-bell').addEventListener('click', () => {
-      if (!this.socket) return;
-      this.socket.emit('strikeBell');
-    });
-    document.getElementById('act-incense').addEventListener('click', () => {
-      if (!this.socket) return;
-      this.socket.emit('lightIncense');
-    });
-    document.getElementById('act-fortune').addEventListener('click', () => {
-      if (!this.socket) return;
-      this.socket.emit('drawFortune');
-    });
+    // Action Toolbar buttons - Theo đúng quy trình Phật môn thực tế:
+    document.getElementById('act-sit').addEventListener('click', () => this.handleActionSit());
+    document.getElementById('act-bow').addEventListener('click', () => this.handleActionBow());
+    document.getElementById('act-woodfish').addEventListener('click', () => this.handleActionWoodfish());
+    document.getElementById('act-bell').addEventListener('click', () => this.handleActionBell());
+    document.getElementById('act-incense').addEventListener('click', () => this.handleActionIncense());
+    document.getElementById('act-fortune').addEventListener('click', () => this.handleActionFortune());
 
     // Hotkeys [1..6] and [Enter]
     window.addEventListener('keydown', (e) => {
@@ -331,25 +318,22 @@ class ChuaOnlineApp {
 
       switch (e.key) {
         case '1':
-          this.toggleAction('sit');
+          this.handleActionSit();
           break;
         case '2':
-          this.toggleAction('bow');
+          this.handleActionBow();
           break;
         case '3':
-          if (this.socket) {
-            this.socket.emit('strikeWoodfish');
-            this.toggleAction('strikeWoodfish');
-          }
+          this.handleActionWoodfish();
           break;
         case '4':
-          if (this.socket) this.socket.emit('strikeBell');
+          this.handleActionBell();
           break;
         case '5':
-          if (this.socket) this.socket.emit('lightIncense');
+          this.handleActionIncense();
           break;
         case '6':
-          if (this.socket) this.socket.emit('drawFortune');
+          this.handleActionFortune();
           break;
         case 'Enter':
           e.preventDefault();
@@ -362,20 +346,210 @@ class ChuaOnlineApp {
     document.getElementById('btn-close-fortune').addEventListener('click', () => {
       document.getElementById('fortune-modal').style.display = 'none';
     });
+
+    // Handle cancel auto movement / continuous actions when user walks away
+    if (this.controller) {
+      this.controller.onCancelCallback = () => {
+        this.stopContinuousWoodfishLoop();
+        if (this.currentAction === 'sit' || this.currentAction === 'strikeWoodfish') {
+          this.setAction('stand');
+        }
+      };
+    }
   }
 
-  toggleAction(action) {
-    if (this.currentAction === action) {
-      this.currentAction = 'stand';
-    } else {
-      this.currentAction = action;
+  // =========================================================================
+  // 1: NGỒI THIỀN: Tự động chạy ra bồ đoàn gần nhất rồi ngồi kiết già
+  // =========================================================================
+  handleActionSit() {
+    this.stopContinuousWoodfishLoop();
+    if (this.currentAction === 'sit') {
+      this.setAction('stand');
+      this.showToast('Đã xuất thiền đứng dậy 🙏');
+      return;
     }
 
-    ['sit', 'bow'].forEach(act => {
+    const c = this.temple.findNearestCushion(this.controller.position.x, this.controller.position.z);
+    this.showToast('Đang bước lại bồ đoàn tọa thiền...');
+    this.controller.runToTarget(c.x, c.z, Math.PI, () => {
+      this.setAction('sit');
+      this.showToast('Đã an tọa thiền định kiết già trên bồ đoàn 🙏');
+    });
+  }
+
+  // =========================================================================
+  // 2: LẠY PHẬT: Chắp tay búp sen trước ngực rồi lạy 3 lạy trang nghiêm
+  // =========================================================================
+  handleActionBow() {
+    this.stopContinuousWoodfishLoop();
+    this.controller.rotationY = Math.PI;
+    this.showToast('Thành tâm chắp tay đảnh lễ Tam Bảo (3 lạy)...');
+    this.setAction('bow3Times');
+
+    // Tiếng chuông khánh ngân nhẹ theo từng lạy
+    [0.3, 2.7, 5.1].forEach((delaySec, idx) => {
+      setTimeout(() => {
+        if (this.currentAction === 'bow3Times' || this.currentAction === 'bow') {
+          templeAudio.playGentleBellAccent();
+          this.showToast(`Đảnh lễ Tam Bảo: Lạy ${idx + 1}/3 🙏`);
+        }
+      }, delaySec * 1000);
+    });
+
+    setTimeout(() => {
+      if (this.currentAction === 'bow3Times') {
+        this.setAction('stand');
+        this.showToast('Tam bái viên mãn, công đức vô lượng! 🙏');
+      }
+    }, 7400);
+  }
+
+  // =========================================================================
+  // 3: GÕ MÕ: Chạy ra chỗ mõ gỗ, cầm dùi gõ nhiều cái liên tục đến khi đi chỗ khác
+  // =========================================================================
+  handleActionWoodfish() {
+    if (this.currentAction === 'strikeWoodfish') {
+      this.stopContinuousWoodfishLoop();
+      this.setAction('stand');
+      this.showToast('Đã dừng gõ mõ 🙏');
+      return;
+    }
+
+    const st = this.temple.interactiveStations.woodfish;
+    this.showToast('Đang bước lại kệ Mõ Gỗ Bát Nhã...');
+    this.controller.runToTarget(st.x, st.z, st.rotY, () => {
+      this.setAction('strikeWoodfish');
+      this.showToast('Đang gõ mõ tụng kinh liên tục... (Nhấn di chuyển để dừng)');
+      this.startContinuousWoodfishLoop();
+    });
+  }
+
+  startContinuousWoodfishLoop() {
+    this.stopContinuousWoodfishLoop();
+    this.woodfishLoopTimer = setInterval(() => {
+      if (this.currentAction !== 'strikeWoodfish') {
+        this.stopContinuousWoodfishLoop();
+        return;
+      }
+      templeAudio.playWoodfish();
+      if (this.socket) this.socket.emit('strikeWoodfish');
+      const st = this.temple.interactiveStations.woodfish;
+      this.temple.spawnClickRipple(st.x + 1.2, st.z);
+    }, 1050);
+  }
+
+  stopContinuousWoodfishLoop() {
+    if (this.woodfishLoopTimer) {
+      clearInterval(this.woodfishLoopTimer);
+      this.woodfishLoopTimer = null;
+    }
+  }
+
+  // =========================================================================
+  // 4: THỈNH CHUÔNG: Chạy ra chỗ chuông, nâng chày đánh 1 cái ngân rền
+  // =========================================================================
+  handleActionBell() {
+    this.stopContinuousWoodfishLoop();
+    const st = this.temple.interactiveStations.bell;
+    this.showToast('Đang bước lại Đại Hồng Chung...');
+    this.controller.runToTarget(st.x, st.z, st.rotY, () => {
+      this.setAction('strikeBell');
+      setTimeout(() => {
+        templeAudio.playBell();
+        this.temple.spawnClickRipple(st.x - 1.4, st.z);
+        if (this.socket) this.socket.emit('strikeBell');
+        this.showToast('Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)');
+      }, 1050);
+    });
+  }
+
+  // =========================================================================
+  // 5: THẮP HƯƠNG: Chạy đi lấy 3 que hương, châm đốt, rồi cắm trước mặt Phật Tổ
+  // =========================================================================
+  handleActionIncense() {
+    this.stopContinuousWoodfishLoop();
+    const stTable = this.temple.interactiveStations.incenseTable;
+    const stBurner = this.temple.interactiveStations.incenseBurner;
+
+    this.showToast('Bước đến bàn thỉnh 3 nén hương trầm...');
+    // Giai đoạn 1: Chạy đến bàn hương
+    this.controller.runToTarget(stTable.x, stTable.z, stTable.rotY, () => {
+      this.setAction('incense'); // 3 nén nhang đỏ khói xuất hiện trên tay
+      this.showToast('Đã thỉnh và châm 3 nén tâm hương. Cung kính tiến về trước Phật điện...');
+
+      setTimeout(() => {
+        // Giai đoạn 2: Cầm 3 nén hương đi đến Lư hương trước Phật
+        this.controller.runToTarget(stBurner.x, stBurner.z, stBurner.rotY, () => {
+          this.showToast('Cung kính vái 3 vái và cắm hương vào lư đồng...');
+
+          setTimeout(() => {
+            if (this.socket) this.socket.emit('lightIncense');
+            this.showToast('Đã dâng 3 nén tâm hương cúng dường Phật Tổ! 🙏 (+3 Công đức)');
+          }, 4600);
+        });
+      }, 1200);
+    });
+  }
+
+  // =========================================================================
+  // 6: XIN XĂM: Chạy đến ô thẻ xóc xóc rơi thẻ rồi mới hiện thêm thông điệp
+  // =========================================================================
+  handleActionFortune() {
+    this.stopContinuousWoodfishLoop();
+    const st = this.temple.interactiveStations.fortuneTable;
+    this.showToast('Bước đến bàn xin xăm Quán Thế Âm...');
+
+    // Giai đoạn 1: Chạy đến bàn xin xăm
+    this.controller.runToTarget(st.x, st.z, st.rotY, () => {
+      this.setAction('shakeFortune'); // Hai tay cầm ống xăm rung lắc liên tục
+      this.showToast('Thành tâm nâng ống xăm... Lắc xóc đều tay...');
+      this.playFortuneRattleAudio();
+
+      setTimeout(() => {
+        // Giai đoạn 2: Rơi thẻ xăm ra bàn/sàn
+        this.temple.spawnDroppingFortuneStick(st.x, st.z + 0.6, () => {
+          // GIAI ĐOẠN 3: ĐÚNG LÚC THẺ RƠI XUỐNG SÀN MỚI EMIT VÀ HIỆN THÔNG ĐIỆP
+          templeAudio.playWoodfish();
+          if (this.socket) this.socket.emit('drawFortune');
+          this.setAction('stand');
+        });
+      }, 2500);
+    });
+  }
+
+  playFortuneRattleAudio() {
+    if (!templeAudio || !templeAudio.ctx) return;
+    const ctx = templeAudio.ctx;
+    for (let i = 0; i < 7; i++) {
+      setTimeout(() => {
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(620 + Math.random() * 260, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }, i * 340);
+    }
+  }
+
+  setAction(action) {
+    this.currentAction = action;
+
+    ['sit', 'bow', 'woodfish', 'bell', 'incense', 'fortune'].forEach(act => {
       const btn = document.getElementById(`act-${act}`);
       if (btn) {
-        if (this.currentAction === act) btn.classList.add('active');
-        else btn.classList.remove('active');
+        if (action === act || (act === 'bow' && action === 'bow3Times') || (act === 'woodfish' && action === 'strikeWoodfish')) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
       }
     });
 
