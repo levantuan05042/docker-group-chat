@@ -7,8 +7,8 @@ export class PlayerController {
     this.onMoveCallback = onMoveCallback;
     this.temple = templeScene;
 
-    // Movement state - Bắt đầu từ Cửa Chùa (Entrance)
-    this.position = new THREE.Vector3(0, 0, 18.2);
+    // Movement state - Đứng trang nghiêm trước Phật điện
+    this.position = new THREE.Vector3(0, 0, 7.5);
     this.rotationY = Math.PI; // Face Buddha (-Z) into the temple
     this.moveSpeed = 5.2;
     this.keys = {
@@ -19,13 +19,13 @@ export class PlayerController {
     };
 
     // Smooth Orbit Camera parameters with Damping
-    this.camDistance = 6.2;
-    this.targetCamDistance = 6.2;
-    this.camHeight = 2.3;
-    this.camPitch = 0.32; // Iconic elevated angle looking down at Buddha & disciples
-    this.targetCamPitch = 0.32;
-    this.camYaw = Math.PI; // Look straight towards Buddha (-Z)
-    this.targetCamYaw = Math.PI;
+    this.camDistance = 5.8;
+    this.targetCamDistance = 5.8;
+    this.camHeight = 2.2;
+    this.camPitch = 0.22; // Góc nhìn Chánh Điện ngước nhìn tôn tượng Đức Phật
+    this.targetCamPitch = 0.22;
+    this.camYaw = 0; // Hướng camera thẳng về phía Phật điện (-Z)
+    this.targetCamYaw = 0;
 
     // Mouse drag
     this.isDragging = false;
@@ -61,9 +61,25 @@ export class PlayerController {
   }
 
   resetToIconicView() {
-    this.targetCamYaw = Math.PI;
+    this.setCameraMainHall();
+  }
+
+  setCameraMainHall() {
+    this.targetCamYaw = 0;
+    this.targetCamPitch = 0.22;
+    this.targetCamDistance = 5.8;
+  }
+
+  setCameraBuddhaCloseUp() {
+    this.targetCamYaw = 0;
+    this.targetCamPitch = 0.08;
+    this.targetCamDistance = 3.2;
+  }
+
+  setCameraFollow() {
+    this.targetCamYaw = 0;
     this.targetCamPitch = 0.32;
-    this.targetCamDistance = 6.2;
+    this.targetCamDistance = 4.2;
   }
 
   initEventListeners() {

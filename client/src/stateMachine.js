@@ -64,6 +64,9 @@ export class RitualStateMachine {
       this.app.socket.emit('action', { action: 'stand' });
     }
     this.app.updateActionButtonsUI('stand');
+    if (this.app.hideRitualStatus) {
+      this.app.hideRitualStatus();
+    }
   }
 
   clearTimers() {
@@ -90,6 +93,9 @@ export class RitualStateMachine {
     this.stateTimer = 0;
     this.app.showToast('Đang bước lại bồ đoàn tọa thiền...');
     this.app.updateActionButtonsUI('sit');
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🧘', 'Đang bước lại bồ đoàn tọa thiền...', true);
+    }
 
     this.navigateTo(cushion.x, cushion.z, Math.PI, () => {
       this.currentState = PlayerState.MEDITATING;
@@ -98,6 +104,9 @@ export class RitualStateMachine {
       if (this.app.socket) this.app.socket.emit('action', { action: 'sit' });
       this.app.showToast('Đã an tọa thiền định kiết già trên bồ đoàn 🙏');
       this.app.showFloatingMerit('+1 Thiền Định', this.app.controller.position);
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🧘', 'Đang an tọa thiền định kiết già (Bấm di chuyển hoặc Dừng để xuất thiền)', true);
+      }
     });
   }
 
@@ -115,23 +124,32 @@ export class RitualStateMachine {
 
     this.app.showToast('Thành tâm chắp tay đảnh lễ Tam Bảo: Lạy 1/3 🙏');
     this.app.playTempleChime();
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🙇', 'Thành tâm đảnh lễ Phật: Lạy 1/3 🙏', false);
+    }
 
     // Bowing sequence: 3 bows (2.4s per bow = 7.2s total)
-    const bowTimer1 = setTimeout(() => {
+    setTimeout(() => {
       if (this.currentState !== PlayerState.BOWING_3_TIMES) return;
       this.bowCount = 2;
       this.app.showToast('Thành tâm đảnh lễ Chánh Pháp: Lạy 2/3 🙏');
       this.app.playTempleChime();
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🙇', 'Thành tâm đảnh lễ Pháp: Lạy 2/3 🙏', false);
+      }
     }, 2400);
 
-    const bowTimer2 = setTimeout(() => {
+    setTimeout(() => {
       if (this.currentState !== PlayerState.BOWING_3_TIMES) return;
       this.bowCount = 3;
       this.app.showToast('Thành tâm đảnh lễ Tăng Bảo: Lạy 3/3 🙏');
       this.app.playTempleChime();
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🙇', 'Thành tâm đảnh lễ Tăng: Lạy 3/3 🙏', false);
+      }
     }, 4800);
 
-    const bowTimerFinish = setTimeout(() => {
+    setTimeout(() => {
       if (this.currentState !== PlayerState.BOWING_3_TIMES) return;
       this.currentState = PlayerState.IDLE;
       this.app.avatarManager.setAction(this.app.myId, 'stand');
@@ -139,6 +157,9 @@ export class RitualStateMachine {
       this.app.updateActionButtonsUI('stand');
       this.app.showToast('Tam bái viên mãn, công đức vô lượng! 🙏');
       this.app.showFloatingMerit('+3 Lễ Phật', this.app.controller.position);
+      if (this.app.hideRitualStatus) {
+        this.app.hideRitualStatus();
+      }
     }, 7200);
   }
 
@@ -157,13 +178,19 @@ export class RitualStateMachine {
     this.stateTimer = 0;
     this.app.showToast('Đang bước lại kệ Mõ Gỗ Bát Nhã...');
     this.app.updateActionButtonsUI('woodfish');
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🪵', 'Đang bước lại kệ Mõ Gỗ Bát Nhã...', true);
+    }
 
     this.navigateTo(st.x, st.z, st.rotY, () => {
       this.currentState = PlayerState.STRIKING_WOODFISH;
       this.stateTimer = 0;
       this.app.avatarManager.setAction(this.app.myId, 'strikeWoodfish');
       if (this.app.socket) this.app.socket.emit('action', { action: 'strikeWoodfish' });
-      this.app.showToast('Đang gõ mõ tụng kinh liên tục... (Nhấn di chuyển để dừng)');
+      this.app.showToast('Đang gõ mõ tụng kinh liên tục... (Bấm di chuyển để dừng)');
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🪵', 'Đang gõ mõ tụng kinh liên tục (+1 Công đức) • Bấm di chuyển để dừng', true);
+      }
 
       // Tap immediately then loop ~1050ms
       this.executeWoodfishStrike();
@@ -194,12 +221,18 @@ export class RitualStateMachine {
     this.stateTimer = 0;
     this.app.showToast('Đang bước lại Đại Hồng Chung...');
     this.app.updateActionButtonsUI('bell');
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🔔', 'Đang bước lại Đại Hồng Chung...', true);
+    }
 
     this.navigateTo(st.x, st.z, st.rotY, () => {
       this.currentState = PlayerState.STRIKING_BELL;
       this.stateTimer = 0;
       this.app.avatarManager.setAction(this.app.myId, 'strikeBell');
       if (this.app.socket) this.app.socket.emit('action', { action: 'strikeBell' });
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🔔', 'Đang nâng chày thỉnh Đại Hồng Chung...', false);
+      }
 
       // After 1s windup strike the bell!
       setTimeout(() => {
@@ -209,6 +242,9 @@ export class RitualStateMachine {
         if (this.app.socket) this.app.socket.emit('strikeBell');
         this.app.showToast('Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)');
         this.app.showFloatingMerit('+5 Thỉnh Chuông', this.app.controller.position);
+        if (this.app.showRitualStatus) {
+          this.app.showRitualStatus('🔔', 'Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)', false);
+        }
 
         setTimeout(() => {
           if (this.currentState === PlayerState.STRIKING_BELL) {
@@ -216,6 +252,9 @@ export class RitualStateMachine {
             this.app.avatarManager.setAction(this.app.myId, 'stand');
             if (this.app.socket) this.app.socket.emit('action', { action: 'stand' });
             this.app.updateActionButtonsUI('stand');
+            if (this.app.hideRitualStatus) {
+              this.app.hideRitualStatus();
+            }
           }
         }, 1200);
       }, 1000);
@@ -232,6 +271,9 @@ export class RitualStateMachine {
     this.stateTimer = 0;
     this.app.showToast('Bước đến bàn thỉnh 3 nén hương trầm...');
     this.app.updateActionButtonsUI('incense');
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🪔', 'Bước đến bàn thỉnh 3 nén hương trầm...', true);
+    }
 
     // Step 1: Walk to incense table
     this.navigateTo(stTable.x, stTable.z, stTable.rotY, () => {
@@ -240,6 +282,9 @@ export class RitualStateMachine {
       if (this.app.socket) this.app.socket.emit('action', { action: 'incense' });
       this.app.showToast('Đã thỉnh và châm 3 nén tâm hương. Cung kính tiến về trước Phật điện...');
       this.app.audio.playWoodfish();
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🪔', 'Cung kính dâng 3 nén hương tiến về trước Đức Phật Tổ...', false);
+      }
 
       setTimeout(() => {
         if (this.currentState !== PlayerState.INCENSE_FETCH) return;
@@ -248,6 +293,9 @@ export class RitualStateMachine {
         this.navigateTo(stBurner.x, stBurner.z, stBurner.rotY, () => {
           this.currentState = PlayerState.INCENSE_PLANT;
           this.app.showToast('Cung kính vái 3 vái và cắm hương vào lư đồng...');
+          if (this.app.showRitualStatus) {
+            this.app.showRitualStatus('🪔', 'Cung kính vái 3 vái và cắm hương vào lư đồng...', false);
+          }
 
           setTimeout(() => {
             if (this.currentState !== PlayerState.INCENSE_PLANT) return;
@@ -262,6 +310,9 @@ export class RitualStateMachine {
                 this.app.avatarManager.setAction(this.app.myId, 'stand');
                 if (this.app.socket) this.app.socket.emit('action', { action: 'stand' });
                 this.app.updateActionButtonsUI('stand');
+                if (this.app.hideRitualStatus) {
+                  this.app.hideRitualStatus();
+                }
               }
             }, 1000);
           }, 4500);
@@ -279,6 +330,9 @@ export class RitualStateMachine {
     this.stateTimer = 0;
     this.app.showToast('Bước đến bàn xin xăm Quán Thế Âm...');
     this.app.updateActionButtonsUI('fortune');
+    if (this.app.showRitualStatus) {
+      this.app.showRitualStatus('🎋', 'Bước đến bàn xin xăm Quán Thế Âm...', true);
+    }
 
     this.navigateTo(st.x, st.z, st.rotY, () => {
       this.currentState = PlayerState.FORTUNE_SHAKE;
@@ -286,10 +340,16 @@ export class RitualStateMachine {
       if (this.app.socket) this.app.socket.emit('action', { action: 'shakeFortune' });
       this.app.showToast('Thành tâm nâng ống xăm... Lắc xóc đều tay...');
       this.app.playFortuneRattleAudio();
+      if (this.app.showRitualStatus) {
+        this.app.showRitualStatus('🎋', 'Thành tâm nâng ống xăm... Lắc xóc đều tay...', false);
+      }
 
       setTimeout(() => {
         if (this.currentState !== PlayerState.FORTUNE_SHAKE) return;
         this.currentState = PlayerState.FORTUNE_DROP;
+        if (this.app.showRitualStatus) {
+          this.app.showRitualStatus('🎋', 'Que xăm linh ứng đang rơi xuống sàn...', false);
+        }
 
         // Stick physically shoots out and lands on table/floor
         this.app.temple.spawnDroppingFortuneStick(st.x, st.z + 0.5, () => {
@@ -297,11 +357,19 @@ export class RitualStateMachine {
           this.app.audio.playWoodfish();
           if (this.app.socket) this.app.socket.emit('drawFortune');
           this.app.showFloatingMerit('+2 Gieo Quẻ', this.app.controller.position);
+          if (this.app.showRitualStatus) {
+            this.app.showRitualStatus('📜', 'Quẻ xăm đã rơi! Đang mở thông điệp...', false);
+          }
 
           this.currentState = PlayerState.IDLE;
           this.app.avatarManager.setAction(this.app.myId, 'stand');
           if (this.app.socket) this.app.socket.emit('action', { action: 'stand' });
           this.app.updateActionButtonsUI('stand');
+          setTimeout(() => {
+            if (this.app.hideRitualStatus) {
+              this.app.hideRitualStatus();
+            }
+          }, 1200);
         });
       }, 2600);
     });

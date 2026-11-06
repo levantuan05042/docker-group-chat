@@ -189,11 +189,49 @@ class ChuaOnlineApp {
     document.getElementById('input-name').value = this.myName;
     document.getElementById('header-avatar-dot').style.background = this.selectedRobeColor;
 
-    // Reset Camera Button
-    document.getElementById('btn-reset-cam').addEventListener('click', () => {
-      this.controller.resetToIconicView();
-      this.showToast('📷 Đã quay về góc nhìn Chánh Điện!');
-    });
+    // Camera View Modes
+    const camHall = document.getElementById('cam-view-hall');
+    const camBuddha = document.getElementById('cam-view-buddha');
+    const camFollow = document.getElementById('cam-view-follow');
+
+    const setCamActive = (activeBtn) => {
+      [camHall, camBuddha, camFollow].forEach(b => {
+        if (b) b.classList.remove('active');
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+    };
+
+    if (camHall) {
+      camHall.addEventListener('click', () => {
+        this.controller.setCameraMainHall();
+        setCamActive(camHall);
+        this.showToast('🏛️ Góc nhìn Chánh Điện uy nghiêm!');
+      });
+    }
+
+    if (camBuddha) {
+      camBuddha.addEventListener('click', () => {
+        this.controller.setCameraBuddhaCloseUp();
+        setCamActive(camBuddha);
+        this.showToast('🪷 Chiêm bái tôn tượng Đức Bổn Sư Thích Ca!');
+      });
+    }
+
+    if (camFollow) {
+      camFollow.addEventListener('click', () => {
+        this.controller.setCameraFollow();
+        setCamActive(camFollow);
+        this.showToast('🧘 Góc nhìn theo sau nhân vật!');
+      });
+    }
+
+    // Cancel Ritual Button
+    const btnCancelRitual = document.getElementById('btn-cancel-ritual');
+    if (btnCancelRitual) {
+      btnCancelRitual.addEventListener('click', () => {
+        this.fsm.cancelRitual();
+      });
+    }
 
     // Profile Modal Toggle
     const profileModal = document.getElementById('profile-modal');
@@ -342,6 +380,11 @@ class ChuaOnlineApp {
         case '6':
           this.fsm.startFortune();
           break;
+        case 'Escape':
+          this.fsm.cancelRitual();
+          document.getElementById('fortune-modal').style.display = 'none';
+          document.getElementById('profile-modal').style.display = 'none';
+          break;
         case 'Enter':
           e.preventDefault();
           chatInput.focus();
@@ -393,6 +436,29 @@ class ChuaOnlineApp {
         btn.classList.remove('active');
       }
     });
+  }
+
+  showRitualStatus(icon, text, canCancel = true) {
+    const banner = document.getElementById('ritual-status-banner');
+    const iconEl = document.getElementById('ritual-status-icon');
+    const textEl = document.getElementById('ritual-status-text');
+    const cancelBtn = document.getElementById('btn-cancel-ritual');
+
+    if (banner && iconEl && textEl) {
+      iconEl.textContent = icon;
+      textEl.textContent = text;
+      if (cancelBtn) {
+        cancelBtn.style.display = canCancel ? 'inline-block' : 'none';
+      }
+      banner.style.display = 'flex';
+    }
+  }
+
+  hideRitualStatus() {
+    const banner = document.getElementById('ritual-status-banner');
+    if (banner) {
+      banner.style.display = 'none';
+    }
   }
 
   playTempleChime() {

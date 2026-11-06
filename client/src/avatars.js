@@ -380,12 +380,19 @@ export class AvatarManager {
       const dist = Math.hypot(dx, dz);
 
       // Only mark moving if actually traversing a noticeable distance
-      if (dist > 0.05 && av.action !== 'sit') {
+      if (dist > 0.04 && av.action !== 'sit') {
         av.isMoving = true;
-        av.group.position.x += dx * 0.25;
-        av.group.position.z += dz * 0.25;
+        av.group.position.x += dx * 0.35;
+        av.group.position.z += dz * 0.35;
       } else {
         av.isMoving = false;
+        if (av.action === 'sit') {
+          av.group.position.x = av.targetX;
+          av.group.position.z = av.targetZ;
+        } else if (dist > 0.001) {
+          av.group.position.x += dx * 0.5;
+          av.group.position.z += dz * 0.5;
+        }
       }
 
       let diffRot = av.targetRotY - av.group.rotation.y;

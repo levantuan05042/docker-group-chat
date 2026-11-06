@@ -26,12 +26,11 @@
         </div>
       </div>
 
-      <!-- Quick Hint & Camera Reset -->
+      <!-- Quick Hint & Camera Quick Views -->
       <div class="control-hints-pill">
-        <span>🖱️ <b>Click sàn</b> để bước tới</span>
-        <span class="dot-sep">•</span>
-        <span>🔄 <b>Kéo chuột</b> xoay 360°</span>
-        <button id="btn-reset-cam" class="cam-reset-chip" title="Quay về góc nhìn Chánh Điện kinh điển">📷 Góc Chuẩn</button>
+        <button id="cam-view-hall" class="cam-reset-chip active" title="Góc nhìn Chánh Điện uy nghiêm">🏛️ Chánh Điện</button>
+        <button id="cam-view-buddha" class="cam-reset-chip" title="Chiêm bái tôn tượng Đức Phật Tổ">🪷 Phật Tổ</button>
+        <button id="cam-view-follow" class="cam-reset-chip" title="Góc nhìn theo sau nhân vật">🧘 Nhân Vật</button>
       </div>
 
       <!-- Zen Music Player Bar -->
@@ -107,6 +106,15 @@
         <button class="preset-chip" data-msg="Chúc thi cử đỗ đạt, công việc hanh thông 🍀">Thi đỗ, phát tài 🍀</button>
         <button class="preset-chip" data-msg="Công đức vô lượng! Hoan hỷ quá ⭐">Công đức vô lượng ⭐</button>
         <button class="preset-chip" data-msg="Hôm nay ai bao chè vậy đồng tu? 🍧">Ai bao chè? 🍧</button>
+      </div>
+
+      <!-- Ritual Progress & Status Banner (Hiển thị rõ ràng trạng thái nghi thức) -->
+      <div id="ritual-status-banner" class="ritual-status-banner" style="display: none;">
+        <div class="status-left">
+          <span id="ritual-status-icon" class="status-icon">🧘</span>
+          <span id="ritual-status-text" class="status-text">Đang an tọa thiền định kiết già...</span>
+        </div>
+        <button id="btn-cancel-ritual" class="cancel-ritual-btn" title="Dừng hành động / Xuất thiền [ESC]">Dừng [ESC]</button>
       </div>
 
       <!-- Action Dock with Hotkey Badges -->
