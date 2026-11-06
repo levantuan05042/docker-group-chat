@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Chùa Online 3D Metaverse • Đại Hùng Bảo Điện</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪷</text></svg>">
-  <script type="module" crossorigin src="/assets/index-BYBZvSBt.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-B-SupHk1.css">
+  <script type="module" crossorigin src="/assets/index-CNy70hzq.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BXXBceWV.css">
 </head>
 <body>
   <!-- 3D WebGL Canvas Container -->
@@ -84,31 +84,40 @@
       </div>
     </header>
 
-    <!-- Chat History Panel (Floating Left) -->
-    <aside class="chat-panel interactive-ui" id="chat-panel">
+    <!-- Virtual Directional Pad (Bàn điều hướng tiện lợi cho điện thoại & máy tính) -->
+    <div class="virtual-dpad interactive-ui" id="virtual-dpad">
+      <button class="dpad-btn up" id="dpad-up" title="Tiến lên [W]">▲</button>
+      <div class="dpad-middle">
+        <button class="dpad-btn left" id="dpad-left" title="Sang trái [A]">◄</button>
+        <button class="dpad-btn center" id="dpad-center" title="Dừng di chuyển">●</button>
+        <button class="dpad-btn right" id="dpad-right" title="Sang phải [D]">►</button>
+      </div>
+      <button class="dpad-btn down" id="dpad-down" title="Lùi lại [S]">▼</button>
+    </div>
+
+    <!-- Chat History Panel (Floating Left - Thu gọn mặc định để thoáng màn hình) -->
+    <aside class="chat-panel interactive-ui collapsed" id="chat-panel">
       <div class="chat-panel-header" id="chat-panel-toggle">
         <div class="panel-title">
           <span>💬</span>
           <span>HỘI THOẠI & PHẬT SỰ</span>
         </div>
-        <span id="chat-toggle-icon">▼</span>
+        <span id="chat-toggle-icon">▲</span>
       </div>
       <div class="chat-messages" id="chat-messages">
-        <div class="chat-msg system">Nam Mô A Di Đà Phật! Click chuột xuống sàn hoặc bồ đoàn để di chuyển.</div>
+        <div class="chat-msg system">Nam Mô A Di Đà Phật! Click chuột / chạm sàn hoặc các biển gỗ 3D để hành lễ.</div>
+      </div>
+      <!-- Quick Chat Presets (Nằm gọn bên trong khung chat) -->
+      <div class="quick-presets">
+        <button class="preset-chip" data-msg="A Di Đà Phật 🙏">A Di Đà Phật 🙏</button>
+        <button class="preset-chip" data-msg="Cầu gia đạo bình an, vạn sự cát tường 🪷">Cầu bình an 🪷</button>
+        <button class="preset-chip" data-msg="Công đức vô lượng! Hoan hỷ quá ⭐">Công đức vô lượng ⭐</button>
+        <button class="preset-chip" data-msg="Thi cử đỗ đạt, hanh thông 🍀">Thi đỗ, phát tài 🍀</button>
       </div>
     </aside>
 
     <!-- Bottom Dock: Actions & Chat -->
     <footer class="bottom-dock interactive-ui">
-      <!-- Quick Chat Presets (1-tap reaction) -->
-      <div class="quick-presets">
-        <button class="preset-chip" data-msg="A Di Đà Phật 🙏">A Di Đà Phật 🙏</button>
-        <button class="preset-chip" data-msg="Cầu gia đạo bình an, vạn sự cát tường 🪷">Cầu bình an 🪷</button>
-        <button class="preset-chip" data-msg="Chúc thi cử đỗ đạt, công việc hanh thông 🍀">Thi đỗ, phát tài 🍀</button>
-        <button class="preset-chip" data-msg="Công đức vô lượng! Hoan hỷ quá ⭐">Công đức vô lượng ⭐</button>
-        <button class="preset-chip" data-msg="Hôm nay ai bao chè vậy đồng tu? 🍧">Ai bao chè? 🍧</button>
-      </div>
-
       <!-- Ritual Progress & Status Banner (Hiển thị rõ ràng trạng thái nghi thức) -->
       <div id="ritual-status-banner" class="ritual-status-banner" style="display: none;">
         <div class="status-left">

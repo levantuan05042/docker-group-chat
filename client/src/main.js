@@ -46,6 +46,8 @@ class ChuaOnlineApp {
 
     this.initThree();
     this.fsm = new RitualStateMachine(this);
+    this.temple.createStationBeacons(this);
+    this.controller.initVirtualDpad();
     this.initUI();
     this.initMusicControls();
     this.autoJoinTemple();
@@ -90,7 +92,8 @@ class ChuaOnlineApp {
           this.socket.emit('move', coords);
         }
       },
-      this.temple
+      this.temple,
+      this
     );
 
     window.addEventListener('resize', () => this.onWindowResize());

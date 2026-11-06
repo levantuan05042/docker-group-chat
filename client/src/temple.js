@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 export class TempleScene {
   constructor(scene) {
@@ -1096,6 +1097,87 @@ export class TempleScene {
     const entranceLight = new THREE.PointLight(0xffaa33, 2.0, 14);
     entranceLight.position.set(0, 5.5, 18.5);
     this.scene.add(entranceLight);
+  }
+
+  // BIỂU TƯỢNG ĐIỀU HƯỚNG 3D TRỰC QUAN (FLOATING INTERACTIVE BEACONS)
+  createStationBeacons(app) {
+    this.app = app;
+    const beacons = [
+      {
+        icon: '🪵',
+        title: 'Mõ Gỗ Bát Nhã',
+        sub: 'Click để gõ mõ liên tục',
+        x: this.interactiveStations.woodfish.x,
+        y: 1.85,
+        z: this.interactiveStations.woodfish.z,
+        action: () => app.fsm.startWoodfish()
+      },
+      {
+        icon: '🔔',
+        title: 'Đại Hồng Chung',
+        sub: 'Click để thỉnh 1 tiếng ngân',
+        x: this.interactiveStations.bell.x,
+        y: 3.3,
+        z: this.interactiveStations.bell.z,
+        action: () => app.fsm.startBell()
+      },
+      {
+        icon: '🪔',
+        title: 'Lư Đồng Tam Bảo',
+        sub: 'Click thỉnh 3 nén hương dâng Phật',
+        x: this.interactiveStations.incenseBurner.x,
+        y: 2.1,
+        z: this.interactiveStations.incenseBurner.z,
+        action: () => app.fsm.startIncense()
+      },
+      {
+        icon: '🎋',
+        title: 'Ống Xăm Quán Âm',
+        sub: 'Click xóc ống xin quẻ',
+        x: this.interactiveStations.fortuneTable.x,
+        y: 1.85,
+        z: this.interactiveStations.fortuneTable.z,
+        action: () => app.fsm.startFortune()
+      },
+      {
+        icon: '🧎',
+        title: 'Bồ Đoàn Tọa Thiền',
+        sub: 'Click ngồi thiền kiết già',
+        x: 0,
+        y: 0.9,
+        z: 2.2,
+        action: () => app.fsm.startMeditation()
+      },
+      {
+        icon: '🙇',
+        title: 'Lễ Phật Tam Bái',
+        sub: 'Click chắp tay lạy 3 lạy',
+        x: 0,
+        y: 2.1,
+        z: -2.8,
+        action: () => app.fsm.startBowing()
+      }
+    ];
+
+    beacons.forEach(b => {
+      const el = document.createElement('div');
+      el.className = 'station-beacon interactive-ui';
+      el.innerHTML = `
+        <span class="beacon-icon">${b.icon}</span>
+        <div class="beacon-info">
+          <div class="beacon-title">${b.title}</div>
+          <div class="beacon-sub">${b.sub}</div>
+        </div>
+      `;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        b.action();
+      });
+
+      const cssObj = new CSS2DObject(el);
+      cssObj.position.set(b.x, b.y, b.z);
+      this.scene.add(cssObj);
+    });
   }
 
   createParticleSystems() {

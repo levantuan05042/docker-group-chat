@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
 export class PlayerController {
-  constructor(camera, domElement, onMoveCallback, templeScene) {
+  constructor(camera, domElement, onMoveCallback, templeScene, app) {
     this.camera = camera;
     this.domElement = domElement;
     this.onMoveCallback = onMoveCallback;
     this.temple = templeScene;
+    this.app = app;
 
     // Movement state - Đứng trang nghiêm trước Phật điện
     this.position = new THREE.Vector3(0, 0, 7.5);
@@ -27,9 +28,11 @@ export class PlayerController {
     this.camYaw = 0; // Hướng camera thẳng về phía Phật điện (-Z)
     this.targetCamYaw = 0;
 
-    // Mouse drag
+    // Mouse & Touch Pointer drag / tap handling
     this.isDragging = false;
     this.dragStart = { x: 0, y: 0 };
+    this.lastPointer = { x: 0, y: 0 };
+    this.dragStartTime = 0;
     this.dragMoved = 0;
 
     // Click to move target
@@ -90,24 +93,30 @@ export class PlayerController {
       if (e.target.closest('.interactive-ui') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
       this.isDragging = true;
       this.dragStart = { x: e.clientX, y: e.clientY };
+      this.lastPointer = { x: e.clientX, y: e.clientY };
+      this.dragStartTime = Date.now();
       this.dragMoved = 0;
     });
 
     window.addEventListener('pointermove', (e) => {
       if (!this.isDragging) return;
-      const deltaX = e.clientX - this.dragStart.x;
-      const deltaY = e.clientY - this.dragStart.y;
-      this.dragMoved += Math.hypot(deltaX, deltaY);
+      const dx = e.clientX - this.lastPointer.x;
+      const dy = e.clientY - this.lastPointer.y;
+      this.dragMoved += Math.hypot(dx, dy);
 
-      this.targetCamYaw -= deltaX * 0.005;
-      this.targetCamPitch = Math.max(0.08, Math.min(Math.PI / 2.3, this.targetCamPitch + deltaY * 0.004));
-
-      this.dragStart = { x: e.clientX, y: e.clientY };
+      // Only orbit if moved noticeably (> 10px)
+      if (this.dragMoved > 10) {
+        this.targetCamYaw -= dx * 0.005;
+        this.targetCamPitch = Math.max(0.05, Math.min(Math.PI / 2.3, this.targetCamPitch + dy * 0.004));
+      }
+      this.lastPointer = { x: e.clientX, y: e.clientY };
     });
 
     window.addEventListener('pointerup', (e) => {
       if (this.isDragging) {
-        if (this.dragMoved < 8) {
+        const elapsed = Date.now() - (this.dragStartTime || 0);
+        // If quick tap (< 450ms) and moved < 25px: It is a CLICK TO MOVE / INTERACT!
+        if (elapsed < 450 && this.dragMoved < 25) {
           this.handleFloorClick(e);
         }
         this.isDragging = false;
@@ -117,6 +126,43 @@ export class PlayerController {
     this.domElement.addEventListener('wheel', (e) => {
       this.targetCamDistance = Math.max(2.6, Math.min(10.5, this.targetCamDistance + e.deltaY * 0.004));
     }, { passive: true });
+  }
+
+  initVirtualDpad() {
+    const bindBtn = (id, key) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const start = (e) => {
+        e.preventDefault();
+        this.keys[key] = true;
+        this.cancelAutoMovement();
+      };
+      const end = (e) => {
+        e.preventDefault();
+        this.keys[key] = false;
+      };
+      btn.addEventListener('pointerdown', start);
+      btn.addEventListener('pointerup', end);
+      btn.addEventListener('pointerleave', end);
+      btn.addEventListener('pointercancel', end);
+    };
+
+    bindBtn('dpad-up', 'forward');
+    bindBtn('dpad-down', 'backward');
+    bindBtn('dpad-left', 'left');
+    bindBtn('dpad-right', 'right');
+
+    const centerBtn = document.getElementById('dpad-center');
+    if (centerBtn) {
+      centerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.cancelAutoMovement();
+        this.keys.forward = false;
+        this.keys.backward = false;
+        this.keys.left = false;
+        this.keys.right = false;
+      });
+    }
   }
 
   handleKeyDown(e) {
@@ -169,7 +215,6 @@ export class PlayerController {
 
   handleFloorClick(e) {
     if (e.target.closest('.interactive-ui') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
-    this.cancelAutoMovement();
 
     const rect = this.domElement.getBoundingClientRect();
     this.mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -177,12 +222,68 @@ export class PlayerController {
 
     this.raycaster.setFromCamera(this.mouseVec, this.camera);
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersection = new THREE.Vector3();
-    const result = this.raycaster.ray.intersectPlane(plane, intersection);
+    const hitPoint = new THREE.Vector3();
+    const result = this.raycaster.ray.intersectPlane(plane, hitPoint);
 
     if (result) {
-      const clampedX = Math.max(-15, Math.min(15, intersection.x));
-      const clampedZ = Math.max(-6, Math.min(18, intersection.z));
+      const stations = this.temple.interactiveStations;
+
+      // 1. Clicked near Woodfish table:
+      if (stations && stations.woodfish && Math.hypot(hitPoint.x - stations.woodfish.x, hitPoint.z - stations.woodfish.z) < 2.2) {
+        if (this.app && this.app.fsm) {
+          this.app.fsm.startWoodfish();
+          return;
+        }
+      }
+
+      // 2. Clicked near Great Bell:
+      if (stations && stations.bell && Math.hypot(hitPoint.x - stations.bell.x, hitPoint.z - stations.bell.z) < 2.5) {
+        if (this.app && this.app.fsm) {
+          this.app.fsm.startBell();
+          return;
+        }
+      }
+
+      // 3. Clicked near Fortune table:
+      if (stations && stations.fortuneTable && Math.hypot(hitPoint.x - stations.fortuneTable.x, hitPoint.z - stations.fortuneTable.z) < 2.2) {
+        if (this.app && this.app.fsm) {
+          this.app.fsm.startFortune();
+          return;
+        }
+      }
+
+      // 4. Clicked near Incense Burner / Altar table:
+      if (stations && stations.incenseBurner && Math.hypot(hitPoint.x - stations.incenseBurner.x, hitPoint.z - stations.incenseBurner.z) < 2.2) {
+        if (this.app && this.app.fsm) {
+          this.app.fsm.startIncense();
+          return;
+        }
+      }
+
+      // 5. Clicked near Grand Buddha Altar (Bow 3 times):
+      if (Math.hypot(hitPoint.x, hitPoint.z - (-7.5)) < 3.2) {
+        if (this.app && this.app.fsm) {
+          this.app.fsm.startBowing();
+          return;
+        }
+      }
+
+      // 6. Clicked near any cushion (Meditate):
+      if (this.temple.cushionPositions) {
+        for (const c of this.temple.cushionPositions) {
+          if (Math.hypot(hitPoint.x - c.x, hitPoint.z - c.z) < 1.0) {
+            if (this.app && this.app.fsm) {
+              this.app.fsm.startMeditation();
+              return;
+            }
+          }
+        }
+      }
+
+      // 7. Otherwise: walk to target point on floor!
+      this.cancelAutoMovement();
+      const clampedX = Math.max(-15, Math.min(15, hitPoint.x));
+      const clampedZ = Math.max(-6, Math.min(18, hitPoint.z));
       this.targetMovePoint = new THREE.Vector3(clampedX, 0, clampedZ);
 
       if (this.temple && this.temple.spawnClickRipple) {
