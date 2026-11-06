@@ -1052,3 +1052,40 @@ body, html {
     display: none;
   }
 }
+
+/* Floating Merit Badges */
+.floating-merit-badge {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  font-family: var(--font-primary);
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffea79;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 12px rgba(245, 175, 25, 0.8);
+  background: rgba(35, 15, 8, 0.85);
+  border: 1.5px solid var(--primary-gold);
+  padding: 5px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  animation: floatMeritUp 1.25s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes floatMeritUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -15px) scale(1.1);
+  }
+  80% {
+    opacity: 0.95;
+    transform: translate(-50%, -45px) scale(1.0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -65px) scale(0.9);
+  }
+}

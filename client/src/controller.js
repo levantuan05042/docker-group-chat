@@ -153,6 +153,7 @@ export class PlayerController {
 
   handleFloorClick(e) {
     if (e.target.closest('.interactive-ui') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    this.cancelAutoMovement();
 
     const rect = this.domElement.getBoundingClientRect();
     this.mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
