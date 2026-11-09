@@ -20,10 +20,10 @@ export class TempleScene {
       incenseBurner: { x: 0, z: -2.75, rotY: Math.PI },
       incenseBow: { x: 0, z: -1.20, rotY: Math.PI },
       fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI },
-      pond: { x: -6.8, z: 8.6, rotY: 0 }, // Đứng trước bờ Hồ Sen Phóng Sinh
-      chess: { x: 6.8, z: 9.2, rotY: 0 }, // Ghế 1 Kỳ Đài Chánh Niệm (Hướng Nam vào bàn cờ)
-      chess2: { x: 6.8, z: 11.8, rotY: Math.PI }, // Ghế 2 Kỳ Đài Chánh Niệm (Hướng Bắc vào bàn cờ)
-      tea: { x: 7.7, z: 10.5, rotY: -Math.PI / 2 } // Ngồi bàn trà đàm đạo
+      pond: { x: -8.5, z: 23.0, rotY: 0 }, // Đứng trước bờ Hồ Sen Phóng Sinh ngoài sân chùa
+      chess: { x: 8.5, z: 24.6, rotY: 0 }, // Ghế 1 Kỳ Đài Chánh Niệm ngoài sân (Hướng Nam vào bàn cờ)
+      chess2: { x: 8.5, z: 27.4, rotY: Math.PI }, // Ghế 2 Kỳ Đài Chánh Niệm ngoài sân (Hướng Bắc vào bàn cờ)
+      tea: { x: 9.8, z: 26.0, rotY: -Math.PI / 2 } // Ngồi bàn trà đàm đạo ngoài sân chùa
     };
 
     this.pondFish = [];
@@ -43,6 +43,7 @@ export class TempleScene {
 
     this.createEnvironment();
     this.createArchitecture();
+    this.createCourtyard();
     this.createGrandBuddhaAltar();
     this.createGrandOfferingAltar();
     this.createSideAltars();
@@ -1823,12 +1824,118 @@ export class TempleScene {
   }
 
   // =========================================================================
-  // 5. HỒ SEN THỦY TRÚC PHÓNG SINH (x = -6.8, z = 10.5)
-  // Bể đá tự nhiên, nước trong xanh biếc, hoa sen nở rộ, đàn cá bơi lội uốn lượn
+  // SÂN CHÙA BÁT NHÃ & VƯỜN THIỀN NGOÀI TRỜI (COURTYARD & ZEN GARDEN)
+  // Không gian thanh tịnh ngoài trời: Sân lát đá cổ, lối ngự đạo, đại lư hương
+  // =========================================================================
+  createCourtyard() {
+    const courtGroup = new THREE.Group();
+
+    // 1. SÀN SÂN CHÙA LÁT ĐÁ BÁT TRÀNG CỔ KÍNH (z = 17.5 đến 36.0, x = -16 đến +16)
+    const courtGeo = new THREE.PlaneGeometry(32, 19);
+    const courtMat = new THREE.MeshStandardMaterial({
+      color: 0x33261d,
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    const courtFloor = new THREE.Mesh(courtGeo, courtMat);
+    courtFloor.rotation.x = -Math.PI / 2;
+    courtFloor.position.set(0, -0.01, 27.0);
+    courtFloor.receiveShadow = true;
+    courtGroup.add(courtFloor);
+
+    // 2. ĐƯỜNG NGỰ ĐẠO LÁT ĐÁ HOA CƯƠNG DẪN TỪ CỔNG VÀO CỬA CHÙA
+    const walkGeo = new THREE.PlaneGeometry(4.0, 19);
+    const walkMat = new THREE.MeshStandardMaterial({
+      color: 0x4a3728,
+      roughness: 0.70,
+      metalness: 0.08
+    });
+    const walkWay = new THREE.Mesh(walkGeo, walkMat);
+    walkWay.rotation.x = -Math.PI / 2;
+    walkWay.position.set(0, 0.01, 27.0);
+    courtGroup.add(walkWay);
+
+    // Thảm gấm hoa sen trung tâm dẫn thẳng vào cửa chánh điện
+    const redCarpetOut = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 18.5),
+      new THREE.MeshStandardMaterial({ map: this.textures.carpet, roughness: 0.65 })
+    );
+    redCarpetOut.rotation.x = -Math.PI / 2;
+    redCarpetOut.position.set(0, 0.02, 27.0);
+    courtGroup.add(redCarpetOut);
+
+    // 3. TAM CẤP ĐÁ DẪN LÊN CHÁNH ĐIỆN (Thềm cửa chùa)
+    for (let step = 0; step < 3; step++) {
+      const sMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(6.6 + step * 0.4, 0.08, 0.45),
+        new THREE.MeshStandardMaterial({ color: 0x2b1e16, roughness: 0.8 })
+      );
+      sMesh.position.set(0, 0.04 + step * 0.06, 17.5 + (2 - step) * 0.40);
+      courtGroup.add(sMesh);
+    }
+
+    // 4. ĐỈNH ĐỒNG ĐẠI HƯƠNG LƯ SÂN CHÙA (x = 0, z = 21.0)
+    const cBurnerGroup = new THREE.Group();
+    cBurnerGroup.position.set(0, 0, 21.0);
+    const urnMat = new THREE.MeshStandardMaterial({ color: 0x6e481f, roughness: 0.4, metalness: 0.7 });
+    const urnBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.40, 16), urnMat);
+    urnBase.position.y = 0.20;
+    const urnBody = new THREE.Mesh(new THREE.SphereGeometry(0.60, 16, 14), urnMat);
+    urnBody.scale.set(1.0, 0.75, 1.0);
+    urnBody.position.y = 0.75;
+    const urnRim = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.15, 16), urnMat);
+    urnRim.position.y = 1.15;
+
+    // 3 nén hương đồng nghi ngút khói sân chùa
+    for (let i = -1; i <= 1; i++) {
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.95), new THREE.MeshBasicMaterial({ color: 0xaa2211 }));
+      stick.position.set(i * 0.14, 1.50, 0);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
+      tip.position.set(i * 0.14, 1.95, 0);
+      cBurnerGroup.add(stick, tip);
+    }
+    cBurnerGroup.add(urnBase, urnBody, urnRim);
+    courtGroup.add(cBurnerGroup);
+
+    // 5. HÀNG CỘT ĐÈN LỒNG SÂN CHÙA DỌC 2 LỐI ĐI
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x221108, roughness: 0.7 });
+    const lanMat = new THREE.MeshStandardMaterial({ color: 0xffa726, emissive: 0xff8f00, emissiveIntensity: 0.85 });
+    [-14.5, 14.5].forEach(lx => {
+      [20.0, 26.0, 32.0].forEach(lz => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 3.8, 8), postMat);
+        post.position.set(lx, 1.9, lz);
+        const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.32, 0.65, 8), lanMat);
+        lantern.position.set(lx, 3.8, lz);
+        courtGroup.add(post, lantern);
+      });
+    });
+
+    // 6. CÂY BỒ ĐỀ CỔ THỤ (BÊN GÓC SÂN CHÙA x = -13.5, z = 32.5)
+    const treeGroup = new THREE.Group();
+    treeGroup.position.set(-13.0, 0, 32.5);
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.48, 0.82, 4.6, 10),
+      new THREE.MeshStandardMaterial({ color: 0x3d2716, roughness: 0.9 })
+    );
+    trunk.position.y = 2.3;
+    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.8 });
+    const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(2.5, 12, 10), foliageMat);
+    foliage1.position.set(0, 5.0, 0);
+    const foliage2 = new THREE.Mesh(new THREE.SphereGeometry(1.9, 10, 8), foliageMat);
+    foliage2.position.set(0.9, 5.7, -0.6);
+    treeGroup.add(trunk, foliage1, foliage2);
+    courtGroup.add(treeGroup);
+
+    this.scene.add(courtGroup);
+  }
+
+  // =========================================================================
+  // 5. HỒ SEN THỦY TRÚC PHÓNG SINH (NGOÀI SÂN CHÙA: x = -8.5, z = 25.5)
+  // Bể đá tự nhiên ngoài trời, nước trong xanh biếc, hoa sen nở rộ, đàn cá bơi lội
   // =========================================================================
   createLotusPond() {
     const pondGroup = new THREE.Group();
-    pondGroup.position.set(-6.8, 0, 10.5);
+    pondGroup.position.set(-8.5, 0, 25.5);
 
     // Bờ kè đá tự nhiên bo tròn
     const stoneMat = new THREE.MeshStandardMaterial({
@@ -1837,7 +1944,7 @@ export class TempleScene {
       metalness: 0.1
     });
     const stoneRim = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.0, 2.2, 0.42, 28, 1, true),
+      new THREE.CylinderGeometry(2.4, 2.65, 0.42, 28, 1, true),
       stoneMat
     );
     stoneRim.position.y = 0.21;
@@ -1845,7 +1952,7 @@ export class TempleScene {
 
     // Thành đá bo viền trên
     const rimCap = new THREE.Mesh(
-      new THREE.TorusGeometry(2.0, 0.12, 12, 32),
+      new THREE.TorusGeometry(2.4, 0.14, 12, 32),
       stoneMat
     );
     rimCap.rotation.x = Math.PI / 2;
@@ -1853,10 +1960,10 @@ export class TempleScene {
 
     // Đáy hồ rải sỏi cuội
     const bedMat = new THREE.MeshStandardMaterial({ color: 0x1a2623, roughness: 0.95 });
-    const pondBed = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 0.05, 28), bedMat);
+    const pondBed = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 0.05, 28), bedMat);
     pondBed.position.y = 0.025;
 
-    // Mặt nước hồ sen trong xanh ngọc bích
+    // Mặt nước hồ sen trong xanh ngọc bích ngoài trời
     const waterMat = new THREE.MeshStandardMaterial({
       color: 0x0e5d56,
       roughness: 0.06,
@@ -1866,19 +1973,19 @@ export class TempleScene {
       emissive: 0x032b27,
       emissiveIntensity: 0.25
     });
-    const water = new THREE.Mesh(new THREE.CylinderGeometry(1.92, 1.92, 0.04, 32), waterMat);
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(2.32, 2.32, 0.04, 32), waterMat);
     water.position.y = 0.32;
     this.waterMesh = water;
 
     // Khóm lá sen xanh mướt nổi trên mặt nước
     const padMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.65 });
     const padPositions = [
-      { x: -0.85, z: -0.45, r: 0.38, rot: 0.2 },
-      { x: -0.40, z: 0.80, r: 0.32, rot: 1.1 },
-      { x: 0.75, z: 0.45, r: 0.42, rot: 2.3 },
-      { x: 0.60, z: -0.70, r: 0.35, rot: 3.5 },
-      { x: -0.20, z: -0.90, r: 0.28, rot: 0.8 },
-      { x: 0.95, z: -0.15, r: 0.26, rot: 1.7 }
+      { x: -1.05, z: -0.55, r: 0.42, rot: 0.2 },
+      { x: -0.50, z: 0.95, r: 0.38, rot: 1.1 },
+      { x: 0.90, z: 0.55, r: 0.46, rot: 2.3 },
+      { x: 0.75, z: -0.85, r: 0.40, rot: 3.5 },
+      { x: -0.25, z: -1.10, r: 0.32, rot: 0.8 },
+      { x: 1.15, z: -0.20, r: 0.30, rot: 1.7 }
     ];
 
     padPositions.forEach(p => {
@@ -1888,7 +1995,7 @@ export class TempleScene {
       pondGroup.add(pad);
     });
 
-    // Hoa sen hồng bung nở thơm ngát (2 bông sen nở điểm xuyết)
+    // Hoa sen hồng bung nở thơm ngát
     const lotusMat = new THREE.MeshStandardMaterial({
       color: 0xf48fb1,
       emissive: 0xe91e63,
@@ -1898,65 +2005,65 @@ export class TempleScene {
     const lotusCenterMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
 
     [
-      { x: -0.82, z: -0.42 },
-      { x: 0.72, z: 0.42 }
+      { x: -1.0, z: -0.50 },
+      { x: 0.85, z: 0.50 }
     ].forEach(lp => {
       const flower = new THREE.Group();
       flower.position.set(lp.x, 0.38, lp.z);
       for (let p = 0; p < 8; p++) {
         const pAng = (p / 8) * Math.PI * 2;
-        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.12, 5), lotusMat);
-        petal.position.set(Math.cos(pAng) * 0.05, 0.02, Math.sin(pAng) * 0.05);
+        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 5), lotusMat);
+        petal.position.set(Math.cos(pAng) * 0.06, 0.02, Math.sin(pAng) * 0.06);
         petal.rotation.set(0.4 * Math.sin(pAng), pAng, 0.4 * Math.cos(pAng));
         flower.add(petal);
       }
-      const stamen = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8), lotusCenterMat);
+      const stamen = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.04, 8), lotusCenterMat);
       flower.add(stamen);
       pondGroup.add(flower);
     });
 
-    // Đèn đá sân vườn kiểu Nhật/Chùa cổ bên cạnh hồ
+    // Đèn đá sân vườn kiểu Chùa cổ bên cạnh hồ
     const lanternPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.90, 8), stoneMat);
-    lanternPost.position.set(-1.8, 0.45, -1.2);
-    const lanternHead = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.35), new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xff9800, emissiveIntensity: 0.6 }));
-    lanternHead.position.set(-1.8, 0.95, -1.2);
-    const lanternRoof = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.22, 4), stoneMat);
-    lanternRoof.position.set(-1.8, 1.20, -1.2);
+    lanternPost.position.set(-2.2, 0.45, -1.5);
+    const lanternHead = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.32, 0.38), new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xff9800, emissiveIntensity: 0.6 }));
+    lanternHead.position.set(-2.2, 0.95, -1.5);
+    const lanternRoof = new THREE.Mesh(new THREE.ConeGeometry(0.46, 0.24, 4), stoneMat);
+    lanternRoof.position.set(-2.2, 1.20, -1.5);
     lanternRoof.rotation.y = Math.PI / 4;
     pondGroup.add(lanternPost, lanternHead, lanternRoof);
 
-    // Ống nước tre róc rách phong thủy (Bamboo Water Fountain)
+    // Ống nước tre róc rách phong thủy ngoài trời
     const bambooMat = new THREE.MeshStandardMaterial({ color: 0x556b2f, roughness: 0.6 });
-    const bPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.75, 8), bambooMat);
-    bPost.position.set(-1.5, 0.375, 1.0);
-    const bSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.55, 8), bambooMat);
+    const bPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.85, 8), bambooMat);
+    bPost.position.set(-1.8, 0.425, 1.2);
+    const bSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.65, 8), bambooMat);
     bSpout.rotation.z = -Math.PI / 3;
-    bSpout.position.set(-1.32, 0.62, 1.0);
+    bSpout.position.set(-1.58, 0.72, 1.2);
     pondGroup.add(bPost, bSpout);
 
-    // Biển tên: "Hồ Sen Phóng Sinh"
+    // Biển tên: "Hồ Sen Phóng Sinh" ngoài sân chùa
     const pondSign = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 0.26, 0.04),
+      new THREE.BoxGeometry(1.6, 0.30, 0.04),
       new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('Hồ Sen Phóng Sinh', 'Tích Đức Phóng Sinh • Tâm An Phúc Lạc') })
     );
-    pondSign.position.set(0, 1.25, -2.1);
+    pondSign.position.set(0, 1.25, -2.6);
     pondGroup.add(stoneRim, rimCap, pondBed, water, pondSign);
 
     this.scene.add(pondGroup);
     this.pondGroup = pondGroup;
 
-    // KHỞI TẠO ĐÀN CÁ BƠI LỘI BAN ĐẦU (4 Chú cá bơi tự do)
+    // KHỞI TẠO ĐÀN CÁ BƠI LỘI BAN ĐẦU NGOÀI HỒ SEN SÂN CHÙA
     this.createInitialPondFish();
   }
 
   createInitialPondFish() {
     const initialTypes = ['koi', 'goldfish', 'carp', 'turtle'];
     initialTypes.forEach((type, idx) => {
-      this.spawnPondFish(type, idx * (Math.PI / 2), 0.65 + idx * 0.25);
+      this.spawnPondFish(type, idx * (Math.PI / 2), 0.85 + idx * 0.35);
     });
   }
 
-  spawnPondFish(type, initialAngle = 0, radius = 0.9) {
+  spawnPondFish(type, initialAngle = 0, radius = 1.1) {
     const fishGroup = new THREE.Group();
     const isTurtle = type === 'turtle';
 
@@ -1973,16 +2080,16 @@ export class TempleScene {
 
     if (isTurtle) {
       // Mai rùa bo tròn
-      const shell = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bodyMat);
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), bodyMat);
       shell.scale.set(1.0, 0.55, 1.2);
       // Đầu rùa
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), bodyMat);
-      head.position.set(0, 0.01, 0.14);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), bodyMat);
+      head.position.set(0, 0.01, 0.15);
       // 4 Chân bơi
       const legMat = new THREE.MeshStandardMaterial({ color: 0x388e3c });
-      [-0.09, 0.09].forEach(lx => {
-        [-0.08, 0.08].forEach(lz => {
-          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.02, 0.07), legMat);
+      [-0.10, 0.10].forEach(lx => {
+        [-0.09, 0.09].forEach(lz => {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.08), legMat);
           leg.position.set(lx, -0.02, lz);
           shell.add(leg);
         });
@@ -1990,22 +2097,22 @@ export class TempleScene {
       fishGroup.add(shell, head);
     } else {
       // Thân cá thuôn nhọn 2 đầu
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), bodyMat);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), bodyMat);
       body.scale.set(0.65, 0.85, 2.2);
 
       // Đốm trắng trên lưng cá Koi
       if (type === 'koi') {
-        const spot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-        spot.position.set(0, 0.05, 0.02);
+        const spot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        spot.position.set(0, 0.055, 0.02);
         spot.scale.set(0.8, 0.3, 1.4);
         body.add(spot);
       }
 
       // Đuôi cá có khớp quẫy nhịp nhàng
       const tailPivot = new THREE.Group();
-      tailPivot.position.set(0, 0, -0.14);
+      tailPivot.position.set(0, 0, -0.16);
 
-      const tailGeo = new THREE.ConeGeometry(0.065, 0.16, 6);
+      const tailGeo = new THREE.ConeGeometry(0.075, 0.18, 6);
       const tailMesh = new THREE.Mesh(tailGeo, bodyMat);
       tailMesh.rotation.x = -Math.PI / 2;
       tailMesh.scale.set(0.2, 1.0, 0.9);
@@ -2014,8 +2121,8 @@ export class TempleScene {
 
       // Vây bơi 2 bên ngực
       const finMat = new THREE.MeshBasicMaterial({ color: 0xffe082, transparent: true, opacity: 0.75 });
-      [-0.05, 0.05].forEach((fx, i) => {
-        const fin = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.09), finMat);
+      [-0.06, 0.06].forEach((fx, i) => {
+        const fin = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.10), finMat);
         fin.position.set(fx, -0.01, 0.04);
         fin.rotation.set(Math.PI / 4, 0, i === 0 ? 0.6 : -0.6);
         body.add(fin);
@@ -2026,9 +2133,9 @@ export class TempleScene {
     }
 
     fishGroup.position.set(
-      -6.8 + Math.cos(initialAngle) * radius,
+      -8.5 + Math.cos(initialAngle) * radius,
       0.24,
-      10.5 + Math.sin(initialAngle) * radius
+      25.5 + Math.sin(initialAngle) * radius
     );
 
     this.scene.add(fishGroup);
@@ -2049,28 +2156,61 @@ export class TempleScene {
   }
 
   // =========================================================================
-  // 6. KỲ ĐÀI CHÁNH NIỆM & BÀN TRÀ ĐẠO (x = 6.8, z = 10.5)
-  // Bàn cờ gụ khảm trai 15x15, đôn thiền bọc gấm, bộ trà tử sa thơm ngát
+  // 6. VỌNG LÂU KỲ ĐÀI & TRÀ ĐẠO (NGOÀI SÂN CHÙA: x = 8.5, z = 25.5)
+  // Chòi bát giác ngắm cảnh, bàn cờ gụ khảm trai 15x15, đôn thiền, bộ trà tử sa
   // =========================================================================
   createChessPavilion() {
     const chessGroup = new THREE.Group();
-    chessGroup.position.set(6.8, 0, 10.5);
+    chessGroup.position.set(8.5, 0, 25.5);
 
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x241108, roughness: 0.45 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x33261d, roughness: 0.85 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x3a170e, roughness: 0.55 });
     const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
 
-    // Trụ bàn cờ hình tròn chạm khắc
+    // 1. NỀN ĐÁ BÁT GIÁC NÂNG CAO CỦA VỌNG LÂU (Raised stone pavilion platform)
+    const dais = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.50, 0.28, 8), stoneMat);
+    dais.position.y = 0.14;
+    dais.receiveShadow = true;
+    chessGroup.add(dais);
+
+    // 2. 4 CỘT LIM ĐỠ MÁI CHÒI THIỀN (4 Timber Pillars)
+    const pillarGeo = new THREE.CylinderGeometry(0.12, 0.14, 3.2, 12);
+    [
+      [-1.35, -1.35], [1.35, -1.35],
+      [-1.35, 1.35], [1.35, 1.35]
+    ].forEach(([cx, cz]) => {
+      const p = new THREE.Mesh(pillarGeo, woodMat);
+      p.position.set(cx, 1.74, cz);
+      p.castShadow = true;
+      chessGroup.add(p);
+    });
+
+    // 3. MÁI NGÓI BÁT GIÁC CONG VÚT CỦA VỌNG LÂU (Curved Oriental Roof)
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.35, 8), roofMat);
+    roof.position.y = 3.90;
+    roof.castShadow = true;
+
+    // Đỉnh chóp ngọc bình phong thủy
+    const roofFinial = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), brassMat);
+    roofFinial.position.y = 4.65;
+    chessGroup.add(roof, roofFinial);
+
+    // Chuông gió đồng treo dưới mái vọng lâu
+    const windBell = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.14, 8), brassMat);
+    windBell.position.set(0, 3.15, 0);
+    chessGroup.add(windBell);
+
+    // 4. BÀN CỜ GỤ TRÒN KHẢM ĐỒNG CHÍNH GIỮA CHÒI
     const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.38, 0.62, 16), woodMat);
-    pedestal.position.y = 0.31;
+    pedestal.position.y = 0.45;
 
-    // Mặt bàn tròn gụ bóng loáng
     const tabletop = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.08, 24), woodMat);
-    tabletop.position.y = 0.66;
+    tabletop.position.y = 0.80;
 
-    // Viền chỉ đồng quanh mép bàn
     const tableRim = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.016, 8, 32), brassMat);
     tableRim.rotation.x = Math.PI / 2;
-    tableRim.position.y = 0.66;
+    tableRim.position.y = 0.80;
 
     // BÀN CỜ 15x15 ĐẶT CHÍNH GIỮA MẶT BÀN
     const boardGeo = new THREE.BoxGeometry(0.70, 0.032, 0.70);
@@ -2080,9 +2220,9 @@ export class TempleScene {
       metalness: 0.08
     });
     const chessBoard = new THREE.Mesh(boardGeo, boardMat);
-    chessBoard.position.set(-0.08, 0.716, 0);
+    chessBoard.position.set(-0.08, 0.856, 0);
 
-    // Các quân cờ 3D mẫu bày trên bàn (Quân đen & Quân trắng đá ngọc bóng loáng)
+    // Các quân cờ 3D mẫu bày trên bàn
     const blackStoneMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.3 });
     const whiteStoneMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.15, metalness: 0.2 });
     const sampleStones = [
@@ -2097,13 +2237,13 @@ export class TempleScene {
         new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12),
         s.c === 'b' ? blackStoneMat : whiteStoneMat
       );
-      stone.position.set(s.x, 0.738, s.z);
+      stone.position.set(s.x, 0.878, s.z);
       chessGroup.add(stone);
     });
 
     // BỘ TRÀ ĐẠO TỬ SA (Ấm trà, chén ngọc & khay gỗ)
     const teaGroup = new THREE.Group();
-    teaGroup.position.set(0.48, 0.70, 0);
+    teaGroup.position.set(0.48, 0.84, 0);
 
     const clayMat = new THREE.MeshStandardMaterial({ color: 0x5d281a, roughness: 0.65 });
     const potBody = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), clayMat);
@@ -2134,36 +2274,36 @@ export class TempleScene {
 
     [-1.15, 1.15].forEach(sz => {
       const stoolBase = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.28, 16), stoolMat);
-      stoolBase.position.set(0, 0.14, sz);
+      stoolBase.position.set(0, 0.28, sz);
 
       const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.10, 16), seatCushionMat);
-      cushion.position.set(0, 0.33, sz);
+      cushion.position.set(0, 0.47, sz);
 
       chessGroup.add(stoolBase, cushion);
     });
 
-    // Biển tên: "Kỳ Đài Chánh Niệm"
+    // Biển tên: "Kỳ Đài Chánh Niệm" ngoài vọng lâu sân chùa
     const chessSign = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 0.28, 0.04),
+      new THREE.BoxGeometry(1.6, 0.30, 0.04),
       new THREE.MeshStandardMaterial({
         map: this.generateSignboardTexture('Kỳ Đài Chánh Niệm', 'Kỳ Đạo Đàm Đạo • Tâm Tĩnh Trí Minh')
       })
     );
-    chessSign.position.set(0, 1.35, 1.85);
+    chessSign.position.set(0, 2.85, -1.35);
 
     chessGroup.add(pedestal, tabletop, tableRim, chessBoard, chessSign);
     this.scene.add(chessGroup);
   }
 
-  // Thả chú cá phóng sinh mới do người chơi vừa thực hiện
+  // Thả chú cá phóng sinh mới do người chơi vừa thực hiện ngoài sân chùa
   spawnReleasedFish(type, prayerText = '') {
     const angle = Math.random() * Math.PI * 2;
-    const fish = this.spawnPondFish(type, angle, 0.75 + Math.random() * 0.45);
-    this.spawnClickRipple(-6.8 + Math.cos(angle) * fish.radius, 10.5 + Math.sin(angle) * fish.radius);
+    const fish = this.spawnPondFish(type, angle, 0.95 + Math.random() * 0.45);
+    this.spawnClickRipple(-8.5 + Math.cos(angle) * fish.radius, 25.5 + Math.sin(angle) * fish.radius);
     return fish;
   }
 
-  // Thả ngọn đèn hoa đăng lung linh trên mặt hồ
+  // Thả ngọn đèn hoa đăng lung linh trên mặt hồ ngoài sân chùa
   spawnFloatingLantern(prayerText = '') {
     const lantern = new THREE.Group();
     const lMat = new THREE.MeshStandardMaterial({
@@ -2184,11 +2324,11 @@ export class TempleScene {
     lantern.add(base, paper, flame);
 
     const angle = Math.random() * Math.PI * 2;
-    const radius = 0.5 + Math.random() * 0.7;
+    const radius = 0.6 + Math.random() * 0.9;
     lantern.position.set(
-      -6.8 + Math.cos(angle) * radius,
+      -8.5 + Math.cos(angle) * radius,
       0.34,
-      10.5 + Math.sin(angle) * radius
+      25.5 + Math.sin(angle) * radius
     );
 
     this.scene.add(lantern);
@@ -2387,12 +2527,12 @@ export class TempleScene {
       }
     }
 
-    // 1. CẬP NHẬT ĐÀN CÁ BƠI LỘI TRONG HỒ SEN PHÓNG SINH (SWIMMING FISH ANIMATION)
+    // 1. CẬP NHẬT ĐÀN CÁ BƠI LỘI TRONG HỒ SEN PHÓNG SINH NGOÀI SÂN CHÙA (SWIMMING FISH)
     if (this.pondFish && this.pondFish.length > 0) {
       this.pondFish.forEach(fish => {
         fish.angle += fish.speed * delta;
-        fish.group.position.x = -6.8 + Math.cos(fish.angle) * fish.radius;
-        fish.group.position.z = 10.5 + Math.sin(fish.angle) * fish.radius;
+        fish.group.position.x = -8.5 + Math.cos(fish.angle) * fish.radius;
+        fish.group.position.z = 25.5 + Math.sin(fish.angle) * fish.radius;
         fish.group.position.y = fish.yBase + Math.sin(time * 2.8 + fish.seed) * 0.015;
 
         // Xoay hướng thân cá theo góc tiếp tuyến bơi uốn lượn
@@ -2406,12 +2546,12 @@ export class TempleScene {
       });
     }
 
-    // 2. CẬP NHẬT ĐÈN HOA ĐĂNG TRÔI LỮNG LỜ TRÊN MẶT NƯỚC (FLOATING LOTUS LANTERNS)
+    // 2. CẬP NHẬT ĐÈN HOA ĐĂNG TRÔI LỮNG LỜ TRÊN MẶT NƯỚC NGOÀI SÂN
     if (this.floatingLanterns && this.floatingLanterns.length > 0) {
       this.floatingLanterns.forEach(fl => {
         fl.angle += fl.driftSpeed * delta * 0.25;
-        fl.group.position.x = -6.8 + Math.cos(fl.angle) * fl.radius;
-        fl.group.position.z = 10.5 + Math.sin(fl.angle) * fl.radius;
+        fl.group.position.x = -8.5 + Math.cos(fl.angle) * fl.radius;
+        fl.group.position.z = 25.5 + Math.sin(fl.angle) * fl.radius;
         fl.group.position.y = 0.34 + Math.sin(time * 2.2 + fl.seed) * 0.012;
         fl.group.rotation.y = time * 0.15;
       });

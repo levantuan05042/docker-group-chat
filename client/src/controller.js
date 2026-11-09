@@ -264,24 +264,24 @@ export class PlayerController {
         }
       }
 
-      // 5. Clicked near Lotus Pond (Hồ Sen Phóng Sinh):
-      if (stations && stations.pond && Math.hypot(hitPoint.x - stations.pond.x, hitPoint.z - stations.pond.z) < 2.6) {
+      // 5. Clicked near Lotus Pond (Hồ Sen Phóng Sinh ngoài sân):
+      if (stations && stations.pond && Math.hypot(hitPoint.x - stations.pond.x, hitPoint.z - 25.5) < 3.2) {
         if (this.app && this.app.openFishReleaseModal) {
           this.app.openFishReleaseModal();
           return;
         }
       }
 
-      // 6. Clicked near Chess Table (Kỳ Đài Chánh Niệm):
-      if (stations && stations.chess && Math.hypot(hitPoint.x - stations.chess.x, hitPoint.z - 10.5) < 2.4) {
+      // 6. Clicked near Chess Table (Vọng Lâu Kỳ Đài ngoài sân):
+      if (stations && stations.chess && Math.hypot(hitPoint.x - stations.chess.x, hitPoint.z - 25.5) < 3.0) {
         if (this.app && this.app.openChessModal) {
           this.app.openChessModal();
           return;
         }
       }
 
-      // 7. Clicked near Tea Set (Bàn Trà Đạo):
-      if (stations && stations.tea && Math.hypot(hitPoint.x - stations.tea.x, hitPoint.z - stations.tea.z) < 1.8) {
+      // 7. Clicked near Tea Set (Bàn Trà Đạo ngoài sân):
+      if (stations && stations.tea && Math.hypot(hitPoint.x - stations.tea.x, hitPoint.z - stations.tea.z) < 2.2) {
         if (this.app && this.app.drinkTea) {
           this.app.drinkTea();
           return;
@@ -310,14 +310,31 @@ export class PlayerController {
 
       // 7. Otherwise: walk to target point on floor!
       this.cancelAutoMovement();
-      const clampedX = Math.max(-9.8, Math.min(9.8, hitPoint.x));
-      const clampedZ = Math.max(-2.5, Math.min(15.5, hitPoint.z));
-      this.targetMovePoint = new THREE.Vector3(clampedX, 0, clampedZ);
+      const clamped = this.clampPosition(hitPoint.x, hitPoint.z);
+      this.targetMovePoint = new THREE.Vector3(clamped.x, 0, clamped.z);
 
       if (this.temple && this.temple.spawnClickRipple) {
-        this.temple.spawnClickRipple(clampedX, clampedZ);
+        this.temple.spawnClickRipple(clamped.x, clamped.z);
       }
     }
+  }
+
+  // Giới hạn phạm vi di chuyển thực tế (trong Chánh Điện, qua Cửa Chùa và ngoài Sân Chùa)
+  clampPosition(x, z) {
+    let nx = x;
+    let nz = Math.max(-2.5, Math.min(34.5, z));
+
+    if (nz < 17.2) {
+      // Bên trong Chánh Điện
+      nx = Math.max(-9.8, Math.min(9.8, nx));
+    } else if (nz > 17.8) {
+      // Ngoài Sân Chùa Bát Nhã
+      nx = Math.max(-15.0, Math.min(15.0, nx));
+    } else {
+      // Đi qua Cửa Chùa (Tam Quan: x = -2.8 đến +2.8)
+      nx = Math.max(-2.8, Math.min(2.8, nx));
+    }
+    return { x: nx, z: nz };
   }
 
   setPosition(x, y, z, rotY) {
@@ -388,11 +405,12 @@ export class PlayerController {
         moveX /= len;
         moveZ /= len;
 
-        const nextX = this.position.x + moveX * this.moveSpeed * delta;
-        const nextZ = this.position.z + moveZ * this.moveSpeed * delta;
-
-        this.position.x = Math.max(-9.8, Math.min(9.8, nextX));
-        this.position.z = Math.max(-2.5, Math.min(15.5, nextZ));
+        const clamped = this.clampPosition(
+          this.position.x + moveX * this.moveSpeed * delta,
+          this.position.z + moveZ * this.moveSpeed * delta
+        );
+        this.position.x = clamped.x;
+        this.position.z = clamped.z;
 
         this.rotationY = Math.atan2(moveX, moveZ);
       }
