@@ -535,84 +535,96 @@ export class AvatarManager {
       const dz = av.targetZ - av.group.position.z;
       const dist = Math.hypot(dx, dz);
 
+      // Mượt mà vị trí bước đi (Smooth position interpolation)
       if (dist > 0.04 && av.action !== 'sit') {
         av.isMoving = true;
-        av.group.position.x += dx * 0.35;
-        av.group.position.z += dz * 0.35;
+        const posLerp = Math.min(1.0, delta * 12.0);
+        av.group.position.x += dx * posLerp;
+        av.group.position.z += dz * posLerp;
       } else {
         av.isMoving = false;
         if (av.action === 'sit') {
-          av.group.position.x = av.targetX;
-          av.group.position.z = av.targetZ;
+          const sitPosLerp = Math.min(1.0, delta * 14.0);
+          av.group.position.x += (av.targetX - av.group.position.x) * sitPosLerp;
+          av.group.position.z += (av.targetZ - av.group.position.z) * sitPosLerp;
         } else if (dist > 0.001) {
-          av.group.position.x += dx * 0.5;
-          av.group.position.z += dz * 0.5;
+          const stopLerp = Math.min(1.0, delta * 12.0);
+          av.group.position.x += dx * stopLerp;
+          av.group.position.z += dz * stopLerp;
         }
       }
 
+      // Xoay hướng mặt mượt mà (Smooth continuous yaw rotation)
       let diffRot = av.targetRotY - av.group.rotation.y;
       while (diffRot < -Math.PI) diffRot += Math.PI * 2;
       while (diffRot > Math.PI) diffRot -= Math.PI * 2;
-      av.group.rotation.y += diffRot * 0.25;
+      av.group.rotation.y += diffRot * Math.min(1.0, delta * 14.0);
 
-      // 1. BƯỚC ĐI THIỀN HÀNH (HAI TAY ĐUNG ĐƯA TỰ NHIÊN)
+      // KHAI BÁO CÁC MỤC TIÊU KHỚP XƯƠNG (TARGET TRANSFORMS) ĐỂ LERP MƯỢT MÀ
+      let targetPelvisY = 0.50;
+      let targetPelvisRot = { x: 0, y: 0, z: 0 };
+      let targetSpineRot = { x: 0, y: 0, z: 0 };
+      let targetHeadRot = { x: 0, y: 0, z: 0 };
+      let targetLegLRot = { x: 0, y: 0, z: 0 };
+      let targetLegRRot = { x: 0, y: 0, z: 0 };
+      let targetArmLRot = { x: 0.02, y: 0, z: -0.09 };
+      let targetArmRRot = { x: 0.02, y: 0, z: 0.09 };
+      let targetForeArmLRot = { x: -0.02, y: 0, z: 0 };
+      let targetForeArmRRot = { x: -0.02, y: 0, z: 0 };
+      let targetChestScale = { x: 1, y: 1, z: 1 };
+
+      // 1. BƯỚC ĐI THIỀN HÀNH (HAI TAY ĐUNG ĐƯA TỰ NHIÊN, NHỊP NHÀNG)
       if (av.isMoving) {
         av.walkCycle += delta * 9.5;
         const cycle = av.walkCycle;
 
         // Chân bước dồn trọng tâm
         const legSwing = Math.sin(cycle) * 0.40;
-        av.legLGroup.rotation.x = -legSwing;
-        av.legRGroup.rotation.x = legSwing;
+        targetLegLRot.x = -legSwing;
+        targetLegRRot.x = legSwing;
 
-        av.pelvis.position.y = 0.50 + Math.abs(Math.sin(cycle)) * 0.028;
-        av.pelvis.rotation.y = Math.sin(cycle) * 0.04;
-        av.pelvis.rotation.z = Math.cos(cycle) * 0.02;
+        targetPelvisY = 0.50 + Math.abs(Math.sin(cycle)) * 0.028;
+        targetPelvisRot.y = Math.sin(cycle) * 0.04;
+        targetPelvisRot.z = Math.cos(cycle) * 0.02;
 
-        av.spineGroup.rotation.y = -Math.sin(cycle) * 0.04;
-        av.spineGroup.rotation.x = 0.04;
+        targetSpineRot.y = -Math.sin(cycle) * 0.04;
+        targetSpineRot.x = 0.04;
 
         // HAI TAY ĐUNG ĐƯA TỰ NHIÊN NGƯỢC CHIỀU VỚI BƯỚC CHÂN
-        // Chân trái bước tới (-legSwing < 0) -> tay trái vung ra sau (+armSwing), tay phải vung ra trước (-armSwing)
         const armSwing = Math.sin(cycle) * 0.32;
-        av.armLGroup.rotation.set(armSwing, 0, -0.09);
-        av.armRGroup.rotation.set(-armSwing, 0, 0.09);
+        targetArmLRot = { x: armSwing, y: 0, z: -0.09 };
+        targetArmRRot = { x: -armSwing, y: 0, z: 0.09 };
 
-        // Cẳng tay co nhẹ tự nhiên khi vung ra trước (rotX âm)
-        av.foreArmL.rotation.set(armSwing < 0 ? armSwing * 0.35 - 0.03 : -0.03, 0, 0);
-        av.foreArmR.rotation.set(armSwing > 0 ? -armSwing * 0.35 - 0.03 : -0.03, 0, 0);
+        targetForeArmLRot.x = armSwing < 0 ? armSwing * 0.35 - 0.03 : -0.03;
+        targetForeArmRRot.x = armSwing > 0 ? -armSwing * 0.35 - 0.03 : -0.03;
 
-        av.headGroup.rotation.x = -Math.sin(cycle * 2) * 0.02;
-        av.headGroup.rotation.y = Math.sin(cycle) * 0.02;
-        return;
+        targetHeadRot.x = -Math.sin(cycle * 2) * 0.02;
+        targetHeadRot.y = Math.sin(cycle) * 0.02;
       }
-
-      // 2. NGỒI THIỀN KIẾT GIÀ TRÊN BỒ ĐOÀN (HAI TAY ĐỂ LÊN ĐÙI)
-      if (av.action === 'sit') {
-        av.pelvis.position.y = 0.16;
-        av.pelvis.rotation.set(0, 0, 0);
+      // 2. NGỒI THIỀN KIẾT GIÀ TRÊN BỒ ĐOÀN (HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI)
+      else if (av.action === 'sit') {
+        targetPelvisY = 0.16;
+        targetPelvisRot = { x: 0, y: 0, z: 0 };
 
         // Chân xếp bằng kiết già trên đệm
-        av.legLGroup.rotation.set(-Math.PI / 2.2, 0.35, -0.20);
-        av.legRGroup.rotation.set(-Math.PI / 2.2, -0.35, 0.20);
+        targetLegLRot = { x: -Math.PI / 2.2, y: 0.35, z: -0.20 };
+        targetLegRRot = { x: -Math.PI / 2.2, y: -0.35, z: 0.20 };
 
-        av.spineGroup.rotation.set(0, 0, 0);
+        targetSpineRot = { x: 0, y: 0, z: 0 };
 
-        // HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI PHÍA TRƯỚC (hướng tới trước bụng và đặt nhẹ trên hai đầu gối)
-        av.armLGroup.rotation.set(-0.45, 0.05, 0.18);
-        av.armRGroup.rotation.set(-0.45, -0.05, -0.18);
-        av.foreArmL.rotation.set(-0.65, 0.08, 0.08);
-        av.foreArmR.rotation.set(-0.65, -0.08, -0.08);
+        // HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI PHÍA TRƯỚC
+        targetArmLRot = { x: -0.45, y: 0.05, z: 0.18 };
+        targetArmRRot = { x: -0.45, y: -0.05, z: -0.18 };
+        targetForeArmLRot = { x: -0.65, y: 0.08, z: 0.08 };
+        targetForeArmRRot = { x: -0.65, y: -0.08, z: -0.08 };
 
-        av.headGroup.rotation.set(0.06, 0, 0);
+        targetHeadRot = { x: 0.06, y: 0, z: 0 };
 
         const breathe = Math.sin(time * 1.5) * 0.02;
-        av.chestGroup.scale.set(1 + breathe, 1 + breathe * 0.6, 1 + breathe);
-        return;
+        targetChestScale = { x: 1 + breathe, y: 1 + breathe * 0.6, z: 1 + breathe };
       }
-
-      // 3. ĐẢNH LỄ LẠY PHẬT (CHẮP TAY TRƯỚC NGỰC CÚI LẠY)
-      if (av.action === 'bow' || av.action === 'bow3Times') {
+      // 3. ĐẢNH LỄ LẠY PHẬT (CHẮP TAY TRƯỚC NGỰC CÚI LẠY THÀNH KÍNH)
+      else if (av.action === 'bow' || av.action === 'bow3Times') {
         const bowCycle = 2.4;
         const progress = (av.actionTimer % bowCycle) / bowCycle;
 
@@ -627,154 +639,165 @@ export class AvatarManager {
         bowPhase = Math.max(0, Math.min(1, bowPhase));
 
         // Quỳ gối cúi gập người về phía trước
-        av.pelvis.position.y = 0.50 - bowPhase * 0.32;
-        av.legLGroup.rotation.x = -bowPhase * 1.15;
-        av.legRGroup.rotation.x = -bowPhase * 1.15;
+        targetPelvisY = 0.50 - bowPhase * 0.32;
+        targetLegLRot.x = -bowPhase * 1.15;
+        targetLegRRot.x = -bowPhase * 1.15;
 
-        av.spineGroup.rotation.x = bowPhase * 0.88;
-        av.headGroup.rotation.x = bowPhase * 0.35;
+        targetSpineRot.x = bowPhase * 0.88;
+        targetHeadRot.x = bowPhase * 0.35;
 
         // HAI TAY CHẮP BÚP SEN ÉP SÁT TRƯỚC NGỰC CUNG KÍNH
-        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
-        av.armRGroup.rotation.set(-0.55, -0.10, -0.50);
-        av.foreArmL.rotation.set(-1.25, 0, 0.25);
-        av.foreArmR.rotation.set(-1.25, 0, -0.25);
-        return;
+        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
+        targetArmRRot = { x: -0.55, y: -0.10, z: -0.50 };
+        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
+        targetForeArmRRot = { x: -1.25, y: 0, z: -0.25 };
       }
-
       // 4. GÕ MÕ TỤNG KINH (TAY PHẢI CẦM DÙI GÕ MÕ, TAY TRÁI CHẮP TRƯỚC NGỰC)
-      if (av.action === 'strikeWoodfish') {
-        av.pelvis.position.y = 0.50;
-        av.pelvis.rotation.set(0, 0, 0);
-        av.legLGroup.rotation.set(0, 0, 0);
-        av.legRGroup.rotation.set(0, 0, 0);
-        av.spineGroup.rotation.set(0.04, 0, 0);
+      else if (av.action === 'strikeWoodfish') {
+        targetPelvisY = 0.50;
+        targetSpineRot.x = 0.04;
 
-        // TAY TRÁI CHẮP BÚP SEN TRƯỚC NGỰC TRANG NGHIÊM (Độc thủ ấn tụng kinh)
-        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
-        av.foreArmL.rotation.set(-1.25, 0, 0.25);
+        // TAY TRÁI CHẮP BÚP SEN TRƯỚC NGỰC TRANG NGHIÊM (Độc thủ ấn)
+        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
+        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
 
         // TAY PHẢI CẦM DÙI GÕ MÕ ĐỀU ĐẶN NHỊP NHÀNG
         const tapCycle = (av.actionTimer * 6.0) % (Math.PI * 2);
         const up = Math.max(0, Math.sin(tapCycle));
-        av.armRGroup.rotation.set(-0.38 - up * 0.22, -0.08, -0.08);
-        av.foreArmR.rotation.set(-0.72 - up * 0.40, -0.10, -0.05);
+        targetArmRRot = { x: -0.38 - up * 0.22, y: -0.08, z: -0.08 };
+        targetForeArmRRot = { x: -0.72 - up * 0.40, y: -0.10, z: -0.05 };
 
         // Đầu gật nhẹ thành tâm theo nhịp gõ tụng kinh
-        av.headGroup.rotation.x = 0.05 + (1 - up) * 0.04;
-        return;
+        targetHeadRot.x = 0.05 + (1 - up) * 0.04;
       }
-
       // 5. THỈNH ĐẠI HỒNG CHUNG (CẦM VÀ LẮC SỢI DÂY THỪNG TRONG CHUÔNG)
-      if (av.action === 'strikeBell') {
-        av.pelvis.position.y = 0.50;
-        av.legLGroup.rotation.set(0, 0, 0);
-        av.legRGroup.rotation.set(0, 0, 0);
+      else if (av.action === 'strikeBell') {
+        targetPelvisY = 0.50;
 
-        // Nhịp lắc dây: 2 lần kéo lắc dứt khoát làm chuông rung ngân
         const swayPhase = Math.sin(av.actionTimer * 7.5);
         const gripTension = Math.sin(Math.min(Math.PI, av.actionTimer * 2.2));
 
-        // Thân người hơi rướn và chuyển động theo lực kéo dây
-        av.spineGroup.rotation.x = 0.05 + swayPhase * 0.10 * gripTension;
-        av.spineGroup.rotation.y = swayPhase * 0.04 * gripTension;
+        targetSpineRot.x = 0.05 + swayPhase * 0.10 * gripTension;
+        targetSpineRot.y = swayPhase * 0.04 * gripTension;
 
         // HAI TAY NẮM CHẶT SỢI DÂY VÀ LẮC DÂY CHUÔNG
         const armPull = -0.55 + swayPhase * 0.18 * gripTension;
-        av.armLGroup.rotation.set(armPull, 0.10, 0.35);
-        av.armRGroup.rotation.set(armPull, -0.10, -0.35);
-        av.foreArmL.rotation.set(-0.95 + swayPhase * 0.15 * gripTension, 0, 0.12);
-        av.foreArmR.rotation.set(-0.95 + swayPhase * 0.15 * gripTension, 0, -0.12);
+        targetArmLRot = { x: armPull, y: 0.10, z: 0.35 };
+        targetArmRRot = { x: armPull, y: -0.10, z: -0.35 };
+        targetForeArmLRot = { x: -0.95 + swayPhase * 0.15 * gripTension, y: 0, z: 0.12 };
+        targetForeArmRRot = { x: -0.95 + swayPhase * 0.15 * gripTension, y: 0, z: -0.12 };
 
-        // Đầu ngước nhìn Đại Hồng Chung cung kính
-        av.headGroup.rotation.x = -0.12 + Math.max(0, swayPhase) * 0.06;
-        return;
+        targetHeadRot.x = -0.12 + Math.max(0, swayPhase) * 0.06;
       }
-
-      // 6. THÀNH KÍNH DÂNG HƯƠNG (4 BƯỚC: LẤY HƯƠNG -> CHÂM NẾN -> CẮM LƯ HƯƠNG -> LẠY 3 LẠY)
-      if (av.action === 'takeIncense') {
-        av.pelvis.position.y = 0.50;
-        av.legLGroup.rotation.set(0, 0, 0);
-        av.legRGroup.rotation.set(0, 0, 0);
-        // Tay trái chắp trước ngực, tay phải cúi nhẹ lấy 3 nén hương trên bàn
-        av.spineGroup.rotation.x = 0.14;
-        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
-        av.foreArmL.rotation.set(-1.25, 0, 0.25);
-        av.armRGroup.rotation.set(-0.45, -0.08, -0.15);
-        av.foreArmR.rotation.set(-0.70, 0, -0.05);
-        av.headGroup.rotation.x = 0.12;
-        return;
+      // 6. THÀNH KÍNH DÂNG HƯƠNG (4 BƯỚC MƯỢT MÀ)
+      else if (av.action === 'takeIncense') {
+        targetPelvisY = 0.50;
+        targetSpineRot.x = 0.14;
+        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
+        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
+        targetArmRRot = { x: -0.45, y: -0.08, z: -0.15 };
+        targetForeArmRRot = { x: -0.70, y: 0, z: -0.05 };
+        targetHeadRot.x = 0.12;
       }
-
-      if (av.action === 'lightCandle') {
-        av.pelvis.position.y = 0.50;
-        av.legLGroup.rotation.set(0, 0, 0);
-        av.legRGroup.rotation.set(0, 0, 0);
-        // Tay trái chắp trước ngực, tay phải đưa 3 nén hương tới ngọn nến đỏ châm lửa
-        av.spineGroup.rotation.x = 0.06;
-        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
-        av.foreArmL.rotation.set(-1.25, 0, 0.25);
-        av.armRGroup.rotation.set(-0.52, -0.08, -0.15);
-        av.foreArmR.rotation.set(-0.90, 0, -0.08);
-        av.headGroup.rotation.x = 0.05;
-        return;
+      else if (av.action === 'lightCandle') {
+        targetPelvisY = 0.50;
+        targetSpineRot.x = 0.06;
+        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
+        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
+        targetArmRRot = { x: -0.52, y: -0.08, z: -0.15 };
+        targetForeArmRRot = { x: -0.90, y: 0, z: -0.08 };
+        targetHeadRot.x = 0.05;
       }
-
-      if (av.action === 'incense' || av.action === 'plantIncense') {
-        av.pelvis.position.y = 0.50;
-        av.legLGroup.rotation.set(0, 0, 0);
-        av.legRGroup.rotation.set(0, 0, 0);
-
+      else if (av.action === 'incense' || av.action === 'plantIncense') {
+        targetPelvisY = 0.50;
         const timer = av.actionTimer;
         if (timer < 1.2) {
-          // Hai tay nâng 3 nén hương lên ngang trán cung kính vái Tam Bảo
           const raise = Math.sin((timer / 1.2) * (Math.PI / 2));
-          av.spineGroup.rotation.x = 0.08 + raise * 0.10;
-          av.headGroup.rotation.x = 0.05 + raise * 0.08;
-          av.armLGroup.rotation.set(-0.58 - raise * 0.12, 0.10, 0.40);
-          av.armRGroup.rotation.set(-0.58 - raise * 0.12, -0.10, -0.40);
-          av.foreArmL.rotation.set(-1.20 - raise * 0.15, 0, 0.20);
-          av.foreArmR.rotation.set(-1.20 - raise * 0.15, 0, -0.20);
+          targetSpineRot.x = 0.08 + raise * 0.10;
+          targetHeadRot.x = 0.05 + raise * 0.08;
+          targetArmLRot = { x: -0.58 - raise * 0.12, y: 0.10, z: 0.40 };
+          targetArmRRot = { x: -0.58 - raise * 0.12, y: -0.10, z: -0.40 };
+          targetForeArmLRot = { x: -1.20 - raise * 0.15, y: 0, z: 0.20 };
+          targetForeArmRRot = { x: -1.20 - raise * 0.15, y: 0, z: -0.20 };
         } else {
-          // Cúi người cắm 3 nén hương vào lư đồng
           const plant = Math.sin(Math.min(Math.PI, (timer - 1.2) * 2.0));
-          av.spineGroup.rotation.x = 0.18 + plant * 0.20;
-          av.headGroup.rotation.x = 0.12 + plant * 0.08;
-          av.armLGroup.rotation.set(-0.45 - plant * 0.15, 0.05, 0.25);
-          av.armRGroup.rotation.set(-0.45 - plant * 0.15, -0.05, -0.25);
-          av.foreArmL.rotation.set(-0.85 + plant * 0.15, 0, 0.10);
-          av.foreArmR.rotation.set(-0.85 + plant * 0.15, 0, -0.10);
+          targetSpineRot.x = 0.18 + plant * 0.20;
+          targetHeadRot.x = 0.12 + plant * 0.08;
+          targetArmLRot = { x: -0.45 - plant * 0.15, y: 0.05, z: 0.25 };
+          targetArmRRot = { x: -0.45 - plant * 0.15, y: -0.05, z: -0.25 };
+          targetForeArmLRot = { x: -0.85 + plant * 0.15, y: 0, z: 0.10 };
+          targetForeArmRRot = { x: -0.85 + plant * 0.15, y: 0, z: -0.10 };
         }
-        return;
       }
-
       // 7. LẮC ỐNG XĂM
-      if (av.action === 'shakeFortune') {
-        av.pelvis.position.y = 0.50;
+      else if (av.action === 'shakeFortune') {
+        targetPelvisY = 0.50;
         const shake = Math.sin(av.actionTimer * 16) * 0.08;
-        av.spineGroup.rotation.x = 0.08 + shake * 0.5;
-        av.armLGroup.rotation.set(-0.50 + shake, 0.10, 0.35);
-        av.armRGroup.rotation.set(-0.50 + shake, -0.10, -0.35);
-        av.foreArmL.rotation.set(-1.10, 0, 0.15);
-        av.foreArmR.rotation.set(-1.10, 0, -0.15);
-        return;
+        targetSpineRot.x = 0.08 + shake * 0.5;
+        targetArmLRot = { x: -0.50 + shake, y: 0.10, z: 0.35 };
+        targetArmRRot = { x: -0.50 + shake, y: -0.10, z: -0.35 };
+        targetForeArmLRot = { x: -1.10, y: 0, z: 0.15 };
+        targetForeArmRRot = { x: -1.10, y: 0, z: -0.15 };
+      }
+      // 8. ĐỨNG NGHỈ THƯ THÁI (HAI TAY BUÔNG THẢ TỰ NHIÊN DỌC HÔNG)
+      else {
+        targetPelvisY = 0.50;
+        const idleBreathe = Math.sin(time * 2.0) * 0.015;
+        targetSpineRot.x = idleBreathe * 0.3;
+        targetHeadRot.x = idleBreathe * 0.2;
+        targetArmLRot = { x: 0.02, y: 0, z: -0.09 - idleBreathe * 0.2 };
+        targetArmRRot = { x: 0.02, y: 0, z: 0.09 + idleBreathe * 0.2 };
+        targetForeArmLRot = { x: -0.02, y: 0, z: 0 };
+        targetForeArmRRot = { x: -0.02, y: 0, z: 0 };
+        targetChestScale = { x: 1 + idleBreathe * 0.6, y: 1 + idleBreathe * 0.4, z: 1 + idleBreathe * 0.6 };
       }
 
-      // 8. ĐỨNG NGHỈ (LÚC ĐỨNG LÀ 2 TAY BUÔNG THẢ TỰ NHIÊN)
-      av.pelvis.position.y = 0.50;
-      av.pelvis.rotation.set(0, 0, 0);
-      av.legLGroup.rotation.set(0, 0, 0);
-      av.legRGroup.rotation.set(0, 0, 0);
+      // =========================================================================
+      // BỘ LERP MƯỢT MÀ TẤT CẢ CÁC KHỚP (SILKY SMOOTH PROCEDURAL ANIMATION)
+      // Không còn bất kỳ hiện tượng giật cục, nhảy khớp hay đơ cứng khi chuyển động tác!
+      // =========================================================================
+      const lerpSpeed = Math.min(1.0, delta * 14.0);
 
-      const idleBreathe = Math.sin(time * 2.0) * 0.015;
-      av.spineGroup.rotation.set(idleBreathe * 0.3, 0, 0);
-      av.headGroup.rotation.set(idleBreathe * 0.2, 0, 0);
+      av.pelvis.position.y += (targetPelvisY - av.pelvis.position.y) * lerpSpeed;
+      av.pelvis.rotation.x += (targetPelvisRot.x - av.pelvis.rotation.x) * lerpSpeed;
+      av.pelvis.rotation.y += (targetPelvisRot.y - av.pelvis.rotation.y) * lerpSpeed;
+      av.pelvis.rotation.z += (targetPelvisRot.z - av.pelvis.rotation.z) * lerpSpeed;
 
-      // HAI TAY BUÔNG THẢ TỰ NHIÊN DỌC HAI BÊN HÔNG
-      av.armLGroup.rotation.set(0.02, 0, -0.09 - idleBreathe * 0.2);
-      av.armRGroup.rotation.set(0.02, 0, 0.09 + idleBreathe * 0.2);
-      av.foreArmL.rotation.set(-0.02, 0, 0);
-      av.foreArmR.rotation.set(-0.02, 0, 0);
+      av.spineGroup.rotation.x += (targetSpineRot.x - av.spineGroup.rotation.x) * lerpSpeed;
+      av.spineGroup.rotation.y += (targetSpineRot.y - av.spineGroup.rotation.y) * lerpSpeed;
+      av.spineGroup.rotation.z += (targetSpineRot.z - av.spineGroup.rotation.z) * lerpSpeed;
+
+      av.headGroup.rotation.x += (targetHeadRot.x - av.headGroup.rotation.x) * lerpSpeed;
+      av.headGroup.rotation.y += (targetHeadRot.y - av.headGroup.rotation.y) * lerpSpeed;
+      av.headGroup.rotation.z += (targetHeadRot.z - av.headGroup.rotation.z) * lerpSpeed;
+
+      av.legLGroup.rotation.x += (targetLegLRot.x - av.legLGroup.rotation.x) * lerpSpeed;
+      av.legLGroup.rotation.y += (targetLegLRot.y - av.legLGroup.rotation.y) * lerpSpeed;
+      av.legLGroup.rotation.z += (targetLegLRot.z - av.legLGroup.rotation.z) * lerpSpeed;
+
+      av.legRGroup.rotation.x += (targetLegRRot.x - av.legRGroup.rotation.x) * lerpSpeed;
+      av.legRGroup.rotation.y += (targetLegRRot.y - av.legRGroup.rotation.y) * lerpSpeed;
+      av.legRGroup.rotation.z += (targetLegRRot.z - av.legRGroup.rotation.z) * lerpSpeed;
+
+      av.armLGroup.rotation.x += (targetArmLRot.x - av.armLGroup.rotation.x) * lerpSpeed;
+      av.armLGroup.rotation.y += (targetArmLRot.y - av.armLGroup.rotation.y) * lerpSpeed;
+      av.armLGroup.rotation.z += (targetArmLRot.z - av.armLGroup.rotation.z) * lerpSpeed;
+
+      av.armRGroup.rotation.x += (targetArmRRot.x - av.armRGroup.rotation.x) * lerpSpeed;
+      av.armRGroup.rotation.y += (targetArmRRot.y - av.armRGroup.rotation.y) * lerpSpeed;
+      av.armRGroup.rotation.z += (targetArmRRot.z - av.armRGroup.rotation.z) * lerpSpeed;
+
+      av.foreArmL.rotation.x += (targetForeArmLRot.x - av.foreArmL.rotation.x) * lerpSpeed;
+      av.foreArmL.rotation.y += (targetForeArmLRot.y - av.foreArmL.rotation.y) * lerpSpeed;
+      av.foreArmL.rotation.z += (targetForeArmLRot.z - av.foreArmL.rotation.z) * lerpSpeed;
+
+      av.foreArmR.rotation.x += (targetForeArmRRot.x - av.foreArmR.rotation.x) * lerpSpeed;
+      av.foreArmR.rotation.y += (targetForeArmRRot.y - av.foreArmR.rotation.y) * lerpSpeed;
+      av.foreArmR.rotation.z += (targetForeArmRRot.z - av.foreArmR.rotation.z) * lerpSpeed;
+
+      av.chestGroup.scale.x += (targetChestScale.x - av.chestGroup.scale.x) * lerpSpeed;
+      av.chestGroup.scale.y += (targetChestScale.y - av.chestGroup.scale.y) * lerpSpeed;
+      av.chestGroup.scale.z += (targetChestScale.z - av.chestGroup.scale.z) * lerpSpeed;
     });
   }
 

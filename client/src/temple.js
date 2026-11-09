@@ -395,9 +395,9 @@ export class TempleScene {
   }
 
   createEnvironment() {
-    // Không gian thiền định trầm ấm, thanh tịnh
-    this.scene.background = new THREE.Color(0x28170e);
-    this.scene.fog = new THREE.Fog(0x28170e, 26, 65);
+    // Không gian thiền định ấm áp, sáng sủa, thanh tịnh
+    this.scene.background = new THREE.Color(0x361f14);
+    this.scene.fog = new THREE.Fog(0x361f14, 28, 75);
   }
 
   // =========================================================================
@@ -1738,13 +1738,13 @@ export class TempleScene {
   // ÁNH SÁNG & KHÍ TRỜI THIỀN ĐỊNH LUNG LINH (ATMOSPHERIC LIGHTING)
   // =========================================================================
   createAtmosphericLighting() {
-    // 1. Ánh sáng môi trường chan hòa thanh tịnh
-    const ambientLight = new THREE.AmbientLight(0xffedd8, 1.35);
+    // 1. Ánh sáng môi trường chan hòa, sáng sủa, thanh tịnh
+    const ambientLight = new THREE.AmbientLight(0xfff3e6, 1.75);
     this.scene.add(ambientLight);
 
     // 2. Nắng sớm rọi từ vòm điện
-    const mainSun = new THREE.DirectionalLight(0xfff3e0, 1.8);
-    mainSun.position.set(0, 16, 6);
+    const mainSun = new THREE.DirectionalLight(0xfffaf0, 2.3);
+    mainSun.position.set(0, 18, 6);
     mainSun.castShadow = true;
     mainSun.shadow.mapSize.width = 1024;
     mainSun.shadow.mapSize.height = 1024;
@@ -1752,12 +1752,17 @@ export class TempleScene {
     mainSun.shadow.camera.far = 35;
     this.scene.add(mainSun);
 
-    // 3. Đèn lồng cung đình treo dọc 2 bên hành lang
+    // 3. Ánh sáng vàng dịu soi sáng Chánh Điện, Thảm đỏ & 18 vị La Hán
+    const centralWarmLight = new THREE.DirectionalLight(0xffd54f, 1.25);
+    centralWarmLight.position.set(0, 14, -3.5);
+    this.scene.add(centralWarmLight);
+
+    // 4. Đèn lồng cung đình treo dọc 2 bên hành lang
     const lanternMat = new THREE.MeshStandardMaterial({
-      color: 0xff9800,
-      emissive: 0xff6f00,
-      emissiveIntensity: 0.85,
-      roughness: 0.3
+      color: 0xffa726,
+      emissive: 0xff8f00,
+      emissiveIntensity: 0.95,
+      roughness: 0.25
     });
 
     [-7.5, 7.5].forEach(lx => {
@@ -1765,7 +1770,7 @@ export class TempleScene {
         const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.30, 0.60, 10), lanternMat);
         lan.position.set(lx, 6.0, lz);
 
-        const pLight = new THREE.PointLight(0xffa726, 1.2, 8.5);
+        const pLight = new THREE.PointLight(0xffb74d, 1.5, 9.5);
         pLight.position.set(lx, 6.0, lz);
         this.candleLights.push(pLight);
 
