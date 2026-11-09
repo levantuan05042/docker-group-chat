@@ -89,6 +89,13 @@ export class PlayerController {
     this.targetCamHeight = 2.4;
   }
 
+  setCameraGate() {
+    this.targetCamYaw = Math.PI; // Xoay 180 độ hướng ra Cổng Tam Quan và sân chùa
+    this.targetCamPitch = 0.22;
+    this.targetCamDistance = 7.0;
+    this.targetCamHeight = 2.5;
+  }
+
   initEventListeners() {
     window.addEventListener('keydown', (e) => this.handleKeyDown(e));
     window.addEventListener('keyup', (e) => this.handleKeyUp(e));
@@ -353,10 +360,10 @@ export class PlayerController {
     }
   }
 
-  // Giới hạn phạm vi di chuyển thực tế (trong Chánh Điện, qua Cửa Chùa và ngoài Sân Chùa)
+  // Giới hạn phạm vi di chuyển thực tế (trong Chánh Điện, qua Cửa Chùa và ngoài Sân Chùa đến Cổng Tam Quan)
   clampPosition(x, z) {
     let nx = x;
-    let nz = Math.max(-2.5, Math.min(34.5, z));
+    let nz = Math.max(-2.5, Math.min(34.8, z));
 
     if (nz < 17.2) {
       // Bên trong Chánh Điện
@@ -365,7 +372,7 @@ export class PlayerController {
       // Ngoài Sân Chùa Bát Nhã
       nx = Math.max(-15.0, Math.min(15.0, nx));
     } else {
-      // Đi qua Cửa Chùa (Tam Quan: x = -2.8 đến +2.8)
+      // Đi qua Cửa Chùa (x = -2.8 đến +2.8)
       nx = Math.max(-2.8, Math.min(2.8, nx));
     }
     return { x: nx, z: nz };

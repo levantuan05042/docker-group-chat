@@ -196,10 +196,11 @@ class ChuaOnlineApp {
     // Camera View Modes
     const camHall = document.getElementById('cam-view-hall');
     const camBuddha = document.getElementById('cam-view-buddha');
+    const camGate = document.getElementById('cam-view-gate');
     const camFollow = document.getElementById('cam-view-follow');
 
     const setCamActive = (activeBtn) => {
-      [camHall, camBuddha, camFollow].forEach(b => {
+      [camHall, camBuddha, camGate, camFollow].forEach(b => {
         if (b) b.classList.remove('active');
       });
       if (activeBtn) activeBtn.classList.add('active');
@@ -218,6 +219,14 @@ class ChuaOnlineApp {
         this.controller.setCameraBuddhaCloseUp();
         setCamActive(camBuddha);
         this.showToast('🪷 Chiêm bái tôn tượng Đức Bổn Sư Thích Ca!');
+      });
+    }
+
+    if (camGate) {
+      camGate.addEventListener('click', () => {
+        this.controller.setCameraGate();
+        setCamActive(camGate);
+        this.showToast('⛩️ Chiêm ngưỡng Cổng Tam Quan cổ kính!');
       });
     }
 

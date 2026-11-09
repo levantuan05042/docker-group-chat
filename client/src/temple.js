@@ -44,6 +44,7 @@ export class TempleScene {
     this.createEnvironment();
     this.createArchitecture();
     this.createCourtyard();
+    this.createTamQuanGate();
     this.createGrandBuddhaAltar();
     this.createGrandOfferingAltar();
     this.createSideAltars();
@@ -697,7 +698,7 @@ export class TempleScene {
       new THREE.BoxGeometry(6.2, 1.45, 0.15),
       new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('CHÙA VỪA LÀM VỪA TU', 'LÀM VIỆC CHÁNH NIỆM • VỪA CÀY DEADLINE VỪA TU TÂM') })
     );
-    grandSign.position.set(0, 8.8, -3.5);
+    grandSign.position.set(0, 10.2, -4.2);
     templeGroup.add(grandSign);
 
     // Xà gồ vì kèo gỗ lim nâng đỡ mái
@@ -2006,6 +2007,239 @@ export class TempleScene {
     courtGroup.add(treeGroup);
 
     this.scene.add(courtGroup);
+  }
+
+  // =========================================================================
+  // CỔNG TAM QUAN CHÙA CỔ VIỆT NAM (z = 35.8, x = 0)
+  // 3 Cổng Vòm Uy Nghiêm, Mái Đao Cong 2 Tầng Ngói Mũi Hài, Bảng Đại Tự Dát Vàng,
+  // Cửa Gỗ Lim Sơn Son Hé Mở, Tượng Hộ Pháp & Tường Bao Hoa Gió
+  // =========================================================================
+  createTamQuanGate() {
+    const gateGroup = new THREE.Group();
+    gateGroup.position.set(0, 0, 35.8);
+
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x2e2520, roughness: 0.85, metalness: 0.05 });
+    const woodLimMat = new THREE.MeshStandardMaterial({ color: 0x241108, roughness: 0.45 });
+    const lacquerRedMat = new THREE.MeshStandardMaterial({ color: 0x7c1a14, roughness: 0.55 });
+    const roofTileMat = new THREE.MeshStandardMaterial({ color: 0x5a1e14, roughness: 0.65 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0x422a1f, roughness: 0.90 });
+
+    // 1. NỀN ĐÁ THANH & BẬC TAM CẤP DẪN VÀO CỔNG CHÙA
+    const baseDais = new THREE.Mesh(new THREE.BoxGeometry(26, 0.40, 4.2), stoneMat);
+    baseDais.position.y = 0.20;
+    baseDais.receiveShadow = true;
+    gateGroup.add(baseDais);
+
+    // Bậc tam cấp phía trước cổng (dẫn từ thế tục vào chốn thanh tịnh)
+    for (let s = 0; s < 3; s++) {
+      const stepMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(10 + s * 0.4, 0.12, 0.45),
+        stoneMat
+      );
+      stepMesh.position.set(0, 0.06 + s * 0.10, 2.3 + (2 - s) * 0.42);
+      gateGroup.add(stepMesh);
+    }
+
+    // 2. HỆ THỐNG 4 CỘT TRỤ TAM QUAN BẰNG ĐÁ & LIM
+    // 2 Cột Cái (Main Central Pillars: x = -2.6, +2.6)
+    [-2.6, 2.6].forEach((cx, idx) => {
+      // Chân tảng đá hoa sen
+      const pBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 0.60, 16), stoneMat);
+      pBase.position.set(cx, 0.65, 0);
+
+      // Thân cột trụ gỗ lim
+      const pCol = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 6.8, 16), woodLimMat);
+      pCol.position.set(cx, 4.10, 0);
+      pCol.castShadow = true;
+
+      // Đầu cột đấu củng đỡ xà
+      const pCap = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 1.1), woodLimMat);
+      pCap.position.set(cx, 7.65, 0);
+
+      // Đôi câu đối thư pháp dát vàng gắn trên 2 cột cái
+      const coupletText = idx === 0 
+        ? 'PHẬT PHÁP VÔ BIÊN ĐỘ CHÚNG SINH ĐỒNG QUY GIÁC NGẠN'
+        : 'THIỀN TÂM TỰ TẠI VỪA LÀM VỪA TU VẠN SỰ AN NHIÊN';
+      const cSign = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 4.8, 0.04),
+        new THREE.MeshStandardMaterial({ map: this.generateCoupletTexture(coupletText) })
+      );
+      cSign.position.set(cx, 4.10, -0.42); // Quay mặt vào sân chùa
+
+      gateGroup.add(pBase, pCol, pCap, cSign);
+    });
+
+    // 2 Cột Quân (Outer Pillars: x = -6.2, +6.2)
+    [-6.2, 6.2].forEach(cx => {
+      const pBase = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.54, 0.50, 16), stoneMat);
+      pBase.position.set(cx, 0.60, 0);
+
+      const pCol = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 5.0, 16), woodLimMat);
+      pCol.position.set(cx, 3.25, 0);
+      pCol.castShadow = true;
+
+      const pCap = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.38, 0.85), woodLimMat);
+      pCap.position.set(cx, 5.85, 0);
+
+      gateGroup.add(pBase, pCol, pCap);
+    });
+
+    // 3. VÒM CỬA CỔNG CHÍNH (CỬA TRUNG QUAN)
+    // Cánh cửa gỗ lim sơn son then cài hé mở trang nghiêm đón đồng tu
+    [-1.15, 1.15].forEach((dx, cIdx) => {
+      const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.95, 4.2, 0.12), lacquerRedMat);
+      const rotAngle = cIdx === 0 ? 0.45 : -0.45;
+      doorLeaf.position.set(dx + (cIdx === 0 ? -0.4 : 0.4), 2.50, (cIdx === 0 ? -0.35 : -0.35));
+      doorLeaf.rotation.y = rotAngle;
+      doorLeaf.castShadow = true;
+
+      const knocker = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 8, 16), goldMat);
+      knocker.position.set(dx + (cIdx === 0 ? 0.3 : -0.3), 2.50, (cIdx === 0 ? -0.25 : -0.25));
+      gateGroup.add(doorLeaf, knocker);
+    });
+
+    const lintelMain = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.65, 0.70), woodLimMat);
+    lintelMain.position.set(0, 4.95, 0);
+    gateGroup.add(lintelMain);
+
+    // 4. HAI CỔNG PHỤ (CỬA TẢ & CỬA HỮU)
+    [-4.4, 4.4].forEach(cx => {
+      const subDoor = new THREE.Mesh(new THREE.BoxGeometry(2.1, 3.2, 0.10), lacquerRedMat);
+      subDoor.position.set(cx, 2.0, 0);
+
+      const lintelSub = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.45, 0.55), woodLimMat);
+      lintelSub.position.set(cx, 3.80, 0);
+
+      const subRoof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.45, 2.4), roofTileMat);
+      subRoof.position.set(cx, 4.35, 0);
+
+      const subFinial = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), goldMat);
+      subFinial.position.set(cx, 4.85, 0);
+
+      gateGroup.add(subDoor, lintelSub, subRoof, subFinial);
+    });
+
+    // 5. HỆ MÁI NGÓI MŨI HÀI ĐAO CONG 2 TẦNG (CỔNG CHÍNH TRÙNG THIỀM ĐIỆP ỐC)
+    // Tầng mái dưới cổng chính
+    const mainRoofLower = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.55, 3.2), roofTileMat);
+    mainRoofLower.position.set(0, 5.50, 0);
+    mainRoofLower.castShadow = true;
+
+    // 4 Góc mái đao cong vút lên của tầng dưới
+    [-3.8, 3.8].forEach(rx => {
+      [-1.6, 1.6].forEach(rz => {
+        const eaveTip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.75, 4), roofTileMat);
+        eaveTip.rotation.x = rz > 0 ? -0.45 : 0.45;
+        eaveTip.rotation.z = rx > 0 ? 0.45 : -0.45;
+        eaveTip.position.set(rx, 5.80, rz);
+        gateGroup.add(eaveTip);
+      });
+    });
+
+    // Cổ diêm (Gác chuông / Cổ các thông tầng giữa 2 mái)
+    const attic = new THREE.Mesh(new THREE.BoxGeometry(5.0, 1.35, 2.1), woodLimMat);
+    attic.position.set(0, 6.40, 0);
+
+    // Tầng mái trên (Thượng điện cổng chính)
+    const mainRoofUpper = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.55, 2.6), roofTileMat);
+    mainRoofUpper.position.set(0, 7.30, 0);
+    mainRoofUpper.castShadow = true;
+
+    // 4 Góc mái đao cong vút của tầng trên
+    [-3.2, 3.2].forEach(rx => {
+      [-1.3, 1.3].forEach(rz => {
+        const eaveTip = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.65, 4), roofTileMat);
+        eaveTip.rotation.x = rz > 0 ? -0.45 : 0.45;
+        eaveTip.rotation.z = rx > 0 ? 0.45 : -0.45;
+        eaveTip.position.set(rx, 7.55, rz);
+        gateGroup.add(eaveTip);
+      });
+    });
+
+    // Bờ nóc đắp ngọc bình hồ lô phong thủy dát vàng
+    const finialSphere = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), goldMat);
+    finialSphere.position.set(0, 8.0, 0);
+    const finialSpire = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.85, 12), goldMat);
+    finialSpire.position.set(0, 8.55, 0);
+
+    gateGroup.add(mainRoofLower, attic, mainRoofUpper, finialSphere, finialSpire);
+
+    // 6. BỨC ĐẠI TỰ THƯ PHÁP HOÀNH PHI TREO TRÊN CỔNG CHÙA
+    // Mặt hướng vào sân chùa (-Z)
+    const gateSignInner = new THREE.Mesh(
+      new THREE.BoxGeometry(3.6, 1.05, 0.12),
+      new THREE.MeshStandardMaterial({
+        map: this.generateSignboardTexture('VỪA LÀM VỪA TU TỰ', 'CHÙA VỪA LÀM VỪA TU • CỔNG TAM QUAN')
+      })
+    );
+    gateSignInner.position.set(0, 6.40, -1.08);
+
+    // Mặt hướng ra ngoài đường đón khách (+Z)
+    const gateSignOuter = new THREE.Mesh(
+      new THREE.BoxGeometry(3.6, 1.05, 0.12),
+      new THREE.MeshStandardMaterial({
+        map: this.generateSignboardTexture('VỪA LÀM VỪA TU TỰ', 'CHÙA VỪA LÀM VỪA TU • CỔNG TAM QUAN')
+      })
+    );
+    gateSignOuter.position.set(0, 6.40, 1.08);
+    gateSignOuter.rotation.y = Math.PI;
+
+    gateGroup.add(gateSignInner, gateSignOuter);
+
+    // 7. ĐÔI TƯỢNG HỘ PHÁP / KIM CANG TRẤN CỔNG (x = -8.2, +8.2)
+    [-8.2, 8.2].forEach((sx) => {
+      const gDais = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.78, 0.55, 8), stoneMat);
+      gDais.position.set(sx, 0.55, -1.0);
+
+      const gBody = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 1.6, 12), stoneMat);
+      gBody.position.set(sx, 1.55, -1.0);
+
+      const gHead = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), stoneMat);
+      gHead.position.set(sx, 2.50, -1.0);
+
+      const gCrown = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.55, 8), goldMat);
+      gCrown.position.set(sx, 2.90, -1.0);
+
+      gateGroup.add(gDais, gBody, gHead, gCrown);
+    });
+
+    // 8. TƯỜNG BAO HOA GIÓ GẠCH CỔ KHÉP KÍN KHUÔN VIÊN CHÙA
+    // Tường nối từ cổng Tam Quan ra 2 mép sân (z = 35.8, x = -6.2 đến -16 và +6.2 đến +16)
+    [-11.1, 11.1].forEach(wx => {
+      const wallFront = new THREE.Mesh(new THREE.BoxGeometry(9.8, 2.8, 0.45), brickMat);
+      wallFront.position.set(wx, 1.40, 0);
+
+      const wallRoof = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.22, 0.70), roofTileMat);
+      wallRoof.position.set(wx, 2.90, 0);
+
+      gateGroup.add(wallFront, wallRoof);
+    });
+
+    // Tường bao hai bên hông sân chùa (x = ±16.0, chạy từ z = 17.5 đến z = 35.8)
+    [-16.0, 16.0].forEach(sx => {
+      const wallSide = new THREE.Mesh(new THREE.BoxGeometry(0.45, 2.8, 18.5), brickMat);
+      wallSide.position.set(sx, 1.40, -9.2);
+
+      const wallSideRoof = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.22, 18.8), roofTileMat);
+      wallSideRoof.position.set(sx, 2.90, -9.2);
+
+      gateGroup.add(wallSide, wallSideRoof);
+    });
+
+    // 9. ĐÈN LỒNG ĐỎ CỔ TRUYỀN TREO DƯỚI MÁI TAM QUAN
+    const lanternMat = new THREE.MeshStandardMaterial({
+      color: 0xff3d00,
+      emissive: 0xff3d00,
+      emissiveIntensity: 0.85
+    });
+    [-2.6, 2.6, -4.4, 4.4].forEach(lx => {
+      const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 0.55, 8), lanternMat);
+      lan.position.set(lx, 4.6, -1.4);
+      gateGroup.add(lan);
+    });
+
+    this.scene.add(gateGroup);
   }
 
   // =========================================================================
