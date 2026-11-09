@@ -241,6 +241,23 @@ class ChuaOnlineApp {
       if (profileModal) profileModal.style.display = 'flex';
     });
 
+    document.getElementById('btn-close-profile')?.addEventListener('click', () => {
+      if (profileModal) profileModal.style.display = 'none';
+    });
+
+    profileModal?.addEventListener('click', (e) => {
+      if (e.target === profileModal) profileModal.style.display = 'none';
+    });
+
+    const fortuneModal = document.getElementById('fortune-modal');
+    document.getElementById('btn-close-fortune-x')?.addEventListener('click', () => {
+      if (fortuneModal) fortuneModal.style.display = 'none';
+    });
+
+    fortuneModal?.addEventListener('click', (e) => {
+      if (e.target === fortuneModal) fortuneModal.style.display = 'none';
+    });
+
     document.getElementById('btn-save-profile')?.addEventListener('click', () => {
       const newName = document.getElementById('input-name').value.trim();
       const newRoom = document.getElementById('input-room').value.trim() || 'dai-hung-bao-dien';
@@ -249,17 +266,24 @@ class ChuaOnlineApp {
       document.getElementById('header-my-name').textContent = this.myName;
       document.getElementById('header-avatar-dot').style.background = this.selectedRobeColor;
 
-      profileModal.style.display = 'none';
+      // Update local avatar profile immediately without re-spawning
+      if (this.myId) {
+        this.avatarManager.updateAvatarProfile(this.myId, {
+          name: this.myName,
+          robeColor: this.selectedRobeColor
+        });
+      }
+
+      if (profileModal) profileModal.style.display = 'none';
 
       // Reconnect if room changed or update info
       if (newRoom !== this.myRoomId) {
         window.location.search = `?room=${encodeURIComponent(newRoom)}`;
       } else {
-        // Re-join with new name/color
+        // Emit updateProfile instead of join (avoids adding a duplicate person!)
         if (this.socket) {
-          this.socket.emit('join', {
+          this.socket.emit('updateProfile', {
             name: this.myName,
-            roomId: this.myRoomId,
             robeColor: this.selectedRobeColor
           });
         }
@@ -570,6 +594,20 @@ class ChuaOnlineApp {
     this.socket.on('playerJoined', (data) => {
       this.avatarManager.createAvatar(data);
       this.updateOnlineCount(1);
+    });
+
+    this.socket.on('playerProfileUpdated', (data) => {
+      this.avatarManager.updateAvatarProfile(data.id, data);
+      if (data.id === this.myId) {
+        if (data.name) {
+          this.myName = data.name;
+          document.getElementById('header-my-name').textContent = this.myName;
+        }
+        if (data.robeColor) {
+          this.selectedRobeColor = data.robeColor;
+          document.getElementById('header-avatar-dot').style.background = data.robeColor;
+        }
+      }
     });
 
     this.socket.on('playerMoved', (data) => {

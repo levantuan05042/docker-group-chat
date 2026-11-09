@@ -19,12 +19,13 @@ export class PlayerController {
       right: false
     };
 
-    // Smooth Orbit Camera parameters with Damping (Góc nhìn toàn cảnh ấm áp, trang nghiêm)
-    this.camDistance = 6.2;
-    this.targetCamDistance = 6.2;
-    this.camHeight = 2.4;
-    this.camPitch = 0.32; // Góc nhìn Chánh Điện ngắm trọn vẹn Phật tượng và điện thờ ấm cúng
-    this.targetCamPitch = 0.32;
+    // Smooth Orbit Camera parameters with Damping (Góc nhìn thoáng đãng, nhân vật ở tiền cảnh, không che lấp Phật điện)
+    this.camDistance = 7.0;
+    this.targetCamDistance = 7.0;
+    this.camHeight = 2.6;
+    this.targetCamHeight = 2.6;
+    this.camPitch = 0.26; // Góc nhìn Chánh Điện ngắm trọn vẹn Phật tượng, Bồ Tát & 18 La Hán
+    this.targetCamPitch = 0.26;
     this.camYaw = 0; // Hướng camera thẳng về phía Phật điện (-Z)
     this.targetCamYaw = 0;
 
@@ -69,20 +70,23 @@ export class PlayerController {
 
   setCameraMainHall() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.32;
-    this.targetCamDistance = 6.2;
+    this.targetCamPitch = 0.26;
+    this.targetCamDistance = 7.2;
+    this.targetCamHeight = 2.8;
   }
 
   setCameraBuddhaCloseUp() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.14;
-    this.targetCamDistance = 4.0;
+    this.targetCamPitch = 0.12;
+    this.targetCamDistance = 5.2;
+    this.targetCamHeight = 2.2;
   }
 
   setCameraFollow() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.35;
-    this.targetCamDistance = 4.6;
+    this.targetCamPitch = 0.30;
+    this.targetCamDistance = 5.0;
+    this.targetCamHeight = 2.4;
   }
 
   initEventListeners() {
@@ -303,6 +307,7 @@ export class PlayerController {
     this.camYaw += (this.targetCamYaw - this.camYaw) * 0.15;
     this.camPitch += (this.targetCamPitch - this.camPitch) * 0.15;
     this.camDistance += (this.targetCamDistance - this.camDistance) * 0.15;
+    this.camHeight += (this.targetCamHeight - this.camHeight) * 0.15;
 
     let moveX = 0;
     let moveZ = 0;
@@ -385,7 +390,15 @@ export class PlayerController {
     );
 
     this.camera.position.copy(this.position).add(camOffset);
-    this.camera.lookAt(this.position.x, this.position.y + 1.25, this.position.z);
+
+    // Look slightly ahead towards the altar & up so avatar is framed in lower foreground,
+    // leaving the Buddha statue, Bodhisattvas, and Arhats completely unobstructed (không bị lấp)!
+    const lookTarget = new THREE.Vector3(
+      this.position.x * 0.5,
+      this.position.y + 1.85,
+      this.position.z - 3.2
+    );
+    this.camera.lookAt(lookTarget);
 
     const now = Date.now();
     if (now - this.lastSentTime > this.sendInterval && isMoving) {

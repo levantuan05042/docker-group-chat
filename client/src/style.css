@@ -889,6 +889,7 @@ body, html {
 }
 
 .modal-card {
+  position: relative;
   width: 90%;
   max-width: 480px;
   background: linear-gradient(160deg, rgba(28, 17, 12, 0.98), rgba(16, 10, 7, 0.98));
@@ -898,6 +899,33 @@ body, html {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 36px rgba(245, 175, 25, 0.22), var(--glass-inner-shadow);
   text-align: center;
   animation: modalIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(245, 175, 25, 0.3);
+  color: #ffd166;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  background: rgba(220, 50, 50, 0.85);
+  border-color: #ff5252;
+  color: #ffffff;
+  transform: scale(1.1);
 }
 
 @keyframes modalIn {

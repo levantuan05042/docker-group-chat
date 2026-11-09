@@ -113,6 +113,11 @@ export class AvatarManager {
   // Hai bàn tay chắp búp sen an nhiên, bồ đoàn zafu êm ái khi ngồi thiền
   // =========================================================================
   createAvatar(data) {
+    if (this.avatars.has(data.id)) {
+      this.updateAvatarProfile(data.id, data);
+      return this.avatars.get(data.id);
+    }
+
     const group = new THREE.Group();
     group.position.set(data.x || 0, data.y || 0, data.z || 0);
     if (typeof data.rotY === 'number') {
@@ -425,6 +430,7 @@ export class AvatarManager {
       walkCycle: Math.random() * 10,
       isMoving: false,
       merit: data.merit || 0,
+      sashRobeMat,
       props: {
         mallet: malletProp,
         bellStriker: bellStrikerProp,
@@ -484,6 +490,30 @@ export class AvatarManager {
     if (typeof data.rotY === 'number') av.targetRotY = data.rotY;
     if (data.action && data.action !== av.action) {
       this.setAction(id, data.action);
+    }
+    if (data.name || data.robeColor) {
+      this.updateAvatarProfile(id, data);
+    }
+  }
+
+  updateAvatarProfile(id, { name, robeColor }) {
+    const av = this.avatars.get(id);
+    if (!av) return;
+    if (name) {
+      av.name = name;
+      if (av.tagEl) {
+        const textSpan = av.tagEl.querySelector('.nametag-text');
+        if (textSpan) {
+          textSpan.textContent = name;
+        } else {
+          av.tagEl.innerHTML = `<span class="nametag-text">${this.escapeHtml(name)}</span>`;
+        }
+      }
+    }
+    if (robeColor && av.sashRobeMat) {
+      av.robeColor = robeColor;
+      const robeSashColorHex = parseInt(robeColor.replace('#', '0x'), 16);
+      av.sashRobeMat.color.setHex(robeSashColorHex);
     }
   }
 

@@ -165,6 +165,38 @@ io.on('connection', (socket) => {
     io.to(currentRoomId).emit('newChatMessage', systemMsg);
   });
 
+  // Update profile (Change Name / Robe Color without adding a duplicate avatar!)
+  socket.on('updateProfile', ({ name, robeColor }) => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
+
+    const oldName = playerInfo.name;
+    if (name && name.trim()) {
+      playerInfo.name = name.trim().slice(0, 30);
+    }
+    if (robeColor) {
+      playerInfo.robeColor = robeColor;
+    }
+
+    io.to(currentRoomId).emit('playerProfileUpdated', {
+      id: socket.id,
+      name: playerInfo.name,
+      robeColor: playerInfo.robeColor
+    });
+
+    if (oldName !== playerInfo.name) {
+      const updateMsg = {
+        id: 'sys_' + Date.now(),
+        senderId: 'system',
+        senderName: 'Chính Điện',
+        text: `Đồng tu [${oldName}] đã đổi pháp danh thành [${playerInfo.name}].`,
+        timestamp: Date.now()
+      };
+      room.chatHistory.push(updateMsg);
+      io.to(currentRoomId).emit('newChatMessage', updateMsg);
+    }
+  });
+
   socket.on('move', (coords) => {
     const room = rooms.get(currentRoomId);
     if (!room || !playerInfo) return;
