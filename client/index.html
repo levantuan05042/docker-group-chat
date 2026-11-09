@@ -16,52 +16,18 @@
 
   <!-- UI Overlay -->
   <div id="ui-overlay">
-    <!-- Top Bar -->
+    <!-- Top Bar: Clean 3-Zone Zen Glassmorphism -->
     <header class="top-nav interactive-ui">
-      <div class="temple-branding">
-        <div class="temple-logo">🪷</div>
-        <div class="temple-titles">
-          <h1 id="room-name-display">Đại Hùng Bảo Điện</h1>
-          <p>Chùa Trúc Lâm 3D • Chánh Điện Thiền Định</p>
-        </div>
-      </div>
-
-      <!-- Quick Hint & Camera Quick Views -->
-      <div class="control-hints-pill">
-        <button id="cam-view-hall" class="cam-reset-chip active" title="Góc nhìn Chánh Điện uy nghiêm">🏛️ Chánh Điện</button>
-        <button id="cam-view-buddha" class="cam-reset-chip" title="Chiêm bái tôn tượng Đức Phật Tổ">🪷 Phật Tổ</button>
-        <button id="cam-view-follow" class="cam-reset-chip" title="Góc nhìn theo sau nhân vật">🧘 Nhân Vật</button>
-      </div>
-
-      <!-- Zen Music Player Bar -->
-      <div class="music-player-pill" id="music-player-pill">
-        <button id="btn-toggle-music" class="music-play-btn" title="Bật / Dừng Tiếng Mõ & Nhạc Thiền">
-          <span class="music-icon">🪵</span>
-          <span class="music-state-text" id="music-state-text">Bật Mõ Thiền</span>
-        </button>
-
-        <div class="audio-wave" id="audio-wave">
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
+      <!-- Left Zone: Branding & Identity -->
+      <div class="top-zone top-zone-left">
+        <div class="temple-branding">
+          <div class="temple-logo">🪷</div>
+          <div class="temple-titles">
+            <h1 id="room-name-display">Đại Hùng Bảo Điện</h1>
+            <p>Chùa Trúc Lâm 3D • Chánh Điện Thiền Định</p>
+          </div>
         </div>
 
-        <select id="select-track" class="track-select" title="Chọn âm thanh thiền định">
-          <option value="woodfish-chant" selected>🪵 Tiếng Gõ Mõ Thiền Định (Chuẩn)</option>
-          <option value="nam-mo-a-di-da-phat">📿 Nam Mô A Di Đà Phật</option>
-          <option value="singing-bowl">🔔 Chuông Xoay Tây Tạng 432Hz</option>
-          <option value="temple-rain">🌧️ Mưa Mái Chùa & Suối Reo</option>
-        </select>
-
-        <div class="volume-box">
-          <span class="vol-icon">🔊</span>
-          <input type="range" id="volume-slider" min="0" max="100" value="65" class="vol-slider" title="Âm lượng nhạc">
-        </div>
-      </div>
-
-      <!-- Top Stats & Identity -->
-      <div class="top-stats">
         <button id="btn-open-profile" class="profile-chip" title="Đổi pháp danh & màu áo">
           <span class="my-avatar-dot" id="header-avatar-dot"></span>
           <span id="header-my-name">Thích thì nhích</span>
@@ -72,10 +38,51 @@
           <span class="stat-icon">⭐</span>
           <span>Công Đức: <b id="total-merit-display" class="highlight">0</b></span>
         </div>
+      </div>
+
+      <!-- Center Zone: Camera Quick Views -->
+      <div class="top-zone top-zone-center">
+        <div class="control-hints-pill">
+          <button id="cam-view-hall" class="cam-reset-chip active" title="Góc nhìn Chánh Điện uy nghiêm">🏛️ Chánh Điện</button>
+          <button id="cam-view-buddha" class="cam-reset-chip" title="Chiêm bái tôn tượng Đức Phật Tổ">🪷 Phật Tổ</button>
+          <button id="cam-view-follow" class="cam-reset-chip" title="Góc nhìn theo sau nhân vật">🧘 Nhân Vật</button>
+        </div>
+      </div>
+
+      <!-- Right Zone: Audio & Social -->
+      <div class="top-zone top-zone-right">
+        <!-- Zen Music Player Bar -->
+        <div class="music-player-pill" id="music-player-pill">
+          <button id="btn-toggle-music" class="music-play-btn" title="Bật / Dừng Tiếng Mõ & Nhạc Thiền">
+            <span class="music-icon">🪵</span>
+            <span class="music-state-text" id="music-state-text">Bật Mõ Thiền</span>
+          </button>
+
+          <div class="audio-wave" id="audio-wave">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+          </div>
+
+          <select id="select-track" class="track-select" title="Chọn âm thanh thiền định">
+            <option value="woodfish-chant" selected>🪵 Mõ Thiền Chuẩn</option>
+            <option value="nam-mo-a-di-da-phat">📿 Niệm Phật</option>
+            <option value="singing-bowl">🔔 Chuông Xoay 432Hz</option>
+            <option value="temple-rain">🌧️ Mưa Mái Chùa</option>
+          </select>
+
+          <div class="volume-box">
+            <span class="vol-icon">🔊</span>
+            <input type="range" id="volume-slider" min="0" max="100" value="65" class="vol-slider" title="Âm lượng nhạc">
+          </div>
+        </div>
+
         <div class="stat-chip" title="Số đồng tu đang online">
           <span class="stat-icon">👥</span>
           <span>Đồng tu: <b id="online-count-display" class="highlight">1</b></span>
         </div>
+
         <div class="nav-actions">
           <button id="btn-sound" class="icon-btn" title="Bật/Tắt Âm Thanh Hiệu Ứng">🔔</button>
           <button id="btn-share" class="icon-btn" title="Sao Chép Link Mời Nhóm">🔗</button>
