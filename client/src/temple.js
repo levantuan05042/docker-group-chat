@@ -16,7 +16,9 @@ export class TempleScene {
       woodfish: { x: 5.6, z: -1.05, rotY: Math.PI },
       bell: { x: -5.6, z: -1.48, rotY: Math.PI },
       incenseTable: { x: -2.8, z: -0.95, rotY: Math.PI },
-      incenseBurner: { x: 0, z: -2.2, rotY: Math.PI },
+      incenseCandle: { x: -0.65, z: -2.75, rotY: Math.PI },
+      incenseBurner: { x: 0, z: -2.75, rotY: Math.PI },
+      incenseBow: { x: 0, z: -1.20, rotY: Math.PI },
       fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI }
     };
 
@@ -1072,6 +1074,43 @@ export class TempleScene {
 
     fortuneGroup.add(fTable, tube, fortuneSign);
     this.scene.add(fortuneGroup);
+
+    // 4. BÀN THỈNH HƯƠNG TRẦM (x = -2.8, z = -1.8) - Đối xứng hoàn hảo với Bàn Xin Xăm
+    const incenseTableGroup = new THREE.Group();
+    incenseTableGroup.position.set(-2.8, 0, -1.8);
+
+    const iTable = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.90, 0.80), woodMat);
+    iTable.position.y = 0.45;
+
+    // Khay gỗ sơn mài đựng các bó hương trầm
+    const iTray = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: 0x220b06, roughness: 0.4 }));
+    iTray.position.set(0, 0.94, 0.05);
+
+    // Ống đồng đựng các nén hương trầm vàng đỏ
+    const iVase = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.30, 12), new THREE.MeshStandardMaterial({ color: 0xb58b3c, metalness: 0.8 }));
+    iVase.position.set(-0.20, 1.05, 0.05);
+
+    // Bó hương cắm trong ống
+    for (let s = -2; s <= 2; s++) {
+      const iStick = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.38), new THREE.MeshBasicMaterial({ color: 0xaa2211 }));
+      iStick.position.set(-0.20 + s * 0.015, 1.25, 0.05 + (s % 2) * 0.01);
+      incenseTableGroup.add(iStick);
+    }
+
+    // Các nén hương mẫu đặt nằm trên khay
+    const lyingStick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.32), new THREE.MeshBasicMaterial({ color: 0xcc2914 }));
+    lyingStick.rotation.z = Math.PI / 2;
+    lyingStick.position.set(0.12, 0.99, 0.05);
+
+    // Biển tên "Bàn Thỉnh Hương"
+    const incenseSign = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 0.26, 0.04),
+      new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('Bàn Thỉnh Hương') })
+    );
+    incenseSign.position.set(0, 1.45, 0);
+
+    incenseTableGroup.add(iTable, iTray, iVase, lyingStick, incenseSign);
+    this.scene.add(incenseTableGroup);
   }
 
   // =========================================================================

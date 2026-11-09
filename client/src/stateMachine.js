@@ -10,8 +10,9 @@ export const PlayerState = {
   NAVIGATING_TO_BELL: 'NAVIGATING_TO_BELL',
   STRIKING_BELL: 'STRIKING_BELL',
   INCENSE_FETCH: 'INCENSE_FETCH',
-  INCENSE_WALK_TO_ALTAR: 'INCENSE_WALK_TO_ALTAR',
+  INCENSE_LIGHT_CANDLE: 'INCENSE_LIGHT_CANDLE',
   INCENSE_PLANT: 'INCENSE_PLANT',
+  INCENSE_BOWING: 'INCENSE_BOWING',
   FORTUNE_WALK: 'FORTUNE_WALK',
   FORTUNE_SHAKE: 'FORTUNE_SHAKE',
   FORTUNE_DROP: 'FORTUNE_DROP'
@@ -43,8 +44,9 @@ export class RitualStateMachine {
       PlayerState.NAVIGATING_TO_BELL,
       PlayerState.STRIKING_BELL,
       PlayerState.INCENSE_FETCH,
-      PlayerState.INCENSE_WALK_TO_ALTAR,
+      PlayerState.INCENSE_LIGHT_CANDLE,
       PlayerState.INCENSE_PLANT,
+      PlayerState.INCENSE_BOWING,
       PlayerState.FORTUNE_WALK,
       PlayerState.FORTUNE_SHAKE,
       PlayerState.FORTUNE_DROP
@@ -263,65 +265,111 @@ export class RitualStateMachine {
     });
   }
 
-  // 5. THẮP HƯƠNG (3 Sticks: Take -> Walk to Altar -> Bow 3 times -> Plant)
+  // 5. THẮP HƯƠNG (4 Bước chính tông: Lấy hương ở bàn -> Đốt hương chỗ nến -> Cắm hương vào lư -> Lạy 3 lạy)
   startIncense() {
     this.clearTimers();
     const stTable = this.app.temple.interactiveStations.incenseTable;
+    const stCandle = this.app.temple.interactiveStations.incenseCandle;
     const stBurner = this.app.temple.interactiveStations.incenseBurner;
+    const stBow = this.app.temple.interactiveStations.incenseBow;
 
     this.currentState = PlayerState.INCENSE_FETCH;
     this.stateTimer = 0;
-    this.app.showToast('Bước đến bàn thỉnh 3 nén hương trầm...');
+    this.app.showToast('Bước 1/4: Đang bước lại Bàn Thỉnh Hương lấy 3 nén hương trầm...');
     this.app.updateActionButtonsUI('incense');
     if (this.app.showRitualStatus) {
-      this.app.showRitualStatus('🪔', 'Bước đến bàn thỉnh 3 nén hương trầm...', true);
+      this.app.showRitualStatus('🪔', 'Bước 1/4: Đang bước lại Bàn Thỉnh Hương...', true);
     }
 
-    // Step 1: Walk to incense table
+    // BƯỚC 1: Bước tới Bàn Thỉnh Hương lấy hương
     this.navigateTo(stTable.x, stTable.z, stTable.rotY, () => {
-      // Step 2: Ignite 3 sticks
-      this.app.avatarManager.setAction(this.app.myId, 'incense');
-      if (this.app.socket) this.app.socket.emit('action', { action: 'incense' });
-      this.app.showToast('Đã thỉnh và châm 3 nén tâm hương. Cung kính tiến về trước Phật điện...');
-      this.app.audio.playWoodfish();
+      this.app.avatarManager.setAction(this.app.myId, 'takeIncense');
+      if (this.app.socket) this.app.socket.emit('action', { action: 'takeIncense' });
+      this.app.showToast('Đã thỉnh 3 nén hương trầm trên bàn lễ 🙏');
       if (this.app.showRitualStatus) {
-        this.app.showRitualStatus('🪔', 'Cung kính dâng 3 nén hương tiến về trước Đức Phật Tổ...', false);
+        this.app.showRitualStatus('🪔', 'Bước 2/4: Đang bước lại cây nến đỏ để châm hương...', false);
       }
 
       setTimeout(() => {
         if (this.currentState !== PlayerState.INCENSE_FETCH) return;
-        // Step 3: Walk to grand bronze burner before Buddha
-        this.currentState = PlayerState.INCENSE_WALK_TO_ALTAR;
-        if (this.app.controller) {
-          this.app.controller.targetCamPitch = 0.32;
-          this.app.controller.targetCamDistance = 5.4;
-        }
-        this.navigateTo(stBurner.x, stBurner.z, stBurner.rotY, () => {
-          this.currentState = PlayerState.INCENSE_PLANT;
-          this.app.showToast('Cung kính vái 3 vái và cắm hương vào lư đồng...');
+
+        // BƯỚC 2: Bước tới ngọn nến đỏ châm lửa đốt hương
+        this.currentState = PlayerState.INCENSE_LIGHT_CANDLE;
+        this.navigateTo(stCandle.x, stCandle.z, stCandle.rotY, () => {
+          this.app.avatarManager.setAction(this.app.myId, 'lightCandle');
+          if (this.app.socket) this.app.socket.emit('action', { action: 'lightCandle' });
+          this.app.showToast('Đang châm lửa bén 3 nén tâm hương từ ngọn nến thiêng... 🕯️');
           if (this.app.showRitualStatus) {
-            this.app.showRitualStatus('🪔', 'Cung kính vái 3 vái và cắm hương vào lư đồng...', false);
+            this.app.showRitualStatus('🕯️', 'Đang châm lửa 3 nén hương bên ngọn nến...', false);
           }
 
           setTimeout(() => {
-            if (this.currentState !== PlayerState.INCENSE_PLANT) return;
-            if (this.app.socket) this.app.socket.emit('lightIncense');
-            this.app.showToast('Đã dâng 3 nén tâm hương cúng dường Phật Tổ! 🙏 (+3 Công đức)');
-            this.app.showFloatingMerit('+3 Dâng Hương', this.app.controller.position);
-            this.app.playTempleChime();
+            if (this.currentState !== PlayerState.INCENSE_LIGHT_CANDLE) return;
 
-            setTimeout(() => {
-              if (this.currentState === PlayerState.INCENSE_PLANT) {
-                this.currentState = PlayerState.IDLE;
-                this.app.avatarManager.setAction(this.app.myId, 'stand');
-                if (this.app.socket) this.app.socket.emit('action', { action: 'stand' });
-                this.app.updateActionButtonsUI('stand');
-                if (this.app.hideRitualStatus) {
-                  this.app.hideRitualStatus();
+            // BƯỚC 3: Bước tới Lư Hương Tam Bảo cắm hương
+            this.currentState = PlayerState.INCENSE_PLANT;
+            this.app.showToast('Hương đã bén lửa đỏ! Tiến đến Lư Hương dâng cắm...');
+            if (this.app.showRitualStatus) {
+              this.app.showRitualStatus('🪔', 'Bước 3/4: Đang bước lại Lư Đồng dâng và cắm hương...', false);
+            }
+
+            this.navigateTo(stBurner.x, stBurner.z, stBurner.rotY, () => {
+              this.app.avatarManager.setAction(this.app.myId, 'plantIncense');
+              if (this.app.socket) this.app.socket.emit('action', { action: 'plantIncense' });
+              this.app.showToast('Dâng hương ngang trán và cắm vào Lư Đồng Tam Bảo 🙏');
+
+              setTimeout(() => {
+                if (this.currentState !== PlayerState.INCENSE_PLANT) return;
+                this.app.temple.spawnClickRipple(0, -3.68);
+                if (this.app.socket) this.app.socket.emit('lightIncense');
+
+                // BƯỚC 4: Lùi lại thảm sen trước Phật điện thành tâm lạy 3 lạy
+                this.currentState = PlayerState.INCENSE_BOWING;
+                this.app.showToast('Đã cắm hương! Cung kính lùi lại đảnh lễ 3 lạy trước Phật Tổ 🙏');
+                if (this.app.showRitualStatus) {
+                  this.app.showRitualStatus('🙇', 'Bước 4/4: Đảnh lễ Tam Bảo: Lạy 1/3 🙏', false);
                 }
-              }
-            }, 1000);
-          }, 4500);
+
+                this.navigateTo(stBow.x, stBow.z, stBow.rotY, () => {
+                  this.app.avatarManager.setAction(this.app.myId, 'bow3Times');
+                  if (this.app.socket) this.app.socket.emit('action', { action: 'bow3Times' });
+                  this.app.showToast('Thành tâm chắp tay đảnh lễ Phật Bảo: Lạy 1/3 🙏');
+                  this.app.playTempleChime();
+
+                  setTimeout(() => {
+                    if (this.currentState !== PlayerState.INCENSE_BOWING) return;
+                    this.app.showToast('Thành tâm chắp tay đảnh lễ Chánh Pháp: Lạy 2/3 🙏');
+                    this.app.playTempleChime();
+                    if (this.app.showRitualStatus) {
+                      this.app.showRitualStatus('🙇', 'Bước 4/4: Đảnh lễ Tam Bảo: Lạy 2/3 🙏', false);
+                    }
+                  }, 2400);
+
+                  setTimeout(() => {
+                    if (this.currentState !== PlayerState.INCENSE_BOWING) return;
+                    this.app.showToast('Thành tâm chắp tay đảnh lễ Tăng Bảo: Lạy 3/3 🙏');
+                    this.app.playTempleChime();
+                    if (this.app.showRitualStatus) {
+                      this.app.showRitualStatus('🙇', 'Bước 4/4: Đảnh lễ Tam Bảo: Lạy 3/3 🙏', false);
+                    }
+                  }, 4800);
+
+                  setTimeout(() => {
+                    if (this.currentState !== PlayerState.INCENSE_BOWING) return;
+                    this.currentState = PlayerState.IDLE;
+                    this.app.avatarManager.setAction(this.app.myId, 'stand');
+                    if (this.app.socket) this.app.socket.emit('action', { action: 'stand' });
+                    this.app.updateActionButtonsUI('stand');
+                    this.app.showToast('Thắp hương và đảnh lễ Tam Bảo viên mãn! Công đức vô lượng 🙏 (+5 Công đức)');
+                    this.app.showFloatingMerit('+5 Thắp Hương & Đảnh Lễ', this.app.controller.position);
+                    if (this.app.hideRitualStatus) {
+                      this.app.hideRitualStatus();
+                    }
+                  }, 7200);
+                });
+              }, 2200);
+            });
+          }, 1800);
         });
       }, 1200);
     });

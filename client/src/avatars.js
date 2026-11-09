@@ -442,7 +442,7 @@ export class AvatarManager {
     if (av.props) {
       av.props.mallet.visible = (action === 'strikeWoodfish');
       av.props.bellStriker.visible = (action === 'strikeBell');
-      av.props.incense.visible = (action === 'incense' || action === 'plantIncense');
+      av.props.incense.visible = (action === 'takeIncense' || action === 'lightCandle' || action === 'incense' || action === 'plantIncense');
       av.props.fortune.visible = (action === 'shakeFortune');
     }
 
@@ -652,27 +652,59 @@ export class AvatarManager {
         return;
       }
 
-      // 6. THÀNH KÍNH DÂNG HƯƠNG
+      // 6. THÀNH KÍNH DÂNG HƯƠNG (4 BƯỚC: LẤY HƯƠNG -> CHÂM NẾN -> CẮM LƯ HƯƠNG -> LẠY 3 LẠY)
+      if (av.action === 'takeIncense') {
+        av.pelvis.position.y = 0.50;
+        av.legLGroup.rotation.set(0, 0, 0);
+        av.legRGroup.rotation.set(0, 0, 0);
+        // Cúi nhẹ lấy hương trên bàn
+        av.spineGroup.rotation.x = 0.16;
+        av.armLGroup.rotation.set(-0.42, 0.08, 0.18);
+        av.armRGroup.rotation.set(-0.42, -0.08, -0.18);
+        av.foreArmL.rotation.set(-0.75, 0, 0.05);
+        av.foreArmR.rotation.set(-0.75, 0, -0.05);
+        av.headGroup.rotation.x = 0.14;
+        return;
+      }
+
+      if (av.action === 'lightCandle') {
+        av.pelvis.position.y = 0.50;
+        av.legLGroup.rotation.set(0, 0, 0);
+        av.legRGroup.rotation.set(0, 0, 0);
+        // Đưa 3 nén hương tới ngọn nến đỏ châm lửa
+        av.spineGroup.rotation.x = 0.08;
+        av.armLGroup.rotation.set(-0.58, 0.10, 0.28);
+        av.armRGroup.rotation.set(-0.58, -0.10, -0.28);
+        av.foreArmL.rotation.set(-1.05, 0, 0.12);
+        av.foreArmR.rotation.set(-1.05, 0, -0.12);
+        av.headGroup.rotation.x = 0.05;
+        return;
+      }
+
       if (av.action === 'incense' || av.action === 'plantIncense') {
         av.pelvis.position.y = 0.50;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
-        if (av.actionTimer < 3.8) {
-          const vPhase = Math.sin(av.actionTimer * 3.8);
-          av.spineGroup.rotation.x = 0.06 + Math.max(0, vPhase) * 0.20;
-          av.headGroup.rotation.x = Math.max(0, vPhase) * 0.10;
-          av.armLGroup.rotation.set(-0.55, 0.10, 0.35);
-          av.armRGroup.rotation.set(-0.55, -0.10, -0.35);
-          av.foreArmL.rotation.set(-1.15, 0, 0.15);
-          av.foreArmR.rotation.set(-1.15, 0, -0.15);
-        } else if (av.actionTimer < 5.5) {
-          const plantPhase = Math.sin(((av.actionTimer - 3.8) / 1.7) * Math.PI);
-          av.spineGroup.rotation.x = plantPhase * 0.35;
-          av.armLGroup.rotation.set(-0.40 - plantPhase * 0.20, 0, 0.15);
-          av.armRGroup.rotation.set(-0.40 - plantPhase * 0.20, 0, -0.15);
-          av.foreArmL.rotation.set(-0.85 + plantPhase * 0.25, 0.10, 0.05);
-          av.foreArmR.rotation.set(-0.85 + plantPhase * 0.25, -0.10, -0.05);
+        const timer = av.actionTimer;
+        if (timer < 1.2) {
+          // Nâng 3 nén hương lên ngang trán cung kính vái Tam Bảo
+          const raise = Math.sin((timer / 1.2) * (Math.PI / 2));
+          av.spineGroup.rotation.x = 0.08 + raise * 0.12;
+          av.headGroup.rotation.x = 0.05 + raise * 0.10;
+          av.armLGroup.rotation.set(-0.65 - raise * 0.15, 0.10, 0.30);
+          av.armRGroup.rotation.set(-0.65 - raise * 0.15, -0.10, -0.30);
+          av.foreArmL.rotation.set(-1.25 - raise * 0.15, 0, 0.15);
+          av.foreArmR.rotation.set(-1.25 - raise * 0.15, 0, -0.15);
+        } else {
+          // Cúi người cắm 3 nén hương vào lư đồng
+          const plant = Math.sin(Math.min(Math.PI, (timer - 1.2) * 2.0));
+          av.spineGroup.rotation.x = 0.20 + plant * 0.22;
+          av.headGroup.rotation.x = 0.15 + plant * 0.08;
+          av.armLGroup.rotation.set(-0.45 - plant * 0.18, 0.05, 0.15);
+          av.armRGroup.rotation.set(-0.45 - plant * 0.18, -0.05, -0.15);
+          av.foreArmL.rotation.set(-0.85 + plant * 0.20, 0, 0.05);
+          av.foreArmR.rotation.set(-0.85 + plant * 0.20, 0, -0.05);
         }
         return;
       }
