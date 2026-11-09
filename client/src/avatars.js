@@ -218,20 +218,20 @@ export class AvatarManager {
     collarR.position.set(0.04, 0.32, 0.21);
     spineGroup.add(collarL, collarR);
 
-    // Y cà sa vàng ôm gọn quanh ngực và vai (không góc cạnh lồi lõm)
-    const sashFront = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.03), sashRobeMat);
-    sashFront.position.set(-0.02, 0.20, 0.20);
-    sashFront.rotation.z = -0.42;
+    // Y cà sa vàng ôm gọn quanh ngực và vai (mềm mại, ôm sát cơ thể)
+    const sashFront = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.40, 0.025), sashRobeMat);
+    sashFront.position.set(-0.03, 0.20, 0.19);
+    sashFront.rotation.z = -0.40;
 
-    const sashBack = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.03), sashRobeMat);
-    sashBack.position.set(-0.02, 0.20, -0.20);
-    sashBack.rotation.z = -0.42;
+    const sashBack = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.40, 0.025), sashRobeMat);
+    sashBack.position.set(-0.03, 0.20, -0.19);
+    sashBack.rotation.z = -0.40;
 
-    const sashShoulder = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.40), sashRobeMat);
-    sashShoulder.position.set(-0.14, 0.38, 0);
+    const sashShoulder = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.035, 0.36), sashRobeMat);
+    sashShoulder.position.set(-0.13, 0.375, 0);
 
-    const brooch = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.01, 8, 16), goldMat);
-    brooch.position.set(-0.14, 0.34, 0.21);
+    const brooch = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.008, 8, 16), goldMat);
+    brooch.position.set(-0.13, 0.34, 0.20);
 
     spineGroup.add(sashFront, sashBack, sashShoulder, brooch);
 
@@ -537,13 +537,14 @@ export class AvatarManager {
         av.spineGroup.rotation.x = 0.04;
 
         // HAI TAY ĐUNG ĐƯA TỰ NHIÊN NGƯỢC CHIỀU VỚI BƯỚC CHÂN
-        const armSwing = Math.sin(cycle) * 0.35;
-        av.armLGroup.rotation.set(armSwing, 0, 0.08);
-        av.armRGroup.rotation.set(-armSwing, 0, -0.08);
+        // Chân trái bước tới (-legSwing < 0) -> tay trái vung ra sau (+armSwing), tay phải vung ra trước (-armSwing)
+        const armSwing = Math.sin(cycle) * 0.32;
+        av.armLGroup.rotation.set(armSwing, 0, -0.09);
+        av.armRGroup.rotation.set(-armSwing, 0, 0.09);
 
-        // Cẳng tay co nhẹ tự nhiên khi vung ra trước
-        av.foreArmL.rotation.set(Math.max(0, -armSwing) * 0.35 + 0.05, 0, 0);
-        av.foreArmR.rotation.set(Math.max(0, armSwing) * 0.35 + 0.05, 0, 0);
+        // Cẳng tay co nhẹ tự nhiên khi vung ra trước (rotX âm)
+        av.foreArmL.rotation.set(armSwing < 0 ? armSwing * 0.35 - 0.03 : -0.03, 0, 0);
+        av.foreArmR.rotation.set(armSwing > 0 ? -armSwing * 0.35 - 0.03 : -0.03, 0, 0);
 
         av.headGroup.rotation.x = -Math.sin(cycle * 2) * 0.02;
         av.headGroup.rotation.y = Math.sin(cycle) * 0.02;
@@ -561,11 +562,11 @@ export class AvatarManager {
 
         av.spineGroup.rotation.set(0, 0, 0);
 
-        // HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI
-        av.armLGroup.rotation.set(0.38, 0.06, 0.16);
-        av.armRGroup.rotation.set(0.38, -0.06, -0.16);
-        av.foreArmL.rotation.set(0.85, -0.15, -0.22);
-        av.foreArmR.rotation.set(0.85, 0.15, 0.22);
+        // HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI PHÍA TRƯỚC (hướng tới trước bụng và đặt nhẹ trên hai đầu gối)
+        av.armLGroup.rotation.set(-0.45, 0.05, 0.18);
+        av.armRGroup.rotation.set(-0.45, -0.05, -0.18);
+        av.foreArmL.rotation.set(-0.65, 0.08, 0.08);
+        av.foreArmR.rotation.set(-0.65, -0.08, -0.08);
 
         av.headGroup.rotation.set(0.06, 0, 0);
 
@@ -595,13 +596,13 @@ export class AvatarManager {
         av.legRGroup.rotation.x = -bowPhase * 1.15;
 
         av.spineGroup.rotation.x = bowPhase * 0.88;
-        av.headGroup.rotation.x = bowPhase * 0.42;
+        av.headGroup.rotation.x = bowPhase * 0.35;
 
-        // HAI TAY CHẮP BÚP SEN TRƯỚC NGỰC CUNG KÍNH
-        av.armLGroup.rotation.set(0.42, -0.18, 0.22);
-        av.armRGroup.rotation.set(0.42, 0.18, -0.22);
-        av.foreArmL.rotation.set(1.22, -0.42, -0.45);
-        av.foreArmR.rotation.set(1.22, 0.42, 0.45);
+        // HAI TAY CHẮP BÚP SEN ÉP SÁT TRƯỚC NGỰC CUNG KÍNH
+        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
+        av.armRGroup.rotation.set(-0.55, -0.10, -0.50);
+        av.foreArmL.rotation.set(-1.25, 0, 0.25);
+        av.foreArmR.rotation.set(-1.25, 0, -0.25);
         return;
       }
 
@@ -614,14 +615,14 @@ export class AvatarManager {
         av.spineGroup.rotation.set(0.05, 0, 0);
 
         // Tay trái buông thả tự nhiên
-        av.armLGroup.rotation.set(0.04, 0, 0.08);
-        av.foreArmL.rotation.set(0.06, 0, 0);
+        av.armLGroup.rotation.set(0.02, 0, -0.09);
+        av.foreArmL.rotation.set(-0.02, 0, 0);
 
-        // Tay phải cầm dùi gõ đều đặn nhịp nhàng
+        // Tay phải cầm dùi gõ đều đặn nhịp nhàng về phía bàn mõ
         const tapCycle = (av.actionTimer * 6.2) % (Math.PI * 2);
         const strike = Math.sin(tapCycle);
-        av.armRGroup.rotation.set(0.22 + Math.max(0, strike) * 0.25, 0.12, -0.08);
-        av.foreArmR.rotation.set(0.95 + Math.max(0, strike) * 0.35, 0.20, 0.15);
+        av.armRGroup.rotation.set(-0.40 - Math.max(0, strike) * 0.15, -0.10, -0.05);
+        av.foreArmR.rotation.set(-0.85 - Math.max(0, strike) * 0.25, -0.15, -0.10);
         av.headGroup.rotation.x = Math.max(0, strike) * 0.04;
         return;
       }
@@ -633,20 +634,20 @@ export class AvatarManager {
         av.legRGroup.rotation.set(0, 0, 0);
 
         // Tay trái buông thả tự nhiên
-        av.armLGroup.rotation.set(0.04, 0, 0.08);
-        av.foreArmL.rotation.set(0.06, 0, 0);
+        av.armLGroup.rotation.set(0.02, 0, -0.09);
+        av.foreArmL.rotation.set(-0.02, 0, 0);
 
         if (av.actionTimer < 1.0) {
           const windup = av.actionTimer / 1.0;
           av.spineGroup.rotation.set(0, -windup * 0.16, 0);
-          av.armRGroup.rotation.set(0.15 - windup * 0.20, 0.15, 0.05);
-          av.foreArmR.rotation.set(0.85 - windup * 0.25, 0, 0);
+          av.armRGroup.rotation.set(-0.25 + windup * 0.15, 0.10, 0.05);
+          av.foreArmR.rotation.set(-0.65 + windup * 0.20, 0, 0);
         } else if (av.actionTimer < 1.8) {
           const strikePhase = (av.actionTimer - 1.0) / 0.8;
           const thrust = Math.sin(strikePhase * Math.PI);
           av.spineGroup.rotation.set(0.08 * thrust, 0.10 * thrust, 0);
-          av.armRGroup.rotation.set(0.15 + thrust * 0.55, -0.15, 0.05);
-          av.foreArmR.rotation.set(0.85 + thrust * 0.45, 0, 0);
+          av.armRGroup.rotation.set(-0.35 - thrust * 0.35, -0.10, 0.05);
+          av.foreArmR.rotation.set(-0.75 - thrust * 0.40, 0, 0);
         }
         return;
       }
@@ -659,19 +660,19 @@ export class AvatarManager {
 
         if (av.actionTimer < 3.8) {
           const vPhase = Math.sin(av.actionTimer * 3.8);
-          av.spineGroup.rotation.x = 0.06 + Math.max(0, vPhase) * 0.22;
-          av.headGroup.rotation.x = Math.max(0, vPhase) * 0.12;
-          av.armLGroup.rotation.set(0.55, -0.12, 0.20);
-          av.armRGroup.rotation.set(0.55, 0.12, -0.20);
-          av.foreArmL.rotation.set(1.25, -0.25, -0.30);
-          av.foreArmR.rotation.set(1.25, 0.25, 0.30);
+          av.spineGroup.rotation.x = 0.06 + Math.max(0, vPhase) * 0.20;
+          av.headGroup.rotation.x = Math.max(0, vPhase) * 0.10;
+          av.armLGroup.rotation.set(-0.55, 0.10, 0.35);
+          av.armRGroup.rotation.set(-0.55, -0.10, -0.35);
+          av.foreArmL.rotation.set(-1.15, 0, 0.15);
+          av.foreArmR.rotation.set(-1.15, 0, -0.15);
         } else if (av.actionTimer < 5.5) {
           const plantPhase = Math.sin(((av.actionTimer - 3.8) / 1.7) * Math.PI);
           av.spineGroup.rotation.x = plantPhase * 0.35;
-          av.armLGroup.rotation.set(0.40 + plantPhase * 0.30, 0, 0.1);
-          av.armRGroup.rotation.set(0.40 + plantPhase * 0.30, 0, -0.1);
-          av.foreArmL.rotation.set(1.10 - plantPhase * 0.35, 0.15, 0.1);
-          av.foreArmR.rotation.set(1.10 - plantPhase * 0.35, -0.15, -0.1);
+          av.armLGroup.rotation.set(-0.40 - plantPhase * 0.20, 0, 0.15);
+          av.armRGroup.rotation.set(-0.40 - plantPhase * 0.20, 0, -0.15);
+          av.foreArmL.rotation.set(-0.85 + plantPhase * 0.25, 0.10, 0.05);
+          av.foreArmR.rotation.set(-0.85 + plantPhase * 0.25, -0.10, -0.05);
         }
         return;
       }
@@ -680,11 +681,11 @@ export class AvatarManager {
       if (av.action === 'shakeFortune') {
         av.pelvis.position.y = 0.50;
         const shake = Math.sin(av.actionTimer * 16) * 0.08;
-        av.spineGroup.rotation.x = 0.10 + shake;
-        av.armLGroup.rotation.set(0.45 + shake, -0.10, 0.15);
-        av.armRGroup.rotation.set(0.45 + shake, 0.10, -0.15);
-        av.foreArmL.rotation.set(1.15, -0.20, -0.25);
-        av.foreArmR.rotation.set(1.15, 0.20, 0.25);
+        av.spineGroup.rotation.x = 0.08 + shake * 0.5;
+        av.armLGroup.rotation.set(-0.50 + shake, 0.10, 0.35);
+        av.armRGroup.rotation.set(-0.50 + shake, -0.10, -0.35);
+        av.foreArmL.rotation.set(-1.10, 0, 0.15);
+        av.foreArmR.rotation.set(-1.10, 0, -0.15);
         return;
       }
 
@@ -699,10 +700,10 @@ export class AvatarManager {
       av.headGroup.rotation.set(idleBreathe * 0.2, 0, 0);
 
       // HAI TAY BUÔNG THẢ TỰ NHIÊN DỌC HAI BÊN HÔNG
-      av.armLGroup.rotation.set(0.02, 0, 0.08 + idleBreathe * 0.3);
-      av.armRGroup.rotation.set(0.02, 0, -0.08 - idleBreathe * 0.3);
-      av.foreArmL.rotation.set(0.04, 0, 0);
-      av.foreArmR.rotation.set(0.04, 0, 0);
+      av.armLGroup.rotation.set(0.02, 0, -0.09 - idleBreathe * 0.2);
+      av.armRGroup.rotation.set(0.02, 0, 0.09 + idleBreathe * 0.2);
+      av.foreArmL.rotation.set(-0.02, 0, 0);
+      av.foreArmR.rotation.set(-0.02, 0, 0);
     });
   }
 
