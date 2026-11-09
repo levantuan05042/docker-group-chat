@@ -519,11 +519,12 @@ export class AvatarManager {
       while (diffRot > Math.PI) diffRot -= Math.PI * 2;
       av.group.rotation.y += diffRot * 0.25;
 
-      // 1. BƯỚC ĐI THIỀN HÀNH AN NHIÊN
+      // 1. BƯỚC ĐI THIỀN HÀNH (HAI TAY ĐUNG ĐƯA TỰ NHIÊN)
       if (av.isMoving) {
         av.walkCycle += delta * 9.5;
         const cycle = av.walkCycle;
 
+        // Chân bước dồn trọng tâm
         const legSwing = Math.sin(cycle) * 0.40;
         av.legLGroup.rotation.x = -legSwing;
         av.legRGroup.rotation.x = legSwing;
@@ -535,31 +536,36 @@ export class AvatarManager {
         av.spineGroup.rotation.y = -Math.sin(cycle) * 0.04;
         av.spineGroup.rotation.x = 0.04;
 
-        av.armLGroup.rotation.set(0.35, -0.15, 0.25);
-        av.armRGroup.rotation.set(0.35, 0.15, -0.25);
-        av.foreArmL.rotation.set(1.15, -0.35, -0.45);
-        av.foreArmR.rotation.set(1.15, 0.35, 0.45);
+        // HAI TAY ĐUNG ĐƯA TỰ NHIÊN NGƯỢC CHIỀU VỚI BƯỚC CHÂN
+        const armSwing = Math.sin(cycle) * 0.35;
+        av.armLGroup.rotation.set(armSwing, 0, 0.08);
+        av.armRGroup.rotation.set(-armSwing, 0, -0.08);
+
+        // Cẳng tay co nhẹ tự nhiên khi vung ra trước
+        av.foreArmL.rotation.set(Math.max(0, -armSwing) * 0.35 + 0.05, 0, 0);
+        av.foreArmR.rotation.set(Math.max(0, armSwing) * 0.35 + 0.05, 0, 0);
 
         av.headGroup.rotation.x = -Math.sin(cycle * 2) * 0.02;
         av.headGroup.rotation.y = Math.sin(cycle) * 0.02;
         return;
       }
 
-      // 2. NGỒI THIỀN KIẾT GIÀ TRÊN BỒ ĐOÀN
+      // 2. NGỒI THIỀN KIẾT GIÀ TRÊN BỒ ĐOÀN (HAI TAY ĐỂ LÊN ĐÙI)
       if (av.action === 'sit') {
         av.pelvis.position.y = 0.16;
         av.pelvis.rotation.set(0, 0, 0);
 
+        // Chân xếp bằng kiết già trên đệm
         av.legLGroup.rotation.set(-Math.PI / 2.2, 0.35, -0.20);
         av.legRGroup.rotation.set(-Math.PI / 2.2, -0.35, 0.20);
 
         av.spineGroup.rotation.set(0, 0, 0);
 
-        // Hai tay đặt ngửa thanh thản trong lòng (Dhyana Mudra)
-        av.armLGroup.rotation.set(0.25, -0.10, 0.20);
-        av.armRGroup.rotation.set(0.25, 0.10, -0.20);
-        av.foreArmL.rotation.set(0.85, -0.25, -0.35);
-        av.foreArmR.rotation.set(0.85, 0.25, 0.35);
+        // HAI TAY ĐỂ ÊM ÁI LÊN ĐÙI
+        av.armLGroup.rotation.set(0.38, 0.06, 0.16);
+        av.armRGroup.rotation.set(0.38, -0.06, -0.16);
+        av.foreArmL.rotation.set(0.85, -0.15, -0.22);
+        av.foreArmR.rotation.set(0.85, 0.15, 0.22);
 
         av.headGroup.rotation.set(0.06, 0, 0);
 
@@ -568,7 +574,7 @@ export class AvatarManager {
         return;
       }
 
-      // 3. ĐẢNH LỄ LẠY PHẬT (CÚI GẬP TRƯỚC NGŨ THỂ ĐẦU ĐỊA)
+      // 3. ĐẢNH LỄ LẠY PHẬT (CHẮP TAY TRƯỚC NGỰC CÚI LẠY)
       if (av.action === 'bow' || av.action === 'bow3Times') {
         const bowCycle = 2.4;
         const progress = (av.actionTimer % bowCycle) / bowCycle;
@@ -576,24 +582,26 @@ export class AvatarManager {
         let bowPhase = 0;
         if (progress < 0.40) {
           bowPhase = Math.sin((progress / 0.40) * (Math.PI / 2));
-        } else if (progress < 0.62) {
+        } else if (progress < 0.65) {
           bowPhase = 1.0;
         } else {
-          bowPhase = Math.cos(((progress - 0.62) / 0.38) * (Math.PI / 2));
+          bowPhase = Math.cos(((progress - 0.65) / 0.35) * (Math.PI / 2));
         }
         bowPhase = Math.max(0, Math.min(1, bowPhase));
 
-        av.pelvis.position.y = 0.50 - bowPhase * 0.36;
-        av.spineGroup.rotation.x = bowPhase * 1.25;
-        av.headGroup.rotation.x = bowPhase * 0.45;
+        // Quỳ gối cúi gập người về phía trước
+        av.pelvis.position.y = 0.50 - bowPhase * 0.32;
+        av.legLGroup.rotation.x = -bowPhase * 1.15;
+        av.legRGroup.rotation.x = -bowPhase * 1.15;
 
-        av.legLGroup.rotation.x = -bowPhase * 1.20;
-        av.legRGroup.rotation.x = -bowPhase * 1.20;
+        av.spineGroup.rotation.x = bowPhase * 0.88;
+        av.headGroup.rotation.x = bowPhase * 0.42;
 
-        av.armLGroup.rotation.set(0.35 + bowPhase * 0.45, -0.15, 0.25);
-        av.armRGroup.rotation.set(0.35 + bowPhase * 0.45, 0.15, -0.25);
-        av.foreArmL.rotation.set(1.15 - bowPhase * 0.45, -0.35, -0.45);
-        av.foreArmR.rotation.set(1.15 - bowPhase * 0.45, 0.35, 0.45);
+        // HAI TAY CHẮP BÚP SEN TRƯỚC NGỰC CUNG KÍNH
+        av.armLGroup.rotation.set(0.42, -0.18, 0.22);
+        av.armRGroup.rotation.set(0.42, 0.18, -0.22);
+        av.foreArmL.rotation.set(1.22, -0.42, -0.45);
+        av.foreArmR.rotation.set(1.22, 0.42, 0.45);
         return;
       }
 
@@ -605,12 +613,14 @@ export class AvatarManager {
         av.legRGroup.rotation.set(0, 0, 0);
         av.spineGroup.rotation.set(0.05, 0, 0);
 
-        av.armLGroup.rotation.set(0.35, -0.15, 0.25);
-        av.foreArmL.rotation.set(1.15, -0.35, -0.45);
+        // Tay trái buông thả tự nhiên
+        av.armLGroup.rotation.set(0.04, 0, 0.08);
+        av.foreArmL.rotation.set(0.06, 0, 0);
 
+        // Tay phải cầm dùi gõ đều đặn nhịp nhàng
         const tapCycle = (av.actionTimer * 6.2) % (Math.PI * 2);
         const strike = Math.sin(tapCycle);
-        av.armRGroup.rotation.set(0.20 + Math.max(0, strike) * 0.25, 0.12, -0.10);
+        av.armRGroup.rotation.set(0.22 + Math.max(0, strike) * 0.25, 0.12, -0.08);
         av.foreArmR.rotation.set(0.95 + Math.max(0, strike) * 0.35, 0.20, 0.15);
         av.headGroup.rotation.x = Math.max(0, strike) * 0.04;
         return;
@@ -622,8 +632,9 @@ export class AvatarManager {
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
-        av.armLGroup.rotation.set(0.35, -0.15, 0.25);
-        av.foreArmL.rotation.set(1.15, -0.35, -0.45);
+        // Tay trái buông thả tự nhiên
+        av.armLGroup.rotation.set(0.04, 0, 0.08);
+        av.foreArmL.rotation.set(0.06, 0, 0);
 
         if (av.actionTimer < 1.0) {
           const windup = av.actionTimer / 1.0;
@@ -677,20 +688,21 @@ export class AvatarManager {
         return;
       }
 
-      // 8. ĐỨNG NGHỈ (IDLE TRANG NGHIÊM)
+      // 8. ĐỨNG NGHỈ (LÚC ĐỨNG LÀ 2 TAY BUÔNG THẢ TỰ NHIÊN)
       av.pelvis.position.y = 0.50;
       av.pelvis.rotation.set(0, 0, 0);
       av.legLGroup.rotation.set(0, 0, 0);
       av.legRGroup.rotation.set(0, 0, 0);
 
       const idleBreathe = Math.sin(time * 2.0) * 0.015;
-      av.spineGroup.rotation.set(idleBreathe * 0.4, 0, 0);
-      av.headGroup.rotation.set(idleBreathe * 0.3, 0, 0);
+      av.spineGroup.rotation.set(idleBreathe * 0.3, 0, 0);
+      av.headGroup.rotation.set(idleBreathe * 0.2, 0, 0);
 
-      av.armLGroup.rotation.set(0.35, -0.15, 0.25);
-      av.armRGroup.rotation.set(0.35, 0.15, -0.25);
-      av.foreArmL.rotation.set(1.15, -0.35, -0.45);
-      av.foreArmR.rotation.set(1.15, 0.35, 0.45);
+      // HAI TAY BUÔNG THẢ TỰ NHIÊN DỌC HAI BÊN HÔNG
+      av.armLGroup.rotation.set(0.02, 0, 0.08 + idleBreathe * 0.3);
+      av.armRGroup.rotation.set(0.02, 0, -0.08 - idleBreathe * 0.3);
+      av.foreArmL.rotation.set(0.04, 0, 0);
+      av.foreArmR.rotation.set(0.04, 0, 0);
     });
   }
 
