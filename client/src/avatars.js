@@ -318,14 +318,14 @@ export class AvatarManager {
     // PROPS GẮN TAY (DÙI MÕ, CHÀY CHUÔNG, 3 NÉN HƯƠNG, ỐNG XĂM)
     // =========================================================================
     const malletProp = new THREE.Group();
-    const mStick = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.40, 10), woodMat);
-    mStick.rotation.x = Math.PI / 2.3;
-    mStick.position.set(0, -0.15, 0.15);
+    const mStick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.38, 8), woodMat);
+    mStick.rotation.x = Math.PI / 2.2;
+    mStick.position.set(0, -0.18, 0.14);
     const mHead = new THREE.Mesh(
-      new THREE.SphereGeometry(0.05, 12, 12),
+      new THREE.SphereGeometry(0.045, 12, 12),
       new THREE.MeshStandardMaterial({ color: 0x9b1b1b, roughness: 0.35 })
     );
-    mHead.position.set(0, -0.19, 0.32);
+    mHead.position.set(0, -0.18, 0.32);
     malletProp.add(mStick, mHead);
     malletProp.visible = false;
     foreArmR.add(malletProp);
@@ -606,24 +606,26 @@ export class AvatarManager {
         return;
       }
 
-      // 4. GÕ MÕ TỤNG KINH
+      // 4. GÕ MÕ TỤNG KINH (TAY PHẢI CẦM DÙI GÕ MÕ, TAY TRÁI CHẮP TRƯỚC NGỰC)
       if (av.action === 'strikeWoodfish') {
         av.pelvis.position.y = 0.50;
         av.pelvis.rotation.set(0, 0, 0);
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
-        av.spineGroup.rotation.set(0.05, 0, 0);
+        av.spineGroup.rotation.set(0.04, 0, 0);
 
-        // Tay trái buông thả tự nhiên
-        av.armLGroup.rotation.set(0.02, 0, -0.09);
-        av.foreArmL.rotation.set(-0.02, 0, 0);
+        // TAY TRÁI CHẮP BÚP SEN TRƯỚC NGỰC TRANG NGHIÊM (Độc thủ ấn tụng kinh)
+        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
+        av.foreArmL.rotation.set(-1.25, 0, 0.25);
 
-        // Tay phải cầm dùi gõ đều đặn nhịp nhàng về phía bàn mõ
-        const tapCycle = (av.actionTimer * 6.2) % (Math.PI * 2);
-        const strike = Math.sin(tapCycle);
-        av.armRGroup.rotation.set(-0.40 - Math.max(0, strike) * 0.15, -0.10, -0.05);
-        av.foreArmR.rotation.set(-0.85 - Math.max(0, strike) * 0.25, -0.15, -0.10);
-        av.headGroup.rotation.x = Math.max(0, strike) * 0.04;
+        // TAY PHẢI CẦM DÙI GÕ MÕ ĐỀU ĐẶN NHỊP NHÀNG
+        const tapCycle = (av.actionTimer * 6.0) % (Math.PI * 2);
+        const up = Math.max(0, Math.sin(tapCycle));
+        av.armRGroup.rotation.set(-0.38 - up * 0.22, -0.08, -0.08);
+        av.foreArmR.rotation.set(-0.72 - up * 0.40, -0.10, -0.05);
+
+        // Đầu gật nhẹ thành tâm theo nhịp gõ tụng kinh
+        av.headGroup.rotation.x = 0.05 + (1 - up) * 0.04;
         return;
       }
 

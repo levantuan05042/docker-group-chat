@@ -207,8 +207,7 @@ export class RitualStateMachine {
   executeWoodfishStrike() {
     this.app.audio.playWoodfish();
     if (this.app.socket) this.app.socket.emit('strikeWoodfish');
-    const st = this.app.temple.interactiveStations.woodfish;
-    this.app.temple.spawnClickRipple(st.x, st.z);
+    this.app.temple.spawnClickRipple(5.6, -1.8);
     this.app.showFloatingMerit('+1 Công Đức', this.app.controller.position);
   }
 

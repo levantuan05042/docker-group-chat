@@ -11,13 +11,13 @@ export class TempleScene {
     this.ripples = [];
     this.cushionPositions = [];
 
-    // Tọa độ tương tác chuẩn xác, đứng trước bàn Phật/các khu vực nghi thức
+    // Tọa độ tương tác chuẩn xác, đứng trước bàn Phật/các khu vực nghi thức (không bị lấp vào kệ/bàn)
     this.interactiveStations = {
-      woodfish: { x: 5.6, z: -1.2, rotY: Math.PI },
-      bell: { x: -5.6, z: -1.2, rotY: Math.PI },
-      incenseTable: { x: -2.8, z: -1.2, rotY: Math.PI },
+      woodfish: { x: 5.6, z: -1.05, rotY: Math.PI },
+      bell: { x: -5.6, z: -1.05, rotY: Math.PI },
+      incenseTable: { x: -2.8, z: -0.95, rotY: Math.PI },
       incenseBurner: { x: 0, z: -2.2, rotY: Math.PI },
-      fortuneTable: { x: 2.8, z: -1.2, rotY: Math.PI }
+      fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI }
     };
 
     // Khởi tạo các bộ texture Canvas chất lượng cao (PBR Procedural Textures)
@@ -951,30 +951,33 @@ export class TempleScene {
     bellGroup.add(post1, post2, cross, bell, striker, bellSign);
     this.scene.add(bellGroup);
 
-    // 2. KỆ MÕ GỖ BÁT NHÃ (x = 5.6, z = -1.8)
+    // 2. KỆ MÕ GỖ BÁT NHÃ (x = 5.6, z = -1.8) - Kích thước cân đối trang nhã, vừa tầm tay gõ
     const woodfishGroup = new THREE.Group();
     woodfishGroup.position.set(5.6, 0, -1.8);
 
     const tableMat = new THREE.MeshStandardMaterial({ color: 0x3d0e07, roughness: 0.45 });
-    const table = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.9, 18), tableMat);
-    table.position.y = 0.45;
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.52, 0.55, 24), tableMat);
+    table.position.y = 0.275;
 
-    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 0.25, 18), new THREE.MeshStandardMaterial({ color: 0x9e1a1a, roughness: 0.75 }));
-    cushion.position.y = 1.02;
+    const cushion = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.38, 0.42, 0.14, 24),
+      new THREE.MeshStandardMaterial({ color: 0x9e1a1a, roughness: 0.70 })
+    );
+    cushion.position.y = 0.62;
 
     const wf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.52, 18, 18),
+      new THREE.SphereGeometry(0.25, 24, 24),
       new THREE.MeshStandardMaterial({ color: 0x7c3817, roughness: 0.32, metalness: 0.15 })
     );
-    wf.scale.set(1.22, 0.85, 1.02);
-    wf.position.set(0, 1.48, 0);
+    wf.scale.set(1.18, 0.82, 1.05);
+    wf.position.set(0, 0.88, 0);
     this.woodfishMesh = wf;
 
     const wfSign = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 0.30, 0.04),
+      new THREE.BoxGeometry(1.0, 0.22, 0.03),
       new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('Mõ Gỗ Bát Nhã') })
     );
-    wfSign.position.set(0, 2.15, 0);
+    wfSign.position.set(0, 1.45, -0.10);
 
     woodfishGroup.add(table, cushion, wf, wfSign);
     this.scene.add(woodfishGroup);
