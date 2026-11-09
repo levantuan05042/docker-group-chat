@@ -570,7 +570,7 @@ class ChuaOnlineApp {
       this.myId = data.yourId;
       this.avatarManager.setLocalPlayerId(this.myId);
 
-      document.getElementById('room-name-display').textContent = data.roomName || 'Đại Hùng Bảo Điện';
+      document.getElementById('room-name-display').textContent = data.roomName || 'Chùa Vừa Làm Vừa Tu';
       document.getElementById('total-merit-display').textContent = data.totalMerit.toLocaleString();
       document.getElementById('online-count-display').textContent = data.players.length;
 
@@ -588,7 +588,7 @@ class ChuaOnlineApp {
         data.chatHistory.forEach(msg => this.appendChatMessage(msg));
       }
 
-      this.showToast(`🙏 A Di Đà Phật! Đã vào chùa với pháp danh: [${this.myName}]`);
+      this.showToast(`🙏 A Di Đà Phật! Đã vào Chùa Vừa Làm Vừa Tu với pháp danh: [${this.myName}]`);
     });
 
     this.socket.on('playerJoined', (data) => {

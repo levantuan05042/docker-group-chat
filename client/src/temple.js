@@ -509,25 +509,25 @@ export class TempleScene {
       templeGroup.add(p, base);
     });
 
-    // CÂU ĐỐI THƯ PHÁP TREO TRÊN 2 CỘT CHÍNH:
+    // CÂU ĐỐI THƯ PHÁP TREO TRÊN 2 CỘT CHÍNH: VỪA LÀM VỪA TU
     const coupletL = new THREE.Mesh(
       new THREE.BoxGeometry(0.68, 5.4, 0.04),
-      new THREE.MeshStandardMaterial({ map: this.generateCoupletTexture('PHẬT NHẬT TĂNG HUY PHÁP LUÂN THƯỜNG CHUYỂN') })
+      new THREE.MeshStandardMaterial({ map: this.generateCoupletTexture('TẬN LỰC CÀY CUỐC PHƯỚC ĐỨC TĂNG HUY') })
     );
     coupletL.position.set(-3.8, 4.8, -1.9);
 
     const coupletR = new THREE.Mesh(
       new THREE.BoxGeometry(0.68, 5.4, 0.04),
-      new THREE.MeshStandardMaterial({ map: this.generateCoupletTexture('TỔ ẤN TRÙNG QUANG PHƯỚC HUỆ TRANG NGHIÊM') })
+      new THREE.MeshStandardMaterial({ map: this.generateCoupletTexture('CHÁNH NIỆM TU TÂM DEADLINE KHÔNG QUẠU') })
     );
     coupletR.position.set(3.8, 4.8, -1.9);
 
     templeGroup.add(coupletL, coupletR);
 
-    // HOÀNH PHI "ĐẠI HÙNG BẢO ĐIỆN" TREO TRÊN CAO TRUNG TÂM
+    // HOÀNH PHI ĐẠI TỰ "CHÙA VỪA LÀM VỪA TU" TREO TRÊN CAO TRUNG TÂM
     const grandSign = new THREE.Mesh(
-      new THREE.BoxGeometry(5.8, 1.45, 0.15),
-      new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('ĐẠI HÙNG BẢO ĐIỆN', 'CHÙA TRÚC LÂM 3D • TÂM AN VẠN SỰ AN') })
+      new THREE.BoxGeometry(6.2, 1.45, 0.15),
+      new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('CHÙA VỪA LÀM VỪA TU', 'LÀM VIỆC CHÁNH NIỆM • VỪA CÀY DEADLINE VỪA TU TÂM') })
     );
     grandSign.position.set(0, 8.8, -3.5);
     templeGroup.add(grandSign);

@@ -62,7 +62,7 @@ function getOrCreateRoom(roomId = 'dai-hung-bao-dien') {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, {
       id: roomId,
-      name: roomId === 'dai-hung-bao-dien' ? 'Đại Hùng Bảo Điện' : `Phòng Thiền ${roomId}`,
+      name: roomId === 'dai-hung-bao-dien' ? 'Chùa Vừa Làm Vừa Tu' : `Phòng Thiền ${roomId}`,
       players: new Map(),
       totalMerit: 0,
       activeIncense: 0,
@@ -158,7 +158,7 @@ io.on('connection', (socket) => {
       id: 'sys_' + Date.now(),
       senderId: 'system',
       senderName: 'Chính Điện',
-      text: `Đồng tu [${playerInfo.name}] vừa bước qua cửa Chùa. Nam Mô A Di Đà Phật!`,
+      text: `Đồng tu [${playerInfo.name}] đã bước vào Chùa Vừa Làm Vừa Tu. Vừa làm vừa tu, deadline không quạu! Nam Mô A Di Đà Phật!`,
       timestamp: Date.now()
     };
     room.chatHistory.push(systemMsg);

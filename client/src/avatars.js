@@ -340,22 +340,23 @@ export class AvatarManager {
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
-    // 3 nén tâm hương cầm chắc chắn trên bàn tay phải
+    // 3 nén tâm hương cầm chắc chắn trên bàn tay phải (hướng thẳng đứng và hơi nghiêng ra trước, tuyệt đối không chọc vào trán/mặt)
     const incenseProp = new THREE.Group();
-    incenseProp.position.set(0, -0.18, 0); // Đặt ngay tại vị trí bàn tay phải (handR)
+    incenseProp.position.set(0, -0.18, 0.04); // Đặt ngay tại lòng bàn tay phải
     for (let s = -1; s <= 1; s++) {
       const stick = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.005, 0.005, 0.32, 8),
+        new THREE.CylinderGeometry(0.005, 0.005, 0.30, 8),
         new THREE.MeshBasicMaterial({ color: 0xaa2211 })
       );
-      stick.rotation.x = Math.PI / 3.0;
-      stick.position.set(s * 0.015, 0.08, 0.14);
+      // Xoay hình trụ dọc theo trục Z hướng ra ngoài/lên trên khỏi lòng bàn tay
+      stick.rotation.set(Math.PI / 2.0 - 0.08, 0, s * 0.08);
+      stick.position.set(s * 0.016, 0, 0.14);
 
       const tip = new THREE.Mesh(
-        new THREE.SphereGeometry(0.012, 6, 6),
+        new THREE.SphereGeometry(0.011, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xff4500 })
       );
-      tip.position.set(s * 0.015, 0.16, 0.28);
+      tip.position.set(s * 0.024, 0, 0.28);
       incenseProp.add(stick, tip);
     }
     incenseProp.visible = false;
