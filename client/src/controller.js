@@ -9,9 +9,9 @@ export class PlayerController {
     this.app = app;
 
     // Movement state - Đứng trang nghiêm trước Phật điện
-    this.position = new THREE.Vector3(0, 0, 7.5);
+    this.position = new THREE.Vector3(0, 0, 4.5);
     this.rotationY = Math.PI; // Face Buddha (-Z) into the temple
-    this.moveSpeed = 4.8;
+    this.moveSpeed = 4.5;
     this.keys = {
       forward: false,
       backward: false,
@@ -19,12 +19,12 @@ export class PlayerController {
       right: false
     };
 
-    // Smooth Orbit Camera parameters with Damping (Góc nhìn toàn cảnh thoáng đãng uy nghiêm)
-    this.camDistance = 7.5;
-    this.targetCamDistance = 7.5;
-    this.camHeight = 2.8;
-    this.camPitch = 0.35; // Góc nhìn Chánh Điện thoáng rộng, ngắm trọn vẹn Phật tượng và chánh điện
-    this.targetCamPitch = 0.35;
+    // Smooth Orbit Camera parameters with Damping (Góc nhìn toàn cảnh ấm áp, trang nghiêm)
+    this.camDistance = 6.2;
+    this.targetCamDistance = 6.2;
+    this.camHeight = 2.4;
+    this.camPitch = 0.32; // Góc nhìn Chánh Điện ngắm trọn vẹn Phật tượng và điện thờ ấm cúng
+    this.targetCamPitch = 0.32;
     this.camYaw = 0; // Hướng camera thẳng về phía Phật điện (-Z)
     this.targetCamYaw = 0;
 
@@ -69,20 +69,20 @@ export class PlayerController {
 
   setCameraMainHall() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.35;
-    this.targetCamDistance = 7.5;
+    this.targetCamPitch = 0.32;
+    this.targetCamDistance = 6.2;
   }
 
   setCameraBuddhaCloseUp() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.16;
-    this.targetCamDistance = 4.8;
+    this.targetCamPitch = 0.14;
+    this.targetCamDistance = 4.0;
   }
 
   setCameraFollow() {
     this.targetCamYaw = 0;
-    this.targetCamPitch = 0.38;
-    this.targetCamDistance = 5.2;
+    this.targetCamPitch = 0.35;
+    this.targetCamDistance = 4.6;
   }
 
   initEventListeners() {
@@ -261,7 +261,7 @@ export class PlayerController {
       }
 
       // 5. Clicked near Grand Buddha Altar (Bow 3 times):
-      if (Math.hypot(hitPoint.x, hitPoint.z - (-4.8)) < 2.8) {
+      if (Math.hypot(hitPoint.x, hitPoint.z - (-3.8)) < 2.5) {
         if (this.app && this.app.fsm) {
           this.app.fsm.startBowing();
           return;
@@ -271,7 +271,7 @@ export class PlayerController {
       // 6. Clicked near any cushion (Meditate):
       if (this.temple.cushionPositions) {
         for (const c of this.temple.cushionPositions) {
-          if (Math.hypot(hitPoint.x - c.x, hitPoint.z - c.z) < 0.9) {
+          if (Math.hypot(hitPoint.x - c.x, hitPoint.z - c.z) < 0.85) {
             if (this.app && this.app.fsm) {
               this.app.fsm.startMeditation();
               return;
@@ -282,8 +282,8 @@ export class PlayerController {
 
       // 7. Otherwise: walk to target point on floor!
       this.cancelAutoMovement();
-      const clampedX = Math.max(-12, Math.min(12, hitPoint.x));
-      const clampedZ = Math.max(-3.5, Math.min(18.5, hitPoint.z));
+      const clampedX = Math.max(-9.5, Math.min(9.5, hitPoint.x));
+      const clampedZ = Math.max(-2.5, Math.min(14.5, hitPoint.z));
       this.targetMovePoint = new THREE.Vector3(clampedX, 0, clampedZ);
 
       if (this.temple && this.temple.spawnClickRipple) {
@@ -362,8 +362,8 @@ export class PlayerController {
         const nextX = this.position.x + moveX * this.moveSpeed * delta;
         const nextZ = this.position.z + moveZ * this.moveSpeed * delta;
 
-        this.position.x = Math.max(-12.0, Math.min(12.0, nextX));
-        this.position.z = Math.max(-3.5, Math.min(19.0, nextZ));
+        this.position.x = Math.max(-9.5, Math.min(9.5, nextX));
+        this.position.z = Math.max(-2.5, Math.min(14.5, nextZ));
 
         this.rotationY = Math.atan2(moveX, moveZ);
       }

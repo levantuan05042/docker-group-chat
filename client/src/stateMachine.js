@@ -208,7 +208,7 @@ export class RitualStateMachine {
     this.app.audio.playWoodfish();
     if (this.app.socket) this.app.socket.emit('strikeWoodfish');
     const st = this.app.temple.interactiveStations.woodfish;
-    this.app.temple.spawnClickRipple(st.x, -2.2);
+    this.app.temple.spawnClickRipple(st.x, st.z);
     this.app.showFloatingMerit('+1 Công Đức', this.app.controller.position);
   }
 
@@ -238,7 +238,7 @@ export class RitualStateMachine {
       setTimeout(() => {
         if (this.currentState !== PlayerState.STRIKING_BELL) return;
         this.app.audio.playBell();
-        this.app.temple.spawnClickRipple(st.x, -2.2);
+        this.app.temple.spawnClickRipple(st.x, st.z);
         if (this.app.socket) this.app.socket.emit('strikeBell');
         this.app.showToast('Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)');
         this.app.showFloatingMerit('+5 Thỉnh Chuông', this.app.controller.position);

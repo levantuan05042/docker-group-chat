@@ -69,7 +69,7 @@ class ChuaOnlineApp {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.38;
+    this.renderer.toneMappingExposure = 1.18;
     this.canvasContainer.appendChild(this.renderer.domElement);
 
     this.css2dRenderer = new CSS2DRenderer();
