@@ -331,10 +331,7 @@ export class AvatarManager {
     foreArmR.add(malletProp);
 
     const bellStrikerProp = new THREE.Group();
-    const bWood = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.60, 10), woodMat);
-    bWood.rotation.x = Math.PI / 2;
-    bWood.position.set(0, -0.16, 0.26);
-    bellStrikerProp.add(bWood);
+    // Thỉnh chuông bằng cách nắm và lắc sợi dây thừng bên trong chuông (không cần dùi gỗ rời)
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
@@ -629,28 +626,29 @@ export class AvatarManager {
         return;
       }
 
-      // 5. THỈNH ĐẠI HỒNG CHUNG
+      // 5. THỈNH ĐẠI HỒNG CHUNG (CẦM VÀ LẮC SỢI DÂY THỪNG TRONG CHUÔNG)
       if (av.action === 'strikeBell') {
         av.pelvis.position.y = 0.50;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
 
-        // Tay trái buông thả tự nhiên
-        av.armLGroup.rotation.set(0.02, 0, -0.09);
-        av.foreArmL.rotation.set(-0.02, 0, 0);
+        // Nhịp lắc dây: 2 lần kéo lắc dứt khoát làm chuông rung ngân
+        const swayPhase = Math.sin(av.actionTimer * 7.5);
+        const gripTension = Math.sin(Math.min(Math.PI, av.actionTimer * 2.2));
 
-        if (av.actionTimer < 1.0) {
-          const windup = av.actionTimer / 1.0;
-          av.spineGroup.rotation.set(0, -windup * 0.16, 0);
-          av.armRGroup.rotation.set(-0.25 + windup * 0.15, 0.10, 0.05);
-          av.foreArmR.rotation.set(-0.65 + windup * 0.20, 0, 0);
-        } else if (av.actionTimer < 1.8) {
-          const strikePhase = (av.actionTimer - 1.0) / 0.8;
-          const thrust = Math.sin(strikePhase * Math.PI);
-          av.spineGroup.rotation.set(0.08 * thrust, 0.10 * thrust, 0);
-          av.armRGroup.rotation.set(-0.35 - thrust * 0.35, -0.10, 0.05);
-          av.foreArmR.rotation.set(-0.75 - thrust * 0.40, 0, 0);
-        }
+        // Thân người hơi rướn và chuyển động theo lực kéo dây
+        av.spineGroup.rotation.x = 0.05 + swayPhase * 0.10 * gripTension;
+        av.spineGroup.rotation.y = swayPhase * 0.04 * gripTension;
+
+        // HAI TAY NẮM CHẶT SỢI DÂY VÀ LẮC DÂY CHUÔNG
+        const armPull = -0.55 + swayPhase * 0.18 * gripTension;
+        av.armLGroup.rotation.set(armPull, 0.10, 0.35);
+        av.armRGroup.rotation.set(armPull, -0.10, -0.35);
+        av.foreArmL.rotation.set(-0.95 + swayPhase * 0.15 * gripTension, 0, 0.12);
+        av.foreArmR.rotation.set(-0.95 + swayPhase * 0.15 * gripTension, 0, -0.12);
+
+        // Đầu ngước nhìn Đại Hồng Chung cung kính
+        av.headGroup.rotation.x = -0.12 + Math.max(0, swayPhase) * 0.06;
         return;
       }
 

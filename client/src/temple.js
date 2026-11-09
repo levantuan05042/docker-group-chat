@@ -14,7 +14,7 @@ export class TempleScene {
     // Tọa độ tương tác chuẩn xác, đứng trước bàn Phật/các khu vực nghi thức (không bị lấp vào kệ/bàn)
     this.interactiveStations = {
       woodfish: { x: 5.6, z: -1.05, rotY: Math.PI },
-      bell: { x: -5.6, z: -1.05, rotY: Math.PI },
+      bell: { x: -5.6, z: -1.48, rotY: Math.PI },
       incenseTable: { x: -2.8, z: -0.95, rotY: Math.PI },
       incenseBurner: { x: 0, z: -2.2, rotY: Math.PI },
       fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI }
@@ -916,39 +916,111 @@ export class TempleScene {
   createInteractiveStations() {
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d170f, roughness: 0.65 });
 
-    // 1. ĐẠI HỒNG CHUNG (x = -5.6, z = -1.8)
+    // 1. ĐẠI HỒNG CHUNG (x = -5.6, z = -1.8) - Chuông đồng cổ kính có sợi dây thừng thả trong lòng chuông
     const bellGroup = new THREE.Group();
     bellGroup.position.set(-5.6, 0, -1.8);
 
-    const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 5.0, 12), woodMat);
+    // Giá treo chuông gỗ lim già vững chãi
+    const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 5.0, 16), woodMat);
     post1.position.set(-1.1, 2.5, 0);
     const post2 = post1.clone();
     post2.position.set(1.1, 2.5, 0);
     const cross = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 0.35), woodMat);
     cross.position.set(0, 4.8, 0);
 
+    // Xà đỡ phụ và móc đồng cổ
+    const subCross = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.18, 0.18), woodMat);
+    subCross.position.set(0, 4.35, 0);
+
+    const bronzeMat = new THREE.MeshStandardMaterial({
+      color: 0x9e7a3e,
+      metalness: 0.85,
+      roughness: 0.25
+    });
+    const hangerRing = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.04, 12, 24), bronzeMat);
+    hangerRing.position.set(0, 4.20, 0);
+
+    // CỤM CHUÔNG ĐỒNG ĐẠI HỒNG CHUNG (Treo từ móc đồng, có thể nghiêng lắc nhẹ khi đánh)
+    const bellPivot = new THREE.Group();
+    bellPivot.position.set(0, 4.05, 0);
+
     const bellMat = new THREE.MeshStandardMaterial({
-      color: 0xa88647,
+      color: 0xbfa04e,
       metalness: 0.88,
       roughness: 0.22,
-      emissive: 0x2e2009,
-      emissiveIntensity: 0.2
+      emissive: 0x221705,
+      emissiveIntensity: 0.15
     });
-    const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.25, 2.0, 24), bellMat);
-    bell.position.set(0, 3.3, 0);
-    this.bellMesh = bell;
 
-    const striker = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.6, 10), woodMat);
-    striker.rotation.z = Math.PI / 2;
-    striker.position.set(0, 2.5, 0.35);
+    // Vòm chóp chuông bo tròn (Crown / Dome)
+    const bellDome = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5), bellMat);
+    bellDome.position.y = -0.15;
 
+    // Thân trên chuông (Upper barrel)
+    const bellUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.58, 0.80, 24), bellMat);
+    bellUpper.position.y = -0.55;
+
+    // Thân dưới chuông xòe rộng (Lower flared skirt)
+    const bellFlared = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.84, 0.85, 24), bellMat);
+    bellFlared.position.y = -1.375;
+
+    // Vành chuông nở dày dặn (Heavy bottom rim)
+    const bellLip = new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.06, 12, 32), bellMat);
+    bellLip.rotation.x = Math.PI / 2;
+    bellLip.position.y = -1.80;
+
+    // Gờ chỉ đồng chạm nổi quanh thân chuông
+    const band1 = new THREE.Mesh(new THREE.TorusGeometry(0.56, 0.025, 8, 32), bronzeMat);
+    band1.rotation.x = Math.PI / 2;
+    band1.position.y = -0.55;
+    const band2 = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.03, 8, 32), bronzeMat);
+    band2.rotation.x = Math.PI / 2;
+    band2.position.y = -1.35;
+
+    bellPivot.add(bellDome, bellUpper, bellFlared, bellLip, band1, band2);
+    this.bellMesh = bellPivot;
+
+    // SỢI DÂY THỪNG THỈNH CHUÔNG (Hanging from inside the bell)
+    const ropeGroup = new THREE.Group();
+    ropeGroup.position.set(0, -0.60, 0); // Treo từ tâm trong lòng chuông
+
+    // Quả lắc đồng bên trong chuông (Bronze clapper inside)
+    const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14), bronzeMat);
+    clapper.position.y = -0.60;
+
+    // Thân dây thừng bện gai nâu vàng
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8a623c, roughness: 0.90 });
+    const ropeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.8, 10), ropeMat);
+    ropeMesh.position.y = -1.50; // Thả từ lòng chuông xuống độ cao ngang thắt lưng
+
+    // Đoạn tay cầm bọc vải gấm đỏ trang trọng (Vị trí người cầm và lắc)
+    const gripMat = new THREE.MeshStandardMaterial({ color: 0xb71c1c, roughness: 0.60 });
+    const gripHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.45, 12), gripMat);
+    gripHandle.position.y = -2.40; // Độ cao thế giới: 4.05 - 0.60 - 2.40 = 1.05m -> Vừa vặn ngang ngực/bàn tay người đứng!
+
+    // Vòng đồng chặn đầu tay cầm
+    const gripRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 8, 16), bronzeMat);
+    gripRing1.rotation.x = Math.PI / 2;
+    gripRing1.position.y = -2.175;
+    const gripRing2 = gripRing1.clone();
+    gripRing2.position.y = -2.625;
+
+    // Túm tua rua đỏ phong thủy rủ xuống
+    const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.045, 0.30, 8), new THREE.MeshBasicMaterial({ color: 0xc62828 }));
+    tassel.position.y = -2.80;
+
+    ropeGroup.add(clapper, ropeMesh, gripHandle, gripRing1, gripRing2, tassel);
+    bellPivot.add(ropeGroup);
+    this.bellRope = ropeGroup;
+
+    // Biển tên Đại Hồng Chung
     const bellSign = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 0.30, 0.04),
       new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('Đại Hồng Chung') })
     );
     bellSign.position.set(0, 5.25, 0);
 
-    bellGroup.add(post1, post2, cross, bell, striker, bellSign);
+    bellGroup.add(post1, post2, cross, subCross, hangerRing, bellPivot, bellSign);
     this.scene.add(bellGroup);
 
     // 2. KỆ MÕ GỖ BÁT NHÃ (x = 5.6, z = -1.8) - Kích thước cân đối trang nhã, vừa tầm tay gõ
@@ -1107,6 +1179,10 @@ export class TempleScene {
     anim();
   }
 
+  ringBell() {
+    this.bellRingTimer = 2.8;
+  }
+
   spawnClickRipple(x, z) {
     const geo = new THREE.RingGeometry(0.1, 0.25, 24);
     const mat = new THREE.MeshBasicMaterial({
@@ -1132,6 +1208,22 @@ export class TempleScene {
 
     if (this.haloMesh) {
       this.haloMesh.rotation.z = time * 0.12;
+    }
+
+    // Hiệu ứng lắc chuông và dây thừng khi thỉnh Đại Hồng Chung
+    if (this.bellRingTimer > 0) {
+      this.bellRingTimer -= delta;
+      const sway = Math.sin(this.bellRingTimer * 8.5) * Math.min(1.0, this.bellRingTimer / 1.5);
+      if (this.bellRope) {
+        this.bellRope.rotation.x = sway * 0.22;
+        this.bellRope.rotation.z = sway * 0.08;
+      }
+      if (this.bellMesh) {
+        this.bellMesh.rotation.z = sway * 0.04;
+      }
+    } else {
+      if (this.bellRope) this.bellRope.rotation.set(0, 0, 0);
+      if (this.bellMesh) this.bellMesh.rotation.set(0, 0, 0);
     }
 
     if (this.smokeParticles) {

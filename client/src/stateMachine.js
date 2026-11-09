@@ -230,14 +230,17 @@ export class RitualStateMachine {
       this.app.avatarManager.setAction(this.app.myId, 'strikeBell');
       if (this.app.socket) this.app.socket.emit('action', { action: 'strikeBell' });
       if (this.app.showRitualStatus) {
-        this.app.showRitualStatus('🔔', 'Đang nâng chày thỉnh Đại Hồng Chung...', false);
+        this.app.showRitualStatus('🔔', 'Đang cầm dây lắc thỉnh Đại Hồng Chung...', false);
+      }
+      if (this.app.temple && this.app.temple.ringBell) {
+        this.app.temple.ringBell();
       }
 
-      // After 1s windup strike the bell!
+      // After 0.9s shaking the rope, sound the bell!
       setTimeout(() => {
         if (this.currentState !== PlayerState.STRIKING_BELL) return;
         this.app.audio.playBell();
-        this.app.temple.spawnClickRipple(st.x, st.z);
+        this.app.temple.spawnClickRipple(-5.6, -1.8);
         if (this.app.socket) this.app.socket.emit('strikeBell');
         this.app.showToast('Đại Hồng Chung ngân vang rền mười phương! 🙏 (+5 Công đức)');
         this.app.showFloatingMerit('+5 Thỉnh Chuông', this.app.controller.position);
@@ -255,8 +258,8 @@ export class RitualStateMachine {
               this.app.hideRitualStatus();
             }
           }
-        }, 1200);
-      }, 1000);
+        }, 1500);
+      }, 900);
     });
   }
 
