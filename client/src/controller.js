@@ -94,7 +94,7 @@ export class PlayerController {
     window.addEventListener('keyup', (e) => this.handleKeyUp(e));
 
     this.domElement.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.interactive-ui') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+      if (e.target.closest('.interactive-ui') || e.target.closest('.modal-overlay') || e.target.closest('.modal-card') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
       this.isDragging = true;
       this.dragStart = { x: e.clientX, y: e.clientY };
       this.lastPointer = { x: e.clientX, y: e.clientY };
@@ -126,6 +126,40 @@ export class PlayerController {
         this.isDragging = false;
       }
     });
+
+    // Touch Pinch-to-Zoom for Mobile & Tablet
+    let initialPinchDistance = null;
+    let initialCamDistance = null;
+
+    this.domElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialPinchDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialCamDistance = this.targetCamDistance;
+      }
+    }, { passive: true });
+
+    this.domElement.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialPinchDistance && initialCamDistance) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (currentDist > 10) {
+          const ratio = initialPinchDistance / currentDist;
+          this.targetCamDistance = Math.max(2.6, Math.min(10.5, initialCamDistance * ratio));
+        }
+      }
+    }, { passive: true });
+
+    this.domElement.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = null;
+        initialCamDistance = null;
+      }
+    }, { passive: true });
 
     this.domElement.addEventListener('wheel', (e) => {
       this.targetCamDistance = Math.max(2.6, Math.min(10.5, this.targetCamDistance + e.deltaY * 0.004));
@@ -218,7 +252,7 @@ export class PlayerController {
   }
 
   handleFloorClick(e) {
-    if (e.target.closest('.interactive-ui') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    if (e.target.closest('.interactive-ui') || e.target.closest('.modal-overlay') || e.target.closest('.modal-card') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
 
     const rect = this.domElement.getBoundingClientRect();
     this.mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;

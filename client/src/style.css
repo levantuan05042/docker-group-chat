@@ -903,6 +903,7 @@ body, html {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: rgba(8, 5, 3, 0.88);
   backdrop-filter: blur(14px);
   display: flex;
@@ -910,12 +911,19 @@ body, html {
   justify-content: center;
   z-index: 100;
   pointer-events: auto;
+  padding: max(12px, env(safe-area-inset-top, 12px)) max(12px, env(safe-area-inset-right, 12px)) max(12px, env(safe-area-inset-bottom, 12px)) max(12px, env(safe-area-inset-left, 12px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-card {
   position: relative;
-  width: 90%;
+  width: 92%;
   max-width: 480px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(160deg, rgba(28, 17, 12, 0.98), rgba(16, 10, 7, 0.98));
   border: 1.5px solid var(--primary-gold);
   border-radius: 28px;
@@ -1224,48 +1232,111 @@ body, html {
 }
 
 /* ========================================================
-   RESPONSIVE DESIGN FOR PHONES & TABLETS
+   RESPONSIVE DESIGN CHO MỌI THIẾT BỊ (PHONES, TABLETS, PC)
    ======================================================== */
 @media (max-width: 1050px) {
   .control-hints-pill {
-    display: none;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .cam-reset-chip {
+    padding: 5px 8px;
+    font-size: 11px;
   }
 }
 
 @media (max-width: 768px) {
   .top-nav {
-    padding: 6px 10px;
+    padding: 6px max(8px, env(safe-area-inset-right, 8px)) 6px max(8px, env(safe-area-inset-left, 8px));
     gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .temple-branding {
+    padding: 5px 10px;
+    gap: 6px;
+  }
+  .temple-logo {
+    font-size: 18px;
+  }
+  .temple-titles h1 {
+    font-size: 12.5px;
   }
   .temple-titles p {
     display: none;
   }
-  .music-player-pill .volume-box {
+  .profile-chip {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .stat-chip {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .control-hints-pill {
+    padding: 3px 6px;
+    gap: 3px;
+  }
+  .cam-reset-chip {
+    padding: 4px 6px;
+    font-size: 10.5px;
+  }
+  .music-player-pill {
+    padding: 3px 6px;
+    gap: 4px;
+  }
+  .music-player-pill .volume-box,
+  .music-player-pill .audio-wave,
+  .music-player-pill .track-select {
     display: none;
   }
-  .action-bar {
+  .music-play-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .bottom-dock {
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
     gap: 6px;
-    padding: 6px 10px;
-    max-width: 95vw;
+    width: 100vw;
+  }
+  .action-bar {
+    gap: 5px;
+    padding: 5px 8px;
+    width: min(97vw, 680px);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: 26px;
+    touch-action: pan-x;
   }
   .action-btn {
-    padding: 8px 12px;
-    font-size: 11.5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 6px;
+    min-width: 56px;
+    height: 46px;
+    font-size: 10px;
     white-space: nowrap;
     flex-shrink: 0;
+    border-radius: 12px;
   }
   .action-btn .btn-icon {
-    font-size: 16px;
+    font-size: 17px;
+    line-height: 1;
   }
   .action-btn .key-badge {
     display: none;
   }
+  .chat-bar {
+    width: min(96vw, 480px);
+    padding: 4px 6px 4px 12px;
+  }
   .chat-panel {
-    width: 280px;
-    height: 240px;
-    bottom: 110px;
+    width: min(300px, calc(100vw - 20px));
+    height: 220px;
+    bottom: 115px;
     left: 10px;
   }
   .chat-panel.collapsed {
@@ -1275,7 +1346,47 @@ body, html {
     bottom: 120px;
     left: 10px;
     transform: scale(0.9);
-    transform-origin: bottom left;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-nav {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+  .top-zone {
+    gap: 4px;
+  }
+  .temple-branding {
+    padding: 4px 8px;
+    border-radius: 18px;
+  }
+  .temple-logo {
+    font-size: 16px;
+  }
+  .temple-titles h1 {
+    font-size: 11.5px;
+  }
+  .profile-chip {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .stat-chip {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .nav-actions .icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+  .action-btn {
+    min-width: 52px;
+    height: 44px;
+    font-size: 9.5px;
+  }
+  .action-btn .btn-icon {
+    font-size: 15px;
   }
 }
 
@@ -2168,7 +2279,105 @@ body, html {
   border-color: #ff5252;
 }
 
+/* =========================================================================
+   RESPONSIVE TOÀN DIỆN MỌI MÀN HÌNH VÀ THIẾT BỊ (TABLETS, PHONES, LANDSCAPE)
+   ========================================================================= */
+
+/* 1. TABLET & MÀN HÌNH NHỎ (<= 880px) */
+@media (max-width: 880px) {
+  .chess-card {
+    width: 95vw;
+    max-width: 520px;
+    padding: 20px 14px;
+  }
+  .chess-body {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .chess-main-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .chess-side-panel {
+    width: 100%;
+    max-width: 380px;
+  }
+  .fish-card {
+    width: 95vw;
+    max-width: 540px;
+  }
+  .creature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 2. ĐIỆN THOẠI DI ĐỘNG DỌC CHUẨN (<= 768px: iPhone, Galaxy, Pixel) */
 @media (max-width: 768px) {
+  .chess-card {
+    width: 96vw;
+    padding: 16px 10px;
+    border-radius: 20px;
+  }
+  .chess-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .chess-title-wrap h2 {
+    font-size: 16px;
+  }
+  .chess-title-wrap p {
+    font-size: 10px;
+  }
+  .chess-tabs {
+    width: 100%;
+  }
+  .chess-tab-btn {
+    flex: 1;
+    padding: 7px 6px;
+    font-size: 11.5px;
+    text-align: center;
+  }
+  .chess-status-bar {
+    width: 100%;
+    max-width: 340px;
+    margin-bottom: 8px;
+    padding: 4px 6px;
+  }
+  .player-pill {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .chess-timer-badge {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  /* Bàn cờ tướng trên mobile dọc */
+  .xiangqi-wrapper {
+    padding: 8px 6px;
+    border-width: 6px;
+    border-radius: 10px;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+  .xiangqi-river-banner {
+    left: 6px;
+    right: 6px;
+    height: 34px;
+  }
+  .xiangqi-river-banner .river-label {
+    font-size: 15px;
+    letter-spacing: 3px;
+  }
+  .xiangqi-river-banner .river-sub {
+    font-size: 8.5px;
+    letter-spacing: 1.5px;
+  }
   .xiangqi-board-grid {
     grid-template-columns: repeat(9, 34px);
     grid-template-rows: repeat(10, 34px);
@@ -2188,12 +2397,221 @@ body, html {
   .xiangqi-piece.red .piece-sub,
   .xiangqi-piece.black .piece-sub {
     font-size: 6px;
+    margin-top: 0;
+  }
+  .xiangqi-dest-indicator {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Hồ Sen Phóng Sinh mobile */
+  .fish-card {
+    width: 95vw;
+    padding: 20px 14px;
+    border-radius: 20px;
+  }
+  .creature-card {
+    padding: 10px 8px;
+  }
+  .creature-icon {
+    font-size: 28px;
+  }
+  .creature-name {
+    font-size: 13px;
+  }
+
+  /* Xin Xăm mobile */
+  .fortune-card {
+    width: 94vw;
+    padding: 20px 14px;
+    border-radius: 20px;
+  }
+  .fortune-header h2 {
+    font-size: 18px;
+  }
+  .fortune-poem {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Profile Modal */
+  .profile-card {
+    width: 95vw;
+    padding: 20px 14px;
+    border-radius: 20px;
+  }
+}
+
+/* 3. ĐIỆN THOẠI MÀN HÌNH NHỎ (<= 360px: iPhone SE, Galaxy Z Flip cover, Mini) */
+@media (max-width: 360px) {
+  .chess-card {
+    padding: 12px 6px;
+  }
+  .xiangqi-wrapper {
+    padding: 5px 3px;
+    border-width: 4px;
+    max-width: 295px;
   }
   .xiangqi-river-banner .river-label {
-    font-size: 15px;
-    letter-spacing: 3px;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .xiangqi-river-banner .river-sub {
+    display: none;
+  }
+  .xiangqi-board-grid {
+    grid-template-columns: repeat(9, 29px);
+    grid-template-rows: repeat(10, 29px);
+  }
+  .xiangqi-cell {
+    width: 29px;
+    height: 29px;
+  }
+  .xiangqi-piece {
+    width: 25px;
+    height: 25px;
+  }
+  .xiangqi-piece.red .piece-char,
+  .xiangqi-piece.black .piece-char {
+    font-size: 13.5px;
+  }
+  .xiangqi-piece.red .piece-sub,
+  .xiangqi-piece.black .piece-sub {
+    display: none;
+  }
+  .diff-selector {
+    gap: 3px;
+  }
+  .diff-btn {
+    font-size: 10px;
+    padding: 5px 2px;
+  }
+}
+
+/* 4. CHẾ ĐỘ XOAY NGANG TRÊN ĐIỆN THOẠI (Mobile Landscape: height <= 520px) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .top-nav {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+  .temple-branding {
+    padding: 3px 8px;
+  }
+  .temple-titles p {
+    display: none;
+  }
+  .bottom-dock {
+    padding-bottom: 2px;
+    gap: 3px;
+  }
+  .action-bar {
+    padding: 3px 6px;
+  }
+  .action-btn {
+    height: 38px;
+    min-width: 50px;
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+  .action-btn .btn-icon {
+    font-size: 14px;
+  }
+
+  /* Modal Cờ Tướng xoay ngang: 2 Cột cạnh nhau để không bị tràn chiều cao */
+  .chess-card {
+    max-height: 96dvh;
+    max-width: 96vw;
+    width: auto;
+    padding: 10px 14px;
+    border-radius: 14px;
+  }
+  .chess-header {
+    flex-direction: row;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .chess-title-wrap h2 {
+    font-size: 13.5px;
+  }
+  .chess-title-wrap p {
+    display: none;
   }
   .chess-body {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .xiangqi-wrapper {
+    padding: 5px 4px;
+    border-width: 4px;
+  }
+  .xiangqi-board-grid {
+    grid-template-columns: repeat(9, 25px);
+    grid-template-rows: repeat(10, 25px);
+  }
+  .xiangqi-cell {
+    width: 25px;
+    height: 25px;
+  }
+  .xiangqi-piece {
+    width: 22px;
+    height: 22px;
+  }
+  .xiangqi-piece.red .piece-char,
+  .xiangqi-piece.black .piece-char {
+    font-size: 12px;
+  }
+  .xiangqi-piece.red .piece-sub,
+  .xiangqi-piece.black .piece-sub {
+    display: none;
+  }
+  .xiangqi-river-banner .river-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .xiangqi-river-banner .river-sub {
+    display: none;
+  }
+  .chess-side-panel {
+    max-height: 275px;
+    overflow-y: auto;
+    gap: 8px;
+  }
+  .zen-wisdom-card {
+    display: none;
+  }
+
+  /* Modal Phóng Sinh xoay ngang */
+  .fish-card {
+    max-height: 96dvh;
+    padding: 12px 16px;
+  }
+  .creature-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .creature-card {
+    padding: 6px;
+  }
+  .creature-icon {
+    font-size: 22px;
+  }
+
+  /* Modal Xin Xăm xoay ngang */
+  .fortune-card {
+    max-height: 96dvh;
+    padding: 12px 16px;
+  }
+}
+
+/* 5. MÀN HÌNH LỚN / MÀN HÌNH RỘNG (Desktop & Ultrawide >= 1440px) */
+@media (min-width: 1440px) {
+  .top-nav {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .bottom-dock {
+    max-width: 1600px;
+    margin: 0 auto;
   }
 }
