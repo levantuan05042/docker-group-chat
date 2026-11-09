@@ -340,27 +340,34 @@ export class AvatarManager {
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
-    // 3 nén tâm hương cầm chắc chắn trên bàn tay phải (hướng thẳng đứng và hơi nghiêng ra trước, tuyệt đối không chọc vào trán/mặt)
+    // 3 nén tâm hương cầm trang nghiêm trước ngực giữa 2 bàn tay (hướng thẳng đứng lên trên, tuyệt đối không chạm trán)
     const incenseProp = new THREE.Group();
-    incenseProp.position.set(0, -0.18, 0.04); // Đặt ngay tại lòng bàn tay phải
+    incenseProp.position.set(0, -0.06, 0.28); // Đặt tự nhiên giữa hai bàn tay phía trước ngực
     for (let s = -1; s <= 1; s++) {
       const stick = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.005, 0.005, 0.30, 8),
+        new THREE.CylinderGeometry(0.005, 0.005, 0.26, 8),
         new THREE.MeshBasicMaterial({ color: 0xaa2211 })
       );
-      // Xoay hình trụ dọc theo trục Z hướng ra ngoài/lên trên khỏi lòng bàn tay
-      stick.rotation.set(Math.PI / 2.0 - 0.08, 0, s * 0.08);
-      stick.position.set(s * 0.016, 0, 0.14);
+      // Dựng đứng hướng lên trời, hơi nghiêng về phía trước (away from head) và xòe nhẹ
+      stick.rotation.set(-0.08, 0, s * 0.06);
+      stick.position.set(s * 0.015, 0.13, 0);
 
       const tip = new THREE.Mesh(
-        new THREE.SphereGeometry(0.011, 8, 8),
+        new THREE.SphereGeometry(0.009, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xff4500 })
       );
-      tip.position.set(s * 0.024, 0, 0.28);
-      incenseProp.add(stick, tip);
+      tip.position.set(s * 0.015, 0.26, 0.01);
+
+      const smokePuff = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xe6e6e6, transparent: true, opacity: 0.45 })
+      );
+      smokePuff.position.set(s * 0.015, 0.29, 0.01);
+
+      incenseProp.add(stick, tip, smokePuff);
     }
     incenseProp.visible = false;
-    foreArmR.add(incenseProp);
+    chestGroup.add(incenseProp);
 
     const fortuneProp = new THREE.Group();
     fortuneProp.position.set(0, 0.07, 0.24);
@@ -690,44 +697,49 @@ export class AvatarManager {
 
         targetHeadRot.x = -0.12 + Math.max(0, swayPhase) * 0.06;
       }
-      // 6. THÀNH KÍNH DÂNG HƯƠNG (4 BƯỚC MƯỢT MÀ)
+      // 6. THÀNH KÍNH DÂNG HƯƠNG (4 BƯỚC MƯỢT MÀ, KHÔNG CHẠM TRÁN)
       else if (av.action === 'takeIncense') {
         targetPelvisY = 0.50;
-        targetSpineRot.x = 0.14;
-        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
-        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
-        targetArmRRot = { x: -0.45, y: -0.08, z: -0.15 };
-        targetForeArmRRot = { x: -0.70, y: 0, z: -0.05 };
-        targetHeadRot.x = 0.12;
+        targetSpineRot.x = 0.12;
+        targetArmLRot = { x: -0.52, y: 0.12, z: 0.40 };
+        targetForeArmLRot = { x: -1.18, y: 0, z: 0.20 };
+        targetArmRRot = { x: -0.52, y: -0.12, z: -0.40 };
+        targetForeArmRRot = { x: -1.18, y: 0, z: -0.20 };
+        targetHeadRot.x = 0.08;
       }
       else if (av.action === 'lightCandle') {
         targetPelvisY = 0.50;
-        targetSpineRot.x = 0.06;
-        targetArmLRot = { x: -0.55, y: 0.10, z: 0.50 };
-        targetForeArmLRot = { x: -1.25, y: 0, z: 0.25 };
-        targetArmRRot = { x: -0.52, y: -0.08, z: -0.15 };
-        targetForeArmRRot = { x: -0.90, y: 0, z: -0.08 };
-        targetHeadRot.x = 0.05;
+        targetSpineRot.x = 0.14;
+        targetArmLRot = { x: -0.55, y: 0.10, z: 0.38 };
+        targetForeArmLRot = { x: -1.15, y: 0, z: 0.18 };
+        targetArmRRot = { x: -0.55, y: -0.10, z: -0.38 };
+        targetForeArmRRot = { x: -1.15, y: 0, z: -0.18 };
+        targetHeadRot.x = 0.10;
       }
       else if (av.action === 'incense' || av.action === 'plantIncense') {
         targetPelvisY = 0.50;
         const timer = av.actionTimer;
         if (timer < 1.2) {
           const raise = Math.sin((timer / 1.2) * (Math.PI / 2));
-          targetSpineRot.x = 0.08 + raise * 0.10;
-          targetHeadRot.x = 0.05 + raise * 0.08;
-          targetArmLRot = { x: -0.58 - raise * 0.12, y: 0.10, z: 0.40 };
-          targetArmRRot = { x: -0.58 - raise * 0.12, y: -0.10, z: -0.40 };
-          targetForeArmLRot = { x: -1.20 - raise * 0.15, y: 0, z: 0.20 };
-          targetForeArmRRot = { x: -1.20 - raise * 0.15, y: 0, z: -0.20 };
+          targetSpineRot.x = 0.08 + raise * 0.08;
+          targetHeadRot.x = 0.05 + raise * 0.06;
+          targetArmLRot = { x: -0.58 - raise * 0.10, y: 0.10, z: 0.38 };
+          targetArmRRot = { x: -0.58 - raise * 0.10, y: -0.10, z: -0.38 };
+          targetForeArmLRot = { x: -1.18 - raise * 0.12, y: 0, z: 0.18 };
+          targetForeArmRRot = { x: -1.18 - raise * 0.12, y: 0, z: -0.18 };
+          if (av.props && av.props.incense) av.props.incense.visible = true;
         } else {
           const plant = Math.sin(Math.min(Math.PI, (timer - 1.2) * 2.0));
-          targetSpineRot.x = 0.18 + plant * 0.20;
-          targetHeadRot.x = 0.12 + plant * 0.08;
-          targetArmLRot = { x: -0.45 - plant * 0.15, y: 0.05, z: 0.25 };
-          targetArmRRot = { x: -0.45 - plant * 0.15, y: -0.05, z: -0.25 };
+          targetSpineRot.x = 0.18 + plant * 0.18;
+          targetHeadRot.x = 0.10 + plant * 0.06;
+          targetArmLRot = { x: -0.45 - plant * 0.15, y: 0.05, z: 0.22 };
+          targetArmRRot = { x: -0.45 - plant * 0.15, y: -0.05, z: -0.22 };
           targetForeArmLRot = { x: -0.85 + plant * 0.15, y: 0, z: 0.10 };
           targetForeArmRRot = { x: -0.85 + plant * 0.15, y: 0, z: -0.10 };
+          // Khi đã cắm hương vào Lư Đồng xong (sau 1.8s), ẩn nén hương trên tay
+          if (av.props && av.props.incense && timer > 1.8) {
+            av.props.incense.visible = false;
+          }
         }
       }
       // 7. LẮC ỐNG XĂM

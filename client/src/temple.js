@@ -442,40 +442,119 @@ export class TempleScene {
     ctx.lineWidth = 2;
     ctx.strokeRect(22, 22, 468, 468);
 
-    // 15x15 Lưới ô cờ truyền thống
-    const margin = 42;
-    const size = 512 - margin * 2;
-    const step = size / 14;
+    // BÀN CỜ TƯỚNG TRUYỀN THỐNG (9 CỘT DỌC x 10 ĐƯỜNG NGANG + SÔNG SỞ HÀ HÁN GIỚI + CỬU CUNG)
+    const marginX = 36;
+    const marginY = 32;
+    const boardW = 512 - marginX * 2; // 440
+    const boardH = 512 - marginY * 2; // 448
+    const stepX = boardW / 8; // 9 cột: 8 khoảng
+    const stepY = boardH / 9; // 10 hàng: 9 khoảng
 
     ctx.strokeStyle = '#2d1405';
     ctx.lineWidth = 1.8;
 
-    for (let i = 0; i < 15; i++) {
-      const pos = margin + i * step;
-      // Đường ngang
+    // 10 Đường ngang (nối từ cột 0 đến cột 8)
+    for (let r = 0; r < 10; r++) {
+      const y = marginY + r * stepY;
       ctx.beginPath();
-      ctx.moveTo(margin, pos);
-      ctx.lineTo(margin + size, pos);
-      ctx.stroke();
-
-      // Đường dọc
-      ctx.beginPath();
-      ctx.moveTo(pos, margin);
-      ctx.lineTo(pos, margin + size);
+      ctx.moveTo(marginX, y);
+      ctx.lineTo(marginX + boardW, y);
       ctx.stroke();
     }
 
-    // 5 Điểm sao (Thiên nguyên & 4 góc: (3,3), (11,3), (7,7), (3,11), (11,11))
-    const starIndices = [
-      [3, 3], [11, 3], [7, 7], [3, 11], [11, 11]
-    ];
-    ctx.fillStyle = '#2d1405';
-    starIndices.forEach(([c, r]) => {
-      const sx = margin + c * step;
-      const sy = margin + r * step;
-      ctx.beginPath();
-      ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
-      ctx.fill();
+    // 9 Đường dọc
+    // Cột biên 0 và cột 8 chạy suốt từ hàng 0 đến hàng 9
+    // Cột trong 1..7 bị ngắt quãng ở khoảng giữa hàng 4 và hàng 5 (Sông Sở Hà - Hán Giới)
+    for (let c = 0; c < 9; c++) {
+      const x = marginX + c * stepX;
+      if (c === 0 || c === 8) {
+        ctx.beginPath();
+        ctx.moveTo(x, marginY);
+        ctx.lineTo(x, marginY + boardH);
+        ctx.stroke();
+      } else {
+        // Nửa trên (hàng 0 -> hàng 4)
+        ctx.beginPath();
+        ctx.moveTo(x, marginY);
+        ctx.lineTo(x, marginY + 4 * stepY);
+        ctx.stroke();
+
+        // Nửa dưới (hàng 5 -> hàng 9)
+        ctx.beginPath();
+        ctx.moveTo(x, marginY + 5 * stepY);
+        ctx.lineTo(x, marginY + boardH);
+        ctx.stroke();
+      }
+    }
+
+    // CỬU CUNG (Đường chéo chữ X ở cung tướng trên & dưới)
+    // Cung trên (Black Palace): cột 3..5, hàng 0..2
+    ctx.beginPath();
+    ctx.moveTo(marginX + 3 * stepX, marginY + 0 * stepY);
+    ctx.lineTo(marginX + 5 * stepX, marginY + 2 * stepY);
+    ctx.moveTo(marginX + 5 * stepX, marginY + 0 * stepY);
+    ctx.lineTo(marginX + 3 * stepX, marginY + 2 * stepY);
+    ctx.stroke();
+
+    // Cung dưới (Red Palace): cột 3..5, hàng 7..9
+    ctx.beginPath();
+    ctx.moveTo(marginX + 3 * stepX, marginY + 7 * stepY);
+    ctx.lineTo(marginX + 5 * stepX, marginY + 9 * stepY);
+    ctx.moveTo(marginX + 5 * stepX, marginY + 7 * stepY);
+    ctx.lineTo(marginX + 3 * stepX, marginY + 9 * stepY);
+    ctx.stroke();
+
+    // CHỮ THƯ PHÁP SÔNG SỞ HÀ - HÁN GIỚI GIỮA BÀN CỜ
+    ctx.save();
+    ctx.font = 'bold 22px "Playfair Display", "Times New Roman", serif';
+    ctx.fillStyle = '#4a250e';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const riverY = marginY + 4.5 * stepY;
+    ctx.fillText('楚  河', marginX + 2 * stepX, riverY);
+    ctx.fillText('漢  界', marginX + 6 * stepX, riverY);
+    ctx.restore();
+
+    // Dấu chữ thập nhỏ tại vị trí Pháo và Tốt
+    const drawCross = (col, row, isEdgeLeft = false, isEdgeRight = false) => {
+      const cx = marginX + col * stepX;
+      const cy = marginY + row * stepY;
+      const d = 3.5;
+      const l = 6;
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#2d1405';
+
+      if (!isEdgeLeft) {
+        // Góc Tây Bắc
+        ctx.beginPath();
+        ctx.moveTo(cx - d, cy - d - l); ctx.lineTo(cx - d, cy - d); ctx.lineTo(cx - d - l, cy - d);
+        ctx.stroke();
+        // Góc Tây Nam
+        ctx.beginPath();
+        ctx.moveTo(cx - d, cy + d + l); ctx.lineTo(cx - d, cy + d); ctx.lineTo(cx - d - l, cy + d);
+        ctx.stroke();
+      }
+      if (!isEdgeRight) {
+        // Góc Đông Bắc
+        ctx.beginPath();
+        ctx.moveTo(cx + d, cy - d - l); ctx.lineTo(cx + d, cy - d); ctx.lineTo(cx + d + l, cy - d);
+        ctx.stroke();
+        // Góc Đông Nam
+        ctx.beginPath();
+        ctx.moveTo(cx + d, cy + d + l); ctx.lineTo(cx + d, cy + d); ctx.lineTo(cx + d + l, cy + d);
+        ctx.stroke();
+      }
+    };
+
+    // Vị trí pháo: (1,2), (7,2), (1,7), (7,7)
+    [[1, 2], [7, 2], [1, 7], [7, 7]].forEach(([c, r]) => drawCross(c, r));
+    // Vị trí tốt: (0,3), (2,3), (4,3), (6,3), (8,3), và hàng 6
+    [3, 6].forEach(r => {
+      drawCross(0, r, true, false);
+      drawCross(2, r);
+      drawCross(4, r);
+      drawCross(6, r);
+      drawCross(8, r, false, true);
     });
 
     const tex = new THREE.CanvasTexture(canvas);
@@ -2212,33 +2291,50 @@ export class TempleScene {
     tableRim.rotation.x = Math.PI / 2;
     tableRim.position.y = 0.80;
 
-    // BÀN CỜ 15x15 ĐẶT CHÍNH GIỮA MẶT BÀN
-    const boardGeo = new THREE.BoxGeometry(0.70, 0.032, 0.70);
+    // BÀN CỜ TƯỚNG GỖ GỤ NGUYÊN KHỐI (Tỷ lệ 9 cột x 10 hàng)
+    const boardGeo = new THREE.BoxGeometry(0.64, 0.034, 0.72);
     const boardMat = new THREE.MeshStandardMaterial({
       map: this.textures.chessBoard,
-      roughness: 0.32,
-      metalness: 0.08
+      roughness: 0.28,
+      metalness: 0.06
     });
     const chessBoard = new THREE.Mesh(boardGeo, boardMat);
-    chessBoard.position.set(-0.08, 0.856, 0);
+    chessBoard.position.set(-0.06, 0.856, 0);
 
-    // Các quân cờ 3D mẫu bày trên bàn
-    const blackStoneMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.3 });
-    const whiteStoneMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.15, metalness: 0.2 });
-    const sampleStones = [
-      { x: -0.08, z: 0, c: 'b' },
-      { x: -0.04, z: 0.04, c: 'w' },
-      { x: -0.12, z: -0.04, c: 'b' },
-      { x: -0.08, z: 0.08, c: 'w' },
-      { x: -0.04, z: -0.08, c: 'b' }
+    // QUÂN CỜ TƯỚNG GỖ TRÒN 3D VÁT MÉP TRUYỀN THỐNG (ĐỎ & ĐEN)
+    const redPieceMat = new THREE.MeshStandardMaterial({ color: 0x9e2a1b, roughness: 0.35, metalness: 0.2 });
+    const blackPieceMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.40, metalness: 0.15 });
+    const woodCoreMat = new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.3 });
+
+    // Một số quân cờ tướng mẫu bố trí trên bàn cờ
+    const sampleXiangqiPieces = [
+      // Bên Đỏ (帅, 相, 马, 炮, 兵)
+      { x: -0.06, z: 0.26, c: 'r' }, // Tướng Đỏ
+      { x: -0.22, z: 0.26, c: 'r' }, // Tượng Đỏ
+      { x: 0.10, z: 0.26, c: 'r' },  // Mã Đỏ
+      { x: -0.16, z: 0.12, c: 'r' }, // Pháo Đỏ
+      { x: -0.06, z: 0.05, c: 'r' }, // Binh Đỏ
+      // Bên Đen (将, 象, 车, 砲, 卒)
+      { x: -0.06, z: -0.26, c: 'b' }, // Tướng Đen
+      { x: 0.10, z: -0.26, c: 'b' },  // Tượng Đen
+      { x: -0.28, z: -0.26, c: 'b' }, // Xe Đen
+      { x: 0.10, z: -0.12, c: 'b' },  // Pháo Đen
+      { x: 0.10, z: -0.05, c: 'b' }   // Tốt Đen
     ];
-    sampleStones.forEach(s => {
-      const stone = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12),
-        s.c === 'b' ? blackStoneMat : whiteStoneMat
+    sampleXiangqiPieces.forEach(p => {
+      const pGroup = new THREE.Group();
+      // Thân quân cờ hình trụ dẹt vát mép
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.025, 0.012, 16), woodCoreMat);
+      // Vòng bo chỉ màu Đỏ hoặc Đen
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.023, 0.0025, 8, 16),
+        p.c === 'r' ? redPieceMat : blackPieceMat
       );
-      stone.position.set(s.x, 0.878, s.z);
-      chessGroup.add(stone);
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.006;
+      pGroup.add(disc, rim);
+      pGroup.position.set(p.x, 0.880, p.z);
+      chessGroup.add(pGroup);
     });
 
     // BỘ TRÀ ĐẠO TỬ SA (Ấm trà, chén ngọc & khay gỗ)

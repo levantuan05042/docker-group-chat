@@ -163,10 +163,10 @@
           <span class="btn-icon">🐟</span>
           <span>Phóng Sinh</span>
         </button>
-        <button class="action-btn highlight-gold" id="act-chess" title="Kỳ đài chánh niệm: Tự học & Đấu cùng đồng tu [Phím 8]">
+        <button class="action-btn highlight-gold" id="act-chess" title="Kỳ đài Cờ Tướng chánh niệm: Tự học & Đấu cùng đồng tu [Phím 8]">
           <span class="key-badge">8</span>
           <span class="btn-icon">♟️</span>
-          <span>Chơi Cờ</span>
+          <span>Cờ Tướng</span>
         </button>
         <button class="action-btn" id="act-tea" title="Uống trà đàm đạo tịnh tâm [Phím 9]">
           <span class="key-badge">9</span>
@@ -284,16 +284,16 @@
     </div>
   </div>
 
-  <!-- MODAL CHƠI CỜ: KỲ ĐÀI CHÁNH NIỆM (TỰ HỌC & ĐẤU ONLINE) -->
+  <!-- MODAL CHƠI CỜ: KỲ ĐÀI CỜ TƯỚNG CHÁNH NIỆM (TỰ HỌC & ĐẤU ONLINE) -->
   <div class="modal-overlay" id="chess-modal" style="display: none;">
     <div class="modal-card chess-card">
       <button class="modal-close-btn" id="btn-close-chess" title="Đóng [ESC]">✕</button>
       <div class="chess-header">
         <div class="chess-title-wrap">
-          <span class="chess-icon">♟️</span>
+          <span class="chess-icon">🪓</span>
           <div>
-            <h2>KỲ ĐÀI CHÁNH NIỆM</h2>
-            <p>Kỳ Đạo Đàm Đạo • Tâm Tĩnh Trí Minh • Vừa Làm Vừa Tu</p>
+            <h2>KỲ ĐÀI CỜ TƯỚNG CHÁNH NIỆM</h2>
+            <p>楚河漢界 • Vạn Biến Bất Biến • Kỳ Đạo Thiền Tâm • Vừa Làm Vừa Tu</p>
           </div>
         </div>
         <!-- Mode Tabs -->
@@ -307,26 +307,36 @@
         <!-- Bảng cờ và thanh trạng thái -->
         <div class="chess-main-area">
           <div class="chess-status-bar">
-            <div class="player-pill black active" id="chess-player-black">
-              <span class="stone-icon black">●</span>
-              <span class="player-name" id="name-black">Bạn (Đen - Đi trước)</span>
+            <div class="player-pill red active" id="chess-player-red">
+              <span class="xiangqi-disc-icon red">帥</span>
+              <span class="player-name" id="name-red">Bạn (Đỏ - Đi trước)</span>
             </div>
-            <div class="chess-timer-badge" id="chess-timer">45s</div>
-            <div class="player-pill white" id="chess-player-white">
-              <span class="stone-icon white">○</span>
-              <span class="player-name" id="name-white">Thiền Sư AI (Trắng)</span>
+            <div class="chess-timer-badge" id="chess-timer">60s</div>
+            <div class="player-pill black" id="chess-player-black">
+              <span class="xiangqi-disc-icon black">將</span>
+              <span class="player-name" id="name-black">Thiền Sư AI (Đen)</span>
             </div>
           </div>
 
-          <!-- Lưới Bàn Cờ 15x15 -->
-          <div class="chess-board-wrapper">
-            <div class="chess-board-grid" id="chess-board-grid"></div>
+          <!-- BÀN CỜ TƯỚNG 9 CỘT x 10 HÀNG -->
+          <div class="chess-board-wrapper xiangqi-wrapper">
+            <div class="xiangqi-river-banner">
+              <span class="river-label">楚  河</span>
+              <span class="river-sub">SỞ HÀ • HÁN GIỚI</span>
+              <span class="river-label">漢  界</span>
+            </div>
+            <div class="xiangqi-board-grid" id="chess-board-grid"></div>
           </div>
 
           <!-- Gợi ý Chánh Niệm Box -->
           <div class="chess-hint-box" id="chess-hint-box" style="display: none;">
             <span class="hint-lamp">💡</span>
-            <span class="hint-text" id="chess-hint-text">Thiền Sư: "Nước cờ này giúp bạn mở thế ba cờ đôi..."</span>
+            <span class="hint-text" id="chess-hint-text">Thiền Sư: "Bình tâm tĩnh khí, nước cờ Mã thoái thủ như nước chảy qua khe đá..."</span>
+          </div>
+
+          <!-- Tàn cuộc / Chiếu tướng Alert Banner -->
+          <div class="chess-alert-banner" id="chess-alert-banner" style="display: none;">
+            <span id="chess-alert-text">⚠️ CHIẾU TƯỚNG! Đồng tu hãy định tâm ứng biến.</span>
           </div>
         </div>
 
@@ -334,16 +344,23 @@
         <div class="chess-side-panel">
           <!-- Bảng chế độ AI -->
           <div class="panel-section" id="section-chess-ai">
-            <label class="section-title">Cấp độ Thiền Sư AI:</label>
+            <label class="section-title">Chọn phe cầm quân:</label>
+            <div class="side-selector">
+              <button class="side-btn active" id="side-btn-red" data-side="red">🔴 Cầm Đỏ (Đi Tiên)</button>
+              <button class="side-btn" id="side-btn-black" data-side="black">⚫ Cầm Đen (Đi Hậu)</button>
+            </div>
+
+            <label class="section-title" style="margin-top: 10px;">Cấp độ Thiền Sư AI:</label>
             <div class="diff-selector">
-              <button class="diff-btn active" data-diff="easy">🌱 Sơ Khởi</button>
+              <button class="diff-btn active" data-diff="easy">🌱 Sơ Cơ</button>
               <button class="diff-btn" data-diff="med">🧘 Chánh Niệm</button>
               <button class="diff-btn" data-diff="hard">👑 Đại Sư</button>
             </div>
+
             <div class="chess-action-group">
-              <button class="gold-tool-btn" id="btn-chess-hint">💡 Gợi Ý Chánh Niệm</button>
+              <button class="gold-tool-btn" id="btn-chess-hint">💡 Xin Thiền Sư Gợi Ý</button>
               <button class="gold-tool-btn" id="btn-chess-undo">↩️ Hối Kỳ (Đi Lại)</button>
-              <button class="gold-tool-btn" id="btn-chess-reset">🔄 Ván Mới</button>
+              <button class="gold-tool-btn" id="btn-chess-reset">🔄 Ván Cờ Mới</button>
             </div>
           </div>
 
@@ -359,8 +376,14 @@
             </div>
           </div>
 
+          <!-- Khay quân đã ăn (Captured pieces) -->
+          <div class="captured-tray-wrap">
+            <div class="tray-label">Quân đã thu nạp:</div>
+            <div class="captured-tray" id="captured-pieces-tray"></div>
+          </div>
+
           <div class="zen-wisdom-card">
-            <span class="wisdom-quote">“Thắng không kiêu, bại không quạu. Cờ như dòng đời, buông xả là an vui.”</span>
+            <span class="wisdom-quote">“Bàn cờ như dòng đời, thắng không kiêu bại không nản. Tâm tĩnh như mặt nước, vạn sự tự an bài.”</span>
           </div>
         </div>
       </div>

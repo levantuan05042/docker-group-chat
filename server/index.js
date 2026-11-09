@@ -422,8 +422,10 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('chessMove', ({ targetPlayerId, row, col, player }) => {
-    io.to(targetPlayerId).emit('chessMoveMade', { row, col, player });
+  socket.on('chessMove', (data) => {
+    if (data && data.targetPlayerId) {
+      io.to(data.targetPlayerId).emit('chessMoveMade', data);
+    }
   });
 
   socket.on('chessResign', ({ targetPlayerId }) => {
