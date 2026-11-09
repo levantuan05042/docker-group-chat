@@ -331,7 +331,7 @@ export class TempleScene {
     ctx.lineWidth = 4;
     ctx.strokeRect(28, 28, 968, 200);
 
-    ctx.font = 'bold 92px "Times New Roman", "Palatino Linotype", "Noto Serif", serif';
+    ctx.font = 'bold 92px "Playfair Display", "Times New Roman", "Noto Serif", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -349,7 +349,7 @@ export class TempleScene {
     ctx.fillText(text, 512, subtitle ? 104 : 128);
 
     if (subtitle) {
-      ctx.font = 'italic 32px "Times New Roman", serif';
+      ctx.font = 'italic 34px "Playfair Display", "Times New Roman", serif';
       ctx.fillStyle = '#ffd680';
       ctx.fillText(subtitle, 512, 184);
     }
@@ -386,7 +386,7 @@ export class TempleScene {
     const chars = text.split('');
     const charCount = chars.length;
     const fontSize = Math.min(58, Math.floor(860 / (charCount + 0.5)));
-    ctx.font = `bold ${fontSize}px "Times New Roman", "Palatino Linotype", "Noto Serif", serif`;
+    ctx.font = `bold ${fontSize}px "Playfair Display", "Times New Roman", "Noto Serif", serif`;
 
     const startY = 70;
     const spacing = (1024 - 140) / charCount;
