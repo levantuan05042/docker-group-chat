@@ -6,6 +6,7 @@ import { AvatarManager } from './avatars.js';
 import { PlayerController } from './controller.js';
 import { templeAudio } from './audio.js';
 import { RitualStateMachine } from './stateMachine.js';
+import { ZenGames } from './zenGames.js';
 
 const RANDOM_NAMES = [
   'Thích thì nhích',
@@ -43,6 +44,7 @@ class ChuaOnlineApp {
     this.selectedRobeColor = '#E69500';
     this.audio = templeAudio;
     this.fsm = null;
+    this.zenGames = null;
 
     this.initThree();
     this.fsm = new RitualStateMachine(this);
@@ -388,8 +390,11 @@ class ChuaOnlineApp {
     document.getElementById('act-bell')?.addEventListener('click', () => this.fsm.startBell());
     document.getElementById('act-incense')?.addEventListener('click', () => this.fsm.startIncense());
     document.getElementById('act-fortune')?.addEventListener('click', () => this.fsm.startFortune());
+    document.getElementById('act-fish')?.addEventListener('click', () => this.openFishReleaseModal());
+    document.getElementById('act-chess')?.addEventListener('click', () => this.openChessModal());
+    document.getElementById('act-tea')?.addEventListener('click', () => this.drinkTea());
 
-    // Hotkeys [1..6] and [Enter]
+    // Hotkeys [1..9] and [Enter]
     window.addEventListener('keydown', (e) => {
       if (['input', 'textarea', 'select'].includes(document.activeElement.tagName.toLowerCase())) return;
 
@@ -412,10 +417,22 @@ class ChuaOnlineApp {
         case '6':
           this.fsm.startFortune();
           break;
+        case '7':
+          this.openFishReleaseModal();
+          break;
+        case '8':
+          this.openChessModal();
+          break;
+        case '9':
+          this.drinkTea();
+          break;
         case 'Escape':
           this.fsm.cancelRitual();
           document.getElementById('fortune-modal').style.display = 'none';
           document.getElementById('profile-modal').style.display = 'none';
+          document.getElementById('chess-modal').style.display = 'none';
+          document.getElementById('fish-modal').style.display = 'none';
+          document.getElementById('chess-invite-modal').style.display = 'none';
           break;
         case 'Enter':
           e.preventDefault();
@@ -436,6 +453,21 @@ class ChuaOnlineApp {
         this.fsm.cancelRitual();
       };
     }
+  }
+
+  // =========================================================================
+  // MINI-GAMES TRÒ CHƠI & PHÓNG SINH, TRÀ ĐẠO
+  // =========================================================================
+  openChessModal() {
+    if (this.zenGames) this.zenGames.openChessModal();
+  }
+
+  openFishReleaseModal() {
+    if (this.zenGames) this.zenGames.openFishReleaseModal();
+  }
+
+  drinkTea() {
+    if (this.zenGames) this.zenGames.drinkTea();
   }
 
   // =========================================================================
@@ -460,7 +492,7 @@ class ChuaOnlineApp {
 
   updateActionButtonsUI(activeAction) {
     this.currentAction = activeAction;
-    ['sit', 'bow', 'woodfish', 'bell', 'incense', 'fortune'].forEach(act => {
+    ['sit', 'bow', 'woodfish', 'bell', 'incense', 'fortune', 'fish', 'chess', 'tea'].forEach(act => {
       const btn = document.getElementById(`act-${act}`);
       if (!btn) return;
       if (activeAction === act || (act === 'bow' && activeAction === 'bow3Times') || (act === 'woodfish' && activeAction === 'strikeWoodfish')) {
@@ -557,6 +589,8 @@ class ChuaOnlineApp {
     this.socket = io({
       transports: ['websocket', 'polling']
     });
+
+    this.zenGames = new ZenGames(this);
 
     this.socket.on('connect', () => {
       this.socket.emit('join', {

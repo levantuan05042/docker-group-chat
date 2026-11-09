@@ -137,6 +137,140 @@ class TempleAudio {
     });
   }
 
+  // Tiếng đặt quân cờ gỗ/đá thanh thúy (Crisp chess piece placement click)
+  playChessClack() {
+    this.init();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Transient click noise
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
+
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.055);
+
+    // Subtle resonance of the hollow wooden board
+    const boardOsc = ctx.createOscillator();
+    const boardGain = ctx.createGain();
+    boardOsc.type = 'triangle';
+    boardOsc.frequency.setValueAtTime(220, now);
+    boardGain.gain.setValueAtTime(0.25, now);
+    boardGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    boardOsc.connect(boardGain);
+    boardGain.connect(this.sfxGain);
+    boardOsc.start(now);
+    boardOsc.stop(now + 0.13);
+  }
+
+  // Tiếng nước vỗ bì bõm êm dịu khi thả cá / thả hoa đăng
+  playWaterSplash() {
+    this.init();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Pinkish water splash bubbling noise
+    const bufferSize = ctx.sampleRate * 0.25;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 0.22);
+    filter.Q.value = 2.5;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start(now);
+    noise.stop(now + 0.26);
+
+    // Warm water droplet ping
+    const ping = ctx.createOscillator();
+    const pingG = ctx.createGain();
+    ping.type = 'sine';
+    ping.frequency.setValueAtTime(540, now + 0.04);
+    ping.frequency.exponentialRampToValueAtTime(860, now + 0.15);
+    pingG.gain.setValueAtTime(0.001, now);
+    pingG.gain.linearRampToValueAtTime(0.25, now + 0.05);
+    pingG.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    ping.connect(pingG);
+    pingG.connect(this.sfxGain);
+    ping.start(now + 0.04);
+    ping.stop(now + 0.24);
+  }
+
+  // Tiếng rót trà đàm đạo róc rách ấm áp
+  playTeaPour() {
+    this.init();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    for (let i = 0; i < 4; i++) {
+      const dropTime = now + i * 0.09;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800 + i * 150 + Math.random() * 50, dropTime);
+      osc.frequency.exponentialRampToValueAtTime(1100 + i * 120, dropTime + 0.07);
+
+      g.gain.setValueAtTime(0.18, dropTime);
+      g.gain.exponentialRampToValueAtTime(0.001, dropTime + 0.075);
+
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(dropTime);
+      osc.stop(dropTime + 0.08);
+    }
+  }
+
+  // Tiếng chuông khánh chúc mừng hoan hỷ khi thắng cờ hoặc tích đức lớn
+  playFanfare() {
+    this.init();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (Hợp âm ngũ cung thăng hoa)
+
+    notes.forEach((freq, idx) => {
+      const t = now + idx * 0.12;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.35, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+      osc.connect(g);
+      g.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 1.25);
+    });
+  }
+
   selectTrack(trackName) {
     this.currentTrack = trackName;
     if (this.isPlaying) {

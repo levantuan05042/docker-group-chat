@@ -264,6 +264,30 @@ export class PlayerController {
         }
       }
 
+      // 5. Clicked near Lotus Pond (Hồ Sen Phóng Sinh):
+      if (stations && stations.pond && Math.hypot(hitPoint.x - stations.pond.x, hitPoint.z - stations.pond.z) < 2.6) {
+        if (this.app && this.app.openFishReleaseModal) {
+          this.app.openFishReleaseModal();
+          return;
+        }
+      }
+
+      // 6. Clicked near Chess Table (Kỳ Đài Chánh Niệm):
+      if (stations && stations.chess && Math.hypot(hitPoint.x - stations.chess.x, hitPoint.z - 10.5) < 2.4) {
+        if (this.app && this.app.openChessModal) {
+          this.app.openChessModal();
+          return;
+        }
+      }
+
+      // 7. Clicked near Tea Set (Bàn Trà Đạo):
+      if (stations && stations.tea && Math.hypot(hitPoint.x - stations.tea.x, hitPoint.z - stations.tea.z) < 1.8) {
+        if (this.app && this.app.drinkTea) {
+          this.app.drinkTea();
+          return;
+        }
+      }
+
       // 5. Clicked near Grand Buddha Altar (Bow 3 times):
       if (Math.hypot(hitPoint.x, hitPoint.z - (-3.8)) < 2.5) {
         if (this.app && this.app.fsm) {
@@ -286,8 +310,8 @@ export class PlayerController {
 
       // 7. Otherwise: walk to target point on floor!
       this.cancelAutoMovement();
-      const clampedX = Math.max(-9.5, Math.min(9.5, hitPoint.x));
-      const clampedZ = Math.max(-2.5, Math.min(14.5, hitPoint.z));
+      const clampedX = Math.max(-9.8, Math.min(9.8, hitPoint.x));
+      const clampedZ = Math.max(-2.5, Math.min(15.5, hitPoint.z));
       this.targetMovePoint = new THREE.Vector3(clampedX, 0, clampedZ);
 
       if (this.temple && this.temple.spawnClickRipple) {
@@ -367,8 +391,8 @@ export class PlayerController {
         const nextX = this.position.x + moveX * this.moveSpeed * delta;
         const nextZ = this.position.z + moveZ * this.moveSpeed * delta;
 
-        this.position.x = Math.max(-9.5, Math.min(9.5, nextX));
-        this.position.z = Math.max(-2.5, Math.min(14.5, nextZ));
+        this.position.x = Math.max(-9.8, Math.min(9.8, nextX));
+        this.position.z = Math.max(-2.5, Math.min(15.5, nextZ));
 
         this.rotationY = Math.atan2(moveX, moveZ);
       }

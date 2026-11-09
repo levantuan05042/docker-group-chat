@@ -328,6 +328,135 @@ io.on('connection', (socket) => {
     io.to(currentRoomId).emit('newChatMessage', announce);
   });
 
+  // =========================================================================
+  // MINI-GAMES & TÍNH NĂNG MỚI: PHÓNG SINH, CHƠI CỜ, TRÀ ĐẠO
+  // =========================================================================
+
+  // 1. Phóng Sinh Cá / Thả Hoa Đăng vào Hồ Sen
+  socket.on('releaseCreature', ({ creatureType = 'carp', prayerText = '' }) => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
+
+    const meritMap = {
+      carp: 10,
+      goldfish: 15,
+      koi: 25,
+      turtle: 50,
+      lantern: 20
+    };
+    const earnedMerit = meritMap[creatureType] || 10;
+    playerInfo.merit += earnedMerit;
+    room.totalMerit += earnedMerit;
+
+    const creatureNameMap = {
+      carp: 'Cá Chép Đỏ May Mắn 🐟',
+      goldfish: 'Cá Vàng An Lạc 🐠',
+      koi: 'Cá Koi Ngũ Sắc 🎏',
+      turtle: 'Cụ Rùa Trường Thọ 🐢',
+      lantern: 'Đèn Hoa Đăng Cầu An 🪷'
+    };
+    const cName = creatureNameMap[creatureType] || 'Sinh linh';
+
+    io.to(currentRoomId).emit('creatureReleased', {
+      playerId: socket.id,
+      playerName: playerInfo.name,
+      creatureType,
+      prayerText,
+      earnedMerit,
+      playerMerit: playerInfo.merit,
+      totalMerit: room.totalMerit
+    });
+
+    const sysMsg = {
+      id: 'release_' + Date.now(),
+      senderId: 'system',
+      senderName: 'Hồ Sen Phóng Sinh',
+      text: `Đồng tu [${playerInfo.name}] vừa phóng sinh một chú ${cName} (+${earnedMerit} Công Đức) với tâm nguyện: "${prayerText || 'Cầu muôn loài an lạc, deadline không quạu!'}". Nam Mô A Di Đà Phật!`,
+      timestamp: Date.now()
+    };
+    room.chatHistory.push(sysMsg);
+    io.to(currentRoomId).emit('newChatMessage', sysMsg);
+  });
+
+  // 2. Thưởng Trà Đàm Đạo
+  socket.on('drinkTea', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room || !playerInfo) return;
+
+    playerInfo.merit += 5;
+    room.totalMerit += 5;
+
+    io.to(currentRoomId).emit('teaDrunk', {
+      playerId: socket.id,
+      playerName: playerInfo.name,
+      playerMerit: playerInfo.merit,
+      totalMerit: room.totalMerit
+    });
+
+    const sysMsg = {
+      id: 'tea_' + Date.now(),
+      senderId: 'system',
+      senderName: 'Trà Đạo Chánh Niệm',
+      text: `Đồng tu [${playerInfo.name}] vừa nâng chén trà sen tĩnh tâm (+5 Công Đức). Tâm tĩnh như nước, trí tuệ sáng ngời!`,
+      timestamp: Date.now()
+    };
+    room.chatHistory.push(sysMsg);
+    io.to(currentRoomId).emit('newChatMessage', sysMsg);
+  });
+
+  // 3. Hệ thống Cờ Chánh Niệm Multiplayer (PvP Online Chess)
+  socket.on('chessInvite', ({ targetPlayerId }) => {
+    if (!playerInfo) return;
+    io.to(targetPlayerId).emit('chessInviteReceived', {
+      inviterId: socket.id,
+      inviterName: playerInfo.name
+    });
+  });
+
+  socket.on('chessRespondInvite', ({ inviterId, accept }) => {
+    if (!playerInfo) return;
+    io.to(inviterId).emit('chessInviteResponse', {
+      opponentId: socket.id,
+      opponentName: playerInfo.name,
+      accept
+    });
+  });
+
+  socket.on('chessMove', ({ targetPlayerId, row, col, player }) => {
+    io.to(targetPlayerId).emit('chessMoveMade', { row, col, player });
+  });
+
+  socket.on('chessResign', ({ targetPlayerId }) => {
+    io.to(targetPlayerId).emit('chessOpponentResigned');
+  });
+
+  socket.on('chessDrawRequest', ({ targetPlayerId }) => {
+    io.to(targetPlayerId).emit('chessDrawRequested', { fromId: socket.id, fromName: playerInfo?.name });
+  });
+
+  socket.on('chessDrawResponse', ({ targetPlayerId, accept }) => {
+    io.to(targetPlayerId).emit('chessDrawResponded', { accept });
+  });
+
+  socket.on('chessGameOver', ({ winnerId, loserId, winnerName, reason }) => {
+    const room = rooms.get(currentRoomId);
+    if (winnerId && playerInfo && socket.id === winnerId) {
+      playerInfo.merit += 50;
+      if (room) room.totalMerit += 50;
+    }
+    const sysMsg = {
+      id: 'chess_' + Date.now(),
+      senderId: 'system',
+      senderName: 'Kỳ Đài Chánh Niệm',
+      text: `Trận cờ chánh niệm đã kết thúc! Kỳ thủ [${winnerName}] đã giành chiến thắng (+50 Công Đức). Kỳ Đạo Đàm Đạo, tâm bình thế giới bình!`,
+      timestamp: Date.now()
+    };
+    if (room) {
+      room.chatHistory.push(sysMsg);
+      io.to(currentRoomId).emit('newChatMessage', sysMsg);
+    }
+  });
+
   socket.on('disconnect', () => {
     const room = rooms.get(currentRoomId);
     if (room && playerInfo) {

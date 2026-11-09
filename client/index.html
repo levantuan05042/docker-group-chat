@@ -154,6 +154,21 @@
           <span class="btn-icon">🎋</span>
           <span>Xin Xăm (+2)</span>
         </button>
+        <button class="action-btn highlight-gold" id="act-fish" title="Thả cá phóng sinh tích đức [Phím 7]">
+          <span class="key-badge">7</span>
+          <span class="btn-icon">🐟</span>
+          <span>Phóng Sinh</span>
+        </button>
+        <button class="action-btn highlight-gold" id="act-chess" title="Kỳ đài chánh niệm: Tự học & Đấu cùng đồng tu [Phím 8]">
+          <span class="key-badge">8</span>
+          <span class="btn-icon">♟️</span>
+          <span>Chơi Cờ</span>
+        </button>
+        <button class="action-btn" id="act-tea" title="Uống trà đàm đạo tịnh tâm [Phím 9]">
+          <span class="key-badge">9</span>
+          <span class="btn-icon">🍵</span>
+          <span>Thưởng Trà</span>
+        </button>
       </div>
 
       <!-- Live Chat Bar -->
@@ -262,6 +277,176 @@
       <button id="btn-close-fortune" class="primary-btn" style="margin-top: 18px;">
         Hoan Hỷ Tiếp Nhận 🙏
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL CHƠI CỜ: KỲ ĐÀI CHÁNH NIỆM (TỰ HỌC & ĐẤU ONLINE) -->
+  <div class="modal-overlay" id="chess-modal" style="display: none;">
+    <div class="modal-card chess-card">
+      <button class="modal-close-btn" id="btn-close-chess" title="Đóng [ESC]">✕</button>
+      <div class="chess-header">
+        <div class="chess-title-wrap">
+          <span class="chess-icon">♟️</span>
+          <div>
+            <h2>KỲ ĐÀI CHÁNH NIỆM</h2>
+            <p>Kỳ Đạo Đàm Đạo • Tâm Tĩnh Trí Minh • Vừa Làm Vừa Tu</p>
+          </div>
+        </div>
+        <!-- Mode Tabs -->
+        <div class="chess-tabs">
+          <button class="chess-tab-btn active" id="tab-chess-ai">🤖 Học Cùng Thiền Sư AI</button>
+          <button class="chess-tab-btn" id="tab-chess-pvp">👥 Mời Đồng Tu Tỉ Thí</button>
+        </div>
+      </div>
+
+      <div class="chess-body">
+        <!-- Bảng cờ và thanh trạng thái -->
+        <div class="chess-main-area">
+          <div class="chess-status-bar">
+            <div class="player-pill black active" id="chess-player-black">
+              <span class="stone-icon black">●</span>
+              <span class="player-name" id="name-black">Bạn (Đen - Đi trước)</span>
+            </div>
+            <div class="chess-timer-badge" id="chess-timer">45s</div>
+            <div class="player-pill white" id="chess-player-white">
+              <span class="stone-icon white">○</span>
+              <span class="player-name" id="name-white">Thiền Sư AI (Trắng)</span>
+            </div>
+          </div>
+
+          <!-- Lưới Bàn Cờ 15x15 -->
+          <div class="chess-board-wrapper">
+            <div class="chess-board-grid" id="chess-board-grid"></div>
+          </div>
+
+          <!-- Gợi ý Chánh Niệm Box -->
+          <div class="chess-hint-box" id="chess-hint-box" style="display: none;">
+            <span class="hint-lamp">💡</span>
+            <span class="hint-text" id="chess-hint-text">Thiền Sư: "Nước cờ này giúp bạn mở thế ba cờ đôi..."</span>
+          </div>
+        </div>
+
+        <!-- Bảng điều khiển cạnh bàn cờ -->
+        <div class="chess-side-panel">
+          <!-- Bảng chế độ AI -->
+          <div class="panel-section" id="section-chess-ai">
+            <label class="section-title">Cấp độ Thiền Sư AI:</label>
+            <div class="diff-selector">
+              <button class="diff-btn active" data-diff="easy">🌱 Sơ Khởi</button>
+              <button class="diff-btn" data-diff="med">🧘 Chánh Niệm</button>
+              <button class="diff-btn" data-diff="hard">👑 Đại Sư</button>
+            </div>
+            <div class="chess-action-group">
+              <button class="gold-tool-btn" id="btn-chess-hint">💡 Gợi Ý Chánh Niệm</button>
+              <button class="gold-tool-btn" id="btn-chess-undo">↩️ Hối Kỳ (Đi Lại)</button>
+              <button class="gold-tool-btn" id="btn-chess-reset">🔄 Ván Mới</button>
+            </div>
+          </div>
+
+          <!-- Bảng chế độ PvP Mời Đồng Tu -->
+          <div class="panel-section" id="section-chess-pvp" style="display: none;">
+            <label class="section-title">Đồng tu đang trong Chùa:</label>
+            <div class="online-players-list" id="chess-players-list">
+              <div class="empty-list-notice">Đang tìm các đồng tu xung quanh...</div>
+            </div>
+            <div class="pvp-match-controls" id="pvp-match-controls" style="display: none;">
+              <button class="gold-tool-btn danger" id="btn-chess-resign">🏳️ Xin Nhận Thua</button>
+              <button class="gold-tool-btn" id="btn-chess-draw">🤝 Đề Nghị Hòa</button>
+            </div>
+          </div>
+
+          <div class="zen-wisdom-card">
+            <span class="wisdom-quote">“Thắng không kiêu, bại không quạu. Cờ như dòng đời, buông xả là an vui.”</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PHÓNG SINH: HỒ SEN TỊNH TÂM -->
+  <div class="modal-overlay" id="fish-modal" style="display: none;">
+    <div class="modal-card fish-card">
+      <button class="modal-close-btn" id="btn-close-fish" title="Đóng [ESC]">✕</button>
+      <div class="modal-header">
+        <div class="lotus-avatar-preview">
+          <span class="preview-emoji">🐟</span>
+        </div>
+        <h2>HỒ SEN PHÓNG SINH TỊNH TÂM</h2>
+        <p>Phóng Sinh Tích Đức • Muôn Loài An Lạc • Deadline Tiêu Trừ</p>
+      </div>
+
+      <!-- Lựa chọn loài vật phóng sinh -->
+      <label class="section-label">Chọn sinh linh phóng sinh:</label>
+      <div class="creature-cards-grid">
+        <div class="creature-card selected" data-type="carp" data-merit="10">
+          <span class="creature-emoji">🐟</span>
+          <span class="creature-name">Cá Chép Đỏ</span>
+          <span class="creature-meaning">Vượt vũ môn, sự nghiệp hanh thông</span>
+          <span class="creature-merit">+10 Công Đức</span>
+        </div>
+        <div class="creature-card" data-type="goldfish" data-merit="15">
+          <span class="creature-emoji">🐠</span>
+          <span class="creature-name">Cá Vàng An Lạc</span>
+          <span class="creature-meaning">Tâm an tịnh, tiêu trừ phiền não</span>
+          <span class="creature-merit">+15 Công Đức</span>
+        </div>
+        <div class="creature-card" data-type="koi" data-merit="25">
+          <span class="creature-emoji">🎏</span>
+          <span class="creature-name">Cá Koi Ngũ Sắc</span>
+          <span class="creature-meaning">Phú quý cát tường, deadline suôn sẻ</span>
+          <span class="creature-merit">+25 Công Đức</span>
+        </div>
+        <div class="creature-card" data-type="turtle" data-merit="50">
+          <span class="creature-emoji">🐢</span>
+          <span class="creature-name">Cụ Rùa Trường Thọ</span>
+          <span class="creature-meaning">Sức khỏe dẻo dai, tâm chí kiên định</span>
+          <span class="creature-merit">+50 Công Đức</span>
+        </div>
+        <div class="creature-card" data-type="lantern" data-merit="20">
+          <span class="creature-emoji">🪷</span>
+          <span class="creature-name">Đèn Hoa Đăng</span>
+          <span class="creature-meaning">Thắp sáng trí tuệ, soi đường bình an</span>
+          <span class="creature-merit">+20 Công Đức</span>
+        </div>
+      </div>
+
+      <!-- Khung Tâm Nguyện / Cầu An -->
+      <div class="form-group" style="margin-top: 14px;">
+        <label>Tâm Nguyện / Lời Chúc Phúc Gửi Gắm:</label>
+        <div class="quick-prayer-chips">
+          <span class="prayer-chip">Cầu gia quyến bình an</span>
+          <span class="prayer-chip">Công việc hanh thông</span>
+          <span class="prayer-chip">Deadline không quạu</span>
+          <span class="prayer-chip">Code sạch không bug</span>
+        </div>
+        <input 
+          type="text" 
+          id="input-prayer" 
+          class="text-input" 
+          placeholder="Nhập lời nguyện cầu an..." 
+          value="Cầu mong muôn loài an lạc, công việc hanh thông, deadline không quạu!" 
+          maxlength="80"
+        />
+      </div>
+
+      <button id="btn-do-release" class="primary-btn fish-btn">
+        🌊 Thả Phóng Sinh & Hồi Hướng Công Đức 🙏
+      </button>
+    </div>
+  </div>
+
+  <!-- POPUP LỜI MỜI THI ĐẤU CỜ TỪ ĐỒNG TU -->
+  <div class="modal-overlay" id="chess-invite-modal" style="display: none; z-index: 9999;">
+    <div class="modal-card invite-card">
+      <div class="invite-header">
+        <span class="invite-icon">♟️</span>
+        <h3>LỜI MỜI TỈ THÍ KỲ ĐẠO</h3>
+      </div>
+      <p id="chess-invite-text">Đồng tu [Thích an lạc] kính mời bạn giao lưu một ván cờ chánh niệm!</p>
+      <div class="invite-actions">
+        <button class="primary-btn" id="btn-accept-chess">✅ Chấp Nhận</button>
+        <button class="secondary-btn" id="btn-decline-chess">❌ Xin Khất Lần Sau</button>
+      </div>
     </div>
   </div>
 

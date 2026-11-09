@@ -1311,3 +1311,608 @@ body, html {
     transform: translate(-50%, -65px) scale(0.9);
   }
 }
+
+/* =========================================================================
+   KỲ ĐÀI CHÁNH NIỆM (ZEN CHESS GOMOKU 15x15 MODAL STYLES)
+   ========================================================================= */
+.chess-card {
+  width: 860px;
+  max-width: 96vw;
+  max-height: 94vh;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.chess-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 193, 7, 0.25);
+  margin-bottom: 16px;
+}
+
+.chess-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.chess-title-wrap .chess-icon {
+  font-size: 36px;
+  filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.6));
+}
+
+.chess-title-wrap h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-gold);
+  letter-spacing: 1.5px;
+  margin: 0;
+}
+
+.chess-title-wrap p {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: 2px 0 0 0;
+}
+
+.chess-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  gap: 6px;
+}
+
+.chess-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chess-tab-btn:hover {
+  color: #fff;
+}
+
+.chess-tab-btn.active {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.35), rgba(255, 152, 0, 0.2));
+  color: #fff;
+  border: 1px solid var(--primary-gold);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+}
+
+.chess-body {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.chess-main-area {
+  flex: 1 1 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chess-status-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(20, 10, 6, 0.7);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.player-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  padding: 5px 12px;
+  border-radius: 20px;
+  transition: all 0.25s ease;
+}
+
+.player-pill.active {
+  color: #fff;
+  background: rgba(255, 193, 7, 0.25);
+  border: 1px solid var(--primary-gold);
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.4);
+}
+
+.player-pill .stone-icon.black {
+  color: #111;
+  text-shadow: 0 0 4px #fff;
+  font-size: 18px;
+}
+
+.player-pill .stone-icon.white {
+  color: #fff;
+  text-shadow: 0 0 4px #000;
+  font-size: 18px;
+}
+
+.chess-timer-badge {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffeb3b;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 235, 59, 0.4);
+  font-family: monospace;
+}
+
+.chess-board-wrapper {
+  background: #c9934a;
+  border: 8px solid #3d1a08;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 0 14px rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  position: relative;
+}
+
+.chess-board-grid {
+  display: grid;
+  grid-template-columns: repeat(15, 26px);
+  grid-template-rows: repeat(15, 26px);
+  gap: 0;
+  background: #b8813a;
+  border: 1px solid #3d1a08;
+  cursor: pointer;
+  position: relative;
+}
+
+.chess-cell {
+  width: 26px;
+  height: 26px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Kẻ đường ngang dọc của ô cờ */
+.chess-cell::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #3d1a08;
+}
+
+.chess-cell::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #3d1a08;
+}
+
+/* 5 Điểm sao (Tengen & Corners) */
+.chess-cell.star-point::before {
+  box-shadow: 0 0 0 3px #3d1a08;
+}
+
+.chess-cell:hover::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  z-index: 2;
+}
+
+/* Quân cờ 3D bóng bẩy */
+.chess-cell .stone {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 3;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.7);
+  transition: transform 0.15s ease;
+}
+
+.chess-cell .stone.black {
+  background: radial-gradient(circle at 35% 35%, #444, #111 65%, #000);
+  border: 1px solid #555;
+}
+
+.chess-cell .stone.white {
+  background: radial-gradient(circle at 35% 35%, #ffffff, #e0e0e0 70%, #bdbdbd);
+  border: 1px solid #fff;
+}
+
+.chess-cell .stone.last-move::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  background: #ff1744;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ff1744;
+}
+
+.chess-cell .stone.win-stone {
+  animation: winStonePulse 0.9s infinite alternate;
+  box-shadow: 0 0 14px #ffd700, 0 0 24px #ff9800;
+  border-color: #ffd700;
+}
+
+@keyframes winStonePulse {
+  from { transform: scale(1); filter: brightness(1.1); }
+  to { transform: scale(1.18); filter: brightness(1.5); }
+}
+
+.chess-hint-box {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid var(--primary-gold);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.chess-side-panel {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.panel-section .section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-gold);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.diff-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.diff-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.diff-btn.active {
+  background: rgba(255, 193, 7, 0.3);
+  border-color: var(--primary-gold);
+  color: #fff;
+  font-weight: 700;
+}
+
+.chess-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gold-tool-btn {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 152, 0, 0.1));
+  border: 1px solid var(--primary-gold);
+  color: #fff;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.gold-tool-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.4), rgba(255, 152, 0, 0.25));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.gold-tool-btn.danger {
+  border-color: #ff5252;
+  background: rgba(220, 50, 50, 0.2);
+}
+.gold-tool-btn.danger:hover {
+  background: rgba(220, 50, 50, 0.4);
+}
+
+.online-players-list {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  border-radius: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.player-item-row .p-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.player-item-row .invite-btn {
+  background: var(--primary-gold);
+  border: none;
+  color: #2b1100;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.player-item-row .invite-btn:hover {
+  background: #ffea79;
+}
+
+.empty-list-notice {
+  font-size: 12px;
+  color: var(--text-sub);
+  padding: 12px 0;
+  text-align: center;
+}
+
+.zen-wisdom-card {
+  margin-top: auto;
+  padding: 12px;
+  background: rgba(255, 193, 7, 0.08);
+  border-left: 3px solid var(--primary-gold);
+  border-radius: 0 8px 8px 0;
+  font-size: 12px;
+  font-style: italic;
+  color: #ffd680;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   HỒ SEN PHÓNG SINH (FISH & CREATURE RELEASE MODAL STYLES)
+   ========================================================================= */
+.fish-card {
+  width: 680px;
+  max-width: 95vw;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-gold);
+  display: block;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.creature-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.creature-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 193, 7, 0.25);
+  border-radius: 12px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.creature-card:hover {
+  background: rgba(255, 193, 7, 0.12);
+  border-color: var(--primary-gold);
+  transform: translateY(-3px);
+}
+
+.creature-card.selected {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.15));
+  border-color: var(--primary-gold);
+  box-shadow: 0 0 14px var(--gold-glow);
+}
+
+.creature-card .creature-emoji {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.creature-card .creature-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.creature-card .creature-meaning {
+  font-size: 10.5px;
+  color: var(--text-sub);
+  line-height: 1.3;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.creature-card .creature-merit {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffeb3b;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.quick-prayer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.prayer-chip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #ffd54f;
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prayer-chip:hover {
+  background: var(--primary-gold);
+  color: #2b1100;
+  border-color: var(--primary-gold);
+}
+
+.fish-btn {
+  background: linear-gradient(135deg, #00b0ff, #00897b);
+  border: 1.5px solid #80d8ff;
+  box-shadow: 0 4px 16px rgba(0, 176, 255, 0.4);
+  margin-top: 14px;
+}
+
+.fish-btn:hover {
+  background: linear-gradient(135deg, #40c4ff, #26a69a);
+  box-shadow: 0 6px 22px rgba(0, 176, 255, 0.6);
+}
+
+/* =========================================================================
+   INVITE MODAL POPUP
+   ========================================================================= */
+.invite-card {
+  width: 440px;
+  max-width: 90vw;
+  border: 2px solid var(--primary-gold);
+  box-shadow: 0 0 35px rgba(255, 193, 7, 0.65);
+  animation: modalIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.invite-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.invite-icon {
+  font-size: 32px;
+}
+
+.invite-header h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: var(--primary-gold);
+  margin: 0;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.invite-actions .primary-btn {
+  flex: 1;
+}
+
+.invite-actions .secondary-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invite-actions .secondary-btn:hover {
+  background: rgba(220, 50, 50, 0.4);
+  border-color: #ff5252;
+}
+
+@media (max-width: 768px) {
+  .chess-board-grid {
+    grid-template-columns: repeat(15, 18px);
+    grid-template-rows: repeat(15, 18px);
+  }
+  .chess-cell {
+    width: 18px;
+    height: 18px;
+  }
+  .chess-cell .stone {
+    width: 15px;
+    height: 15px;
+  }
+  .chess-body {
+    flex-direction: column;
+  }
+}

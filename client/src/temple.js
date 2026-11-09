@@ -19,8 +19,17 @@ export class TempleScene {
       incenseCandle: { x: -0.65, z: -2.75, rotY: Math.PI },
       incenseBurner: { x: 0, z: -2.75, rotY: Math.PI },
       incenseBow: { x: 0, z: -1.20, rotY: Math.PI },
-      fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI }
+      fortuneTable: { x: 2.8, z: -0.95, rotY: Math.PI },
+      pond: { x: -6.8, z: 8.6, rotY: 0 }, // Đứng trước bờ Hồ Sen Phóng Sinh
+      chess: { x: 6.8, z: 9.2, rotY: 0 }, // Ghế 1 Kỳ Đài Chánh Niệm (Hướng Nam vào bàn cờ)
+      chess2: { x: 6.8, z: 11.8, rotY: Math.PI }, // Ghế 2 Kỳ Đài Chánh Niệm (Hướng Bắc vào bàn cờ)
+      tea: { x: 7.7, z: 10.5, rotY: -Math.PI / 2 } // Ngồi bàn trà đàm đạo
     };
+
+    this.pondFish = [];
+    this.floatingLanterns = [];
+    this.waterMesh = null;
+    this.teaSteamParticles = null;
 
     // Khởi tạo các bộ texture Canvas chất lượng cao (PBR Procedural Textures)
     this.textures = {
@@ -28,7 +37,8 @@ export class TempleScene {
       carpet: this.generateCarpetTexture(),
       cushion: this.generatePlushCushionTexture(),
       pillar: this.generatePillarTexture(),
-      wall: this.generateWallTexture()
+      wall: this.generateWallTexture(),
+      chessBoard: this.generateChessBoardTexture()
     };
 
     this.createEnvironment();
@@ -39,6 +49,8 @@ export class TempleScene {
     this.createEighteenArhats();
     this.createAuthenticCushionsGrid();
     this.createInteractiveStations();
+    this.createLotusPond();
+    this.createChessPavilion();
     this.createAtmosphericLighting();
     this.createParticleSystems();
   }
@@ -387,6 +399,82 @@ export class TempleScene {
 
     chars.forEach((c, idx) => {
       ctx.fillText(c, 128, startY + idx * spacing + spacing / 2);
+    });
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  // 7. BÀN CỜ GỖ MUN KHẢM NÂU VÀNG (15x15 ZEN CHESSBOARD TEXTURE)
+  generateChessBoardTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Nền gỗ gụ vàng ấm
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, '#c9934a');
+    grad.addColorStop(0.5, '#b8813a');
+    grad.addColorStop(1, '#a6702c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Vân gỗ nhẹ
+    ctx.strokeStyle = 'rgba(70, 40, 10, 0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 40; i++) {
+      ctx.beginPath();
+      const y = Math.random() * 512;
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(170, y + (Math.random() - 0.5) * 12, 340, y + (Math.random() - 0.5) * 12, 512, y);
+      ctx.stroke();
+    }
+
+    // Viền khung ngoài bàn cờ mạ vàng/mun đen
+    ctx.strokeStyle = '#3a1a08';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(16, 16, 480, 480);
+
+    ctx.strokeStyle = '#e0a943';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(22, 22, 468, 468);
+
+    // 15x15 Lưới ô cờ truyền thống
+    const margin = 42;
+    const size = 512 - margin * 2;
+    const step = size / 14;
+
+    ctx.strokeStyle = '#2d1405';
+    ctx.lineWidth = 1.8;
+
+    for (let i = 0; i < 15; i++) {
+      const pos = margin + i * step;
+      // Đường ngang
+      ctx.beginPath();
+      ctx.moveTo(margin, pos);
+      ctx.lineTo(margin + size, pos);
+      ctx.stroke();
+
+      // Đường dọc
+      ctx.beginPath();
+      ctx.moveTo(pos, margin);
+      ctx.lineTo(pos, margin + size);
+      ctx.stroke();
+    }
+
+    // 5 Điểm sao (Thiên nguyên & 4 góc: (3,3), (11,3), (7,7), (3,11), (11,11))
+    const starIndices = [
+      [3, 3], [11, 3], [7, 7], [3, 11], [11, 11]
+    ];
+    ctx.fillStyle = '#2d1405';
+    starIndices.forEach(([c, r]) => {
+      const sx = margin + c * step;
+      const sy = margin + r * step;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     const tex = new THREE.CanvasTexture(canvas);
@@ -1735,6 +1823,385 @@ export class TempleScene {
   }
 
   // =========================================================================
+  // 5. HỒ SEN THỦY TRÚC PHÓNG SINH (x = -6.8, z = 10.5)
+  // Bể đá tự nhiên, nước trong xanh biếc, hoa sen nở rộ, đàn cá bơi lội uốn lượn
+  // =========================================================================
+  createLotusPond() {
+    const pondGroup = new THREE.Group();
+    pondGroup.position.set(-6.8, 0, 10.5);
+
+    // Bờ kè đá tự nhiên bo tròn
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x36403d,
+      roughness: 0.88,
+      metalness: 0.1
+    });
+    const stoneRim = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.0, 2.2, 0.42, 28, 1, true),
+      stoneMat
+    );
+    stoneRim.position.y = 0.21;
+    stoneRim.receiveShadow = true;
+
+    // Thành đá bo viền trên
+    const rimCap = new THREE.Mesh(
+      new THREE.TorusGeometry(2.0, 0.12, 12, 32),
+      stoneMat
+    );
+    rimCap.rotation.x = Math.PI / 2;
+    rimCap.position.y = 0.42;
+
+    // Đáy hồ rải sỏi cuội
+    const bedMat = new THREE.MeshStandardMaterial({ color: 0x1a2623, roughness: 0.95 });
+    const pondBed = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 0.05, 28), bedMat);
+    pondBed.position.y = 0.025;
+
+    // Mặt nước hồ sen trong xanh ngọc bích
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: 0x0e5d56,
+      roughness: 0.06,
+      metalness: 0.15,
+      transparent: true,
+      opacity: 0.82,
+      emissive: 0x032b27,
+      emissiveIntensity: 0.25
+    });
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(1.92, 1.92, 0.04, 32), waterMat);
+    water.position.y = 0.32;
+    this.waterMesh = water;
+
+    // Khóm lá sen xanh mướt nổi trên mặt nước
+    const padMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.65 });
+    const padPositions = [
+      { x: -0.85, z: -0.45, r: 0.38, rot: 0.2 },
+      { x: -0.40, z: 0.80, r: 0.32, rot: 1.1 },
+      { x: 0.75, z: 0.45, r: 0.42, rot: 2.3 },
+      { x: 0.60, z: -0.70, r: 0.35, rot: 3.5 },
+      { x: -0.20, z: -0.90, r: 0.28, rot: 0.8 },
+      { x: 0.95, z: -0.15, r: 0.26, rot: 1.7 }
+    ];
+
+    padPositions.forEach(p => {
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r, 0.015, 16), padMat);
+      pad.position.set(p.x, 0.34, p.z);
+      pad.rotation.y = p.rot;
+      pondGroup.add(pad);
+    });
+
+    // Hoa sen hồng bung nở thơm ngát (2 bông sen nở điểm xuyết)
+    const lotusMat = new THREE.MeshStandardMaterial({
+      color: 0xf48fb1,
+      emissive: 0xe91e63,
+      emissiveIntensity: 0.3,
+      roughness: 0.4
+    });
+    const lotusCenterMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
+
+    [
+      { x: -0.82, z: -0.42 },
+      { x: 0.72, z: 0.42 }
+    ].forEach(lp => {
+      const flower = new THREE.Group();
+      flower.position.set(lp.x, 0.38, lp.z);
+      for (let p = 0; p < 8; p++) {
+        const pAng = (p / 8) * Math.PI * 2;
+        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.12, 5), lotusMat);
+        petal.position.set(Math.cos(pAng) * 0.05, 0.02, Math.sin(pAng) * 0.05);
+        petal.rotation.set(0.4 * Math.sin(pAng), pAng, 0.4 * Math.cos(pAng));
+        flower.add(petal);
+      }
+      const stamen = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8), lotusCenterMat);
+      flower.add(stamen);
+      pondGroup.add(flower);
+    });
+
+    // Đèn đá sân vườn kiểu Nhật/Chùa cổ bên cạnh hồ
+    const lanternPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.90, 8), stoneMat);
+    lanternPost.position.set(-1.8, 0.45, -1.2);
+    const lanternHead = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.35), new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xff9800, emissiveIntensity: 0.6 }));
+    lanternHead.position.set(-1.8, 0.95, -1.2);
+    const lanternRoof = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.22, 4), stoneMat);
+    lanternRoof.position.set(-1.8, 1.20, -1.2);
+    lanternRoof.rotation.y = Math.PI / 4;
+    pondGroup.add(lanternPost, lanternHead, lanternRoof);
+
+    // Ống nước tre róc rách phong thủy (Bamboo Water Fountain)
+    const bambooMat = new THREE.MeshStandardMaterial({ color: 0x556b2f, roughness: 0.6 });
+    const bPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.75, 8), bambooMat);
+    bPost.position.set(-1.5, 0.375, 1.0);
+    const bSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.55, 8), bambooMat);
+    bSpout.rotation.z = -Math.PI / 3;
+    bSpout.position.set(-1.32, 0.62, 1.0);
+    pondGroup.add(bPost, bSpout);
+
+    // Biển tên: "Hồ Sen Phóng Sinh"
+    const pondSign = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.26, 0.04),
+      new THREE.MeshStandardMaterial({ map: this.generateSignboardTexture('Hồ Sen Phóng Sinh', 'Tích Đức Phóng Sinh • Tâm An Phúc Lạc') })
+    );
+    pondSign.position.set(0, 1.25, -2.1);
+    pondGroup.add(stoneRim, rimCap, pondBed, water, pondSign);
+
+    this.scene.add(pondGroup);
+    this.pondGroup = pondGroup;
+
+    // KHỞI TẠO ĐÀN CÁ BƠI LỘI BAN ĐẦU (4 Chú cá bơi tự do)
+    this.createInitialPondFish();
+  }
+
+  createInitialPondFish() {
+    const initialTypes = ['koi', 'goldfish', 'carp', 'turtle'];
+    initialTypes.forEach((type, idx) => {
+      this.spawnPondFish(type, idx * (Math.PI / 2), 0.65 + idx * 0.25);
+    });
+  }
+
+  spawnPondFish(type, initialAngle = 0, radius = 0.9) {
+    const fishGroup = new THREE.Group();
+    const isTurtle = type === 'turtle';
+
+    let bodyMat;
+    if (type === 'koi') {
+      bodyMat = new THREE.MeshStandardMaterial({ color: 0xff6d00, roughness: 0.3, metalness: 0.2 });
+    } else if (type === 'goldfish') {
+      bodyMat = new THREE.MeshStandardMaterial({ color: 0xffb300, roughness: 0.25, metalness: 0.3 });
+    } else if (type === 'carp') {
+      bodyMat = new THREE.MeshStandardMaterial({ color: 0xd50000, roughness: 0.3, metalness: 0.2 });
+    } else { // turtle
+      bodyMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.7, metalness: 0.1 });
+    }
+
+    if (isTurtle) {
+      // Mai rùa bo tròn
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bodyMat);
+      shell.scale.set(1.0, 0.55, 1.2);
+      // Đầu rùa
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), bodyMat);
+      head.position.set(0, 0.01, 0.14);
+      // 4 Chân bơi
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x388e3c });
+      [-0.09, 0.09].forEach(lx => {
+        [-0.08, 0.08].forEach(lz => {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.02, 0.07), legMat);
+          leg.position.set(lx, -0.02, lz);
+          shell.add(leg);
+        });
+      });
+      fishGroup.add(shell, head);
+    } else {
+      // Thân cá thuôn nhọn 2 đầu
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), bodyMat);
+      body.scale.set(0.65, 0.85, 2.2);
+
+      // Đốm trắng trên lưng cá Koi
+      if (type === 'koi') {
+        const spot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        spot.position.set(0, 0.05, 0.02);
+        spot.scale.set(0.8, 0.3, 1.4);
+        body.add(spot);
+      }
+
+      // Đuôi cá có khớp quẫy nhịp nhàng
+      const tailPivot = new THREE.Group();
+      tailPivot.position.set(0, 0, -0.14);
+
+      const tailGeo = new THREE.ConeGeometry(0.065, 0.16, 6);
+      const tailMesh = new THREE.Mesh(tailGeo, bodyMat);
+      tailMesh.rotation.x = -Math.PI / 2;
+      tailMesh.scale.set(0.2, 1.0, 0.9);
+      tailPivot.add(tailMesh);
+      body.add(tailPivot);
+
+      // Vây bơi 2 bên ngực
+      const finMat = new THREE.MeshBasicMaterial({ color: 0xffe082, transparent: true, opacity: 0.75 });
+      [-0.05, 0.05].forEach((fx, i) => {
+        const fin = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.09), finMat);
+        fin.position.set(fx, -0.01, 0.04);
+        fin.rotation.set(Math.PI / 4, 0, i === 0 ? 0.6 : -0.6);
+        body.add(fin);
+      });
+
+      fishGroup.add(body);
+      fishGroup.tailPivot = tailPivot;
+    }
+
+    fishGroup.position.set(
+      -6.8 + Math.cos(initialAngle) * radius,
+      0.24,
+      10.5 + Math.sin(initialAngle) * radius
+    );
+
+    this.scene.add(fishGroup);
+
+    const fishData = {
+      group: fishGroup,
+      tailPivot: fishGroup.tailPivot || null,
+      type,
+      angle: initialAngle,
+      radius,
+      speed: 0.45 + Math.random() * 0.35,
+      yBase: 0.22 + Math.random() * 0.05,
+      seed: Math.random() * 10
+    };
+
+    this.pondFish.push(fishData);
+    return fishData;
+  }
+
+  // =========================================================================
+  // 6. KỲ ĐÀI CHÁNH NIỆM & BÀN TRÀ ĐẠO (x = 6.8, z = 10.5)
+  // Bàn cờ gụ khảm trai 15x15, đôn thiền bọc gấm, bộ trà tử sa thơm ngát
+  // =========================================================================
+  createChessPavilion() {
+    const chessGroup = new THREE.Group();
+    chessGroup.position.set(6.8, 0, 10.5);
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x241108, roughness: 0.45 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+
+    // Trụ bàn cờ hình tròn chạm khắc
+    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.38, 0.62, 16), woodMat);
+    pedestal.position.y = 0.31;
+
+    // Mặt bàn tròn gụ bóng loáng
+    const tabletop = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.08, 24), woodMat);
+    tabletop.position.y = 0.66;
+
+    // Viền chỉ đồng quanh mép bàn
+    const tableRim = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.016, 8, 32), brassMat);
+    tableRim.rotation.x = Math.PI / 2;
+    tableRim.position.y = 0.66;
+
+    // BÀN CỜ 15x15 ĐẶT CHÍNH GIỮA MẶT BÀN
+    const boardGeo = new THREE.BoxGeometry(0.70, 0.032, 0.70);
+    const boardMat = new THREE.MeshStandardMaterial({
+      map: this.textures.chessBoard,
+      roughness: 0.32,
+      metalness: 0.08
+    });
+    const chessBoard = new THREE.Mesh(boardGeo, boardMat);
+    chessBoard.position.set(-0.08, 0.716, 0);
+
+    // Các quân cờ 3D mẫu bày trên bàn (Quân đen & Quân trắng đá ngọc bóng loáng)
+    const blackStoneMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.3 });
+    const whiteStoneMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.15, metalness: 0.2 });
+    const sampleStones = [
+      { x: -0.08, z: 0, c: 'b' },
+      { x: -0.04, z: 0.04, c: 'w' },
+      { x: -0.12, z: -0.04, c: 'b' },
+      { x: -0.08, z: 0.08, c: 'w' },
+      { x: -0.04, z: -0.08, c: 'b' }
+    ];
+    sampleStones.forEach(s => {
+      const stone = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12),
+        s.c === 'b' ? blackStoneMat : whiteStoneMat
+      );
+      stone.position.set(s.x, 0.738, s.z);
+      chessGroup.add(stone);
+    });
+
+    // BỘ TRÀ ĐẠO TỬ SA (Ấm trà, chén ngọc & khay gỗ)
+    const teaGroup = new THREE.Group();
+    teaGroup.position.set(0.48, 0.70, 0);
+
+    const clayMat = new THREE.MeshStandardMaterial({ color: 0x5d281a, roughness: 0.65 });
+    const potBody = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), clayMat);
+    potBody.scale.set(1.0, 0.75, 1.0);
+    const potLid = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 10), clayMat);
+    potLid.position.y = 0.055;
+    const potSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.06, 8), clayMat);
+    potSpout.rotation.z = -Math.PI / 3;
+    potSpout.position.set(-0.06, 0.02, 0);
+    teaGroup.add(potBody, potLid, potSpout);
+
+    // 2 Chén trà ngọc xanh
+    const cupMat = new THREE.MeshStandardMaterial({ color: 0xa5d6a7, roughness: 0.2 });
+    [-0.06, 0.06].forEach(cz => {
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.018, 0.035, 10), cupMat);
+      cup.position.set(0.02, 0.018, cz);
+      teaGroup.add(cup);
+    });
+    chessGroup.add(teaGroup);
+
+    // 2 ĐÔN THIỀN NGỒI ĐÁNH CỜ (BẮC VÀ NAM)
+    const stoolMat = new THREE.MeshStandardMaterial({ color: 0x1f0f08, roughness: 0.6 });
+    const seatCushionMat = new THREE.MeshStandardMaterial({
+      color: 0x8a1c14,
+      roughness: 0.75,
+      map: this.textures.cushion
+    });
+
+    [-1.15, 1.15].forEach(sz => {
+      const stoolBase = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.28, 16), stoolMat);
+      stoolBase.position.set(0, 0.14, sz);
+
+      const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.10, 16), seatCushionMat);
+      cushion.position.set(0, 0.33, sz);
+
+      chessGroup.add(stoolBase, cushion);
+    });
+
+    // Biển tên: "Kỳ Đài Chánh Niệm"
+    const chessSign = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.28, 0.04),
+      new THREE.MeshStandardMaterial({
+        map: this.generateSignboardTexture('Kỳ Đài Chánh Niệm', 'Kỳ Đạo Đàm Đạo • Tâm Tĩnh Trí Minh')
+      })
+    );
+    chessSign.position.set(0, 1.35, 1.85);
+
+    chessGroup.add(pedestal, tabletop, tableRim, chessBoard, chessSign);
+    this.scene.add(chessGroup);
+  }
+
+  // Thả chú cá phóng sinh mới do người chơi vừa thực hiện
+  spawnReleasedFish(type, prayerText = '') {
+    const angle = Math.random() * Math.PI * 2;
+    const fish = this.spawnPondFish(type, angle, 0.75 + Math.random() * 0.45);
+    this.spawnClickRipple(-6.8 + Math.cos(angle) * fish.radius, 10.5 + Math.sin(angle) * fish.radius);
+    return fish;
+  }
+
+  // Thả ngọn đèn hoa đăng lung linh trên mặt hồ
+  spawnFloatingLantern(prayerText = '') {
+    const lantern = new THREE.Group();
+    const lMat = new THREE.MeshStandardMaterial({
+      color: 0xffa726,
+      emissive: 0xff6d00,
+      emissiveIntensity: 0.85,
+      roughness: 0.3
+    });
+    // Đế hoa sen nhỏ
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.04, 8), lMat);
+    // Vách lồng đèn giấy
+    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.12, 6), new THREE.MeshBasicMaterial({ color: 0xffe082 }));
+    paper.position.y = 0.08;
+    // Ngọn lửa nến nhỏ
+    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff3d00 }));
+    flame.position.y = 0.14;
+
+    lantern.add(base, paper, flame);
+
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 0.5 + Math.random() * 0.7;
+    lantern.position.set(
+      -6.8 + Math.cos(angle) * radius,
+      0.34,
+      10.5 + Math.sin(angle) * radius
+    );
+
+    this.scene.add(lantern);
+    this.floatingLanterns.push({
+      group: lantern,
+      angle,
+      radius,
+      driftSpeed: 0.12 + Math.random() * 0.08,
+      seed: Math.random() * 10
+    });
+  }
+
+  // =========================================================================
   // ÁNH SÁNG & KHÍ TRỜI THIỀN ĐỊNH LUNG LINH (ATMOSPHERIC LIGHTING)
   // =========================================================================
   createAtmosphericLighting() {
@@ -1918,6 +2385,41 @@ export class TempleScene {
         r.mesh.material.dispose();
         this.ripples.splice(i, 1);
       }
+    }
+
+    // 1. CẬP NHẬT ĐÀN CÁ BƠI LỘI TRONG HỒ SEN PHÓNG SINH (SWIMMING FISH ANIMATION)
+    if (this.pondFish && this.pondFish.length > 0) {
+      this.pondFish.forEach(fish => {
+        fish.angle += fish.speed * delta;
+        fish.group.position.x = -6.8 + Math.cos(fish.angle) * fish.radius;
+        fish.group.position.z = 10.5 + Math.sin(fish.angle) * fish.radius;
+        fish.group.position.y = fish.yBase + Math.sin(time * 2.8 + fish.seed) * 0.015;
+
+        // Xoay hướng thân cá theo góc tiếp tuyến bơi uốn lượn
+        fish.group.rotation.y = -fish.angle + Math.PI / 2;
+        fish.group.rotation.z = Math.sin(time * 3.5 + fish.seed) * 0.08;
+
+        // Quẫy đuôi cá nhịp nhàng
+        if (fish.tailPivot) {
+          fish.tailPivot.rotation.y = Math.sin(time * 8.5 + fish.seed) * 0.42;
+        }
+      });
+    }
+
+    // 2. CẬP NHẬT ĐÈN HOA ĐĂNG TRÔI LỮNG LỜ TRÊN MẶT NƯỚC (FLOATING LOTUS LANTERNS)
+    if (this.floatingLanterns && this.floatingLanterns.length > 0) {
+      this.floatingLanterns.forEach(fl => {
+        fl.angle += fl.driftSpeed * delta * 0.25;
+        fl.group.position.x = -6.8 + Math.cos(fl.angle) * fl.radius;
+        fl.group.position.z = 10.5 + Math.sin(fl.angle) * fl.radius;
+        fl.group.position.y = 0.34 + Math.sin(time * 2.2 + fl.seed) * 0.012;
+        fl.group.rotation.y = time * 0.15;
+      });
+    }
+
+    // 3. LÀN NƯỚC HỒ SEN LĂN TĂN LẤP LÁNH
+    if (this.waterMesh) {
+      this.waterMesh.rotation.y = time * 0.015;
     }
   }
 }
