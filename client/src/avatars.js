@@ -335,17 +335,26 @@ export class AvatarManager {
     bellStrikerProp.visible = false;
     foreArmR.add(bellStrikerProp);
 
+    // 3 nén tâm hương cầm chắc chắn trên bàn tay phải
     const incenseProp = new THREE.Group();
-    incenseProp.position.set(0, 0.16, 0.24);
+    incenseProp.position.set(0, -0.18, 0); // Đặt ngay tại vị trí bàn tay phải (handR)
     for (let s = -1; s <= 1; s++) {
-      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.44), new THREE.MeshBasicMaterial({ color: 0xaa2211 }));
-      stick.position.set(s * 0.028, 0.15, 0);
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
-      tip.position.set(s * 0.028, 0.36, 0);
+      const stick = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.005, 0.005, 0.32, 8),
+        new THREE.MeshBasicMaterial({ color: 0xaa2211 })
+      );
+      stick.rotation.x = Math.PI / 3.0;
+      stick.position.set(s * 0.015, 0.08, 0.14);
+
+      const tip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xff4500 })
+      );
+      tip.position.set(s * 0.015, 0.16, 0.28);
       incenseProp.add(stick, tip);
     }
     incenseProp.visible = false;
-    chestGroup.add(incenseProp);
+    foreArmR.add(incenseProp);
 
     const fortuneProp = new THREE.Group();
     fortuneProp.position.set(0, 0.07, 0.24);
@@ -657,13 +666,13 @@ export class AvatarManager {
         av.pelvis.position.y = 0.50;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
-        // Cúi nhẹ lấy hương trên bàn
-        av.spineGroup.rotation.x = 0.16;
-        av.armLGroup.rotation.set(-0.42, 0.08, 0.18);
-        av.armRGroup.rotation.set(-0.42, -0.08, -0.18);
-        av.foreArmL.rotation.set(-0.75, 0, 0.05);
-        av.foreArmR.rotation.set(-0.75, 0, -0.05);
-        av.headGroup.rotation.x = 0.14;
+        // Tay trái chắp trước ngực, tay phải cúi nhẹ lấy 3 nén hương trên bàn
+        av.spineGroup.rotation.x = 0.14;
+        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
+        av.foreArmL.rotation.set(-1.25, 0, 0.25);
+        av.armRGroup.rotation.set(-0.45, -0.08, -0.15);
+        av.foreArmR.rotation.set(-0.70, 0, -0.05);
+        av.headGroup.rotation.x = 0.12;
         return;
       }
 
@@ -671,12 +680,12 @@ export class AvatarManager {
         av.pelvis.position.y = 0.50;
         av.legLGroup.rotation.set(0, 0, 0);
         av.legRGroup.rotation.set(0, 0, 0);
-        // Đưa 3 nén hương tới ngọn nến đỏ châm lửa
-        av.spineGroup.rotation.x = 0.08;
-        av.armLGroup.rotation.set(-0.58, 0.10, 0.28);
-        av.armRGroup.rotation.set(-0.58, -0.10, -0.28);
-        av.foreArmL.rotation.set(-1.05, 0, 0.12);
-        av.foreArmR.rotation.set(-1.05, 0, -0.12);
+        // Tay trái chắp trước ngực, tay phải đưa 3 nén hương tới ngọn nến đỏ châm lửa
+        av.spineGroup.rotation.x = 0.06;
+        av.armLGroup.rotation.set(-0.55, 0.10, 0.50);
+        av.foreArmL.rotation.set(-1.25, 0, 0.25);
+        av.armRGroup.rotation.set(-0.52, -0.08, -0.15);
+        av.foreArmR.rotation.set(-0.90, 0, -0.08);
         av.headGroup.rotation.x = 0.05;
         return;
       }
@@ -688,23 +697,23 @@ export class AvatarManager {
 
         const timer = av.actionTimer;
         if (timer < 1.2) {
-          // Nâng 3 nén hương lên ngang trán cung kính vái Tam Bảo
+          // Hai tay nâng 3 nén hương lên ngang trán cung kính vái Tam Bảo
           const raise = Math.sin((timer / 1.2) * (Math.PI / 2));
-          av.spineGroup.rotation.x = 0.08 + raise * 0.12;
-          av.headGroup.rotation.x = 0.05 + raise * 0.10;
-          av.armLGroup.rotation.set(-0.65 - raise * 0.15, 0.10, 0.30);
-          av.armRGroup.rotation.set(-0.65 - raise * 0.15, -0.10, -0.30);
-          av.foreArmL.rotation.set(-1.25 - raise * 0.15, 0, 0.15);
-          av.foreArmR.rotation.set(-1.25 - raise * 0.15, 0, -0.15);
+          av.spineGroup.rotation.x = 0.08 + raise * 0.10;
+          av.headGroup.rotation.x = 0.05 + raise * 0.08;
+          av.armLGroup.rotation.set(-0.58 - raise * 0.12, 0.10, 0.40);
+          av.armRGroup.rotation.set(-0.58 - raise * 0.12, -0.10, -0.40);
+          av.foreArmL.rotation.set(-1.20 - raise * 0.15, 0, 0.20);
+          av.foreArmR.rotation.set(-1.20 - raise * 0.15, 0, -0.20);
         } else {
           // Cúi người cắm 3 nén hương vào lư đồng
           const plant = Math.sin(Math.min(Math.PI, (timer - 1.2) * 2.0));
-          av.spineGroup.rotation.x = 0.20 + plant * 0.22;
-          av.headGroup.rotation.x = 0.15 + plant * 0.08;
-          av.armLGroup.rotation.set(-0.45 - plant * 0.18, 0.05, 0.15);
-          av.armRGroup.rotation.set(-0.45 - plant * 0.18, -0.05, -0.15);
-          av.foreArmL.rotation.set(-0.85 + plant * 0.20, 0, 0.05);
-          av.foreArmR.rotation.set(-0.85 + plant * 0.20, 0, -0.05);
+          av.spineGroup.rotation.x = 0.18 + plant * 0.20;
+          av.headGroup.rotation.x = 0.12 + plant * 0.08;
+          av.armLGroup.rotation.set(-0.45 - plant * 0.15, 0.05, 0.25);
+          av.armRGroup.rotation.set(-0.45 - plant * 0.15, -0.05, -0.25);
+          av.foreArmL.rotation.set(-0.85 + plant * 0.15, 0, 0.10);
+          av.foreArmR.rotation.set(-0.85 + plant * 0.15, 0, -0.10);
         }
         return;
       }
