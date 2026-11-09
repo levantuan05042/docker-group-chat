@@ -237,11 +237,11 @@ class ChuaOnlineApp {
 
     // Profile Modal Toggle
     const profileModal = document.getElementById('profile-modal');
-    document.getElementById('btn-open-profile').addEventListener('click', () => {
-      profileModal.style.display = 'flex';
+    document.getElementById('btn-open-profile')?.addEventListener('click', () => {
+      if (profileModal) profileModal.style.display = 'flex';
     });
 
-    document.getElementById('btn-save-profile').addEventListener('click', () => {
+    document.getElementById('btn-save-profile')?.addEventListener('click', () => {
       const newName = document.getElementById('input-name').value.trim();
       const newRoom = document.getElementById('input-room').value.trim() || 'dai-hung-bao-dien';
 
@@ -324,22 +324,28 @@ class ChuaOnlineApp {
     const chatToggle = document.getElementById('chat-panel-toggle');
     const chatPanel = document.getElementById('chat-panel');
     const chatIcon = document.getElementById('chat-toggle-icon');
-    chatToggle.addEventListener('click', () => {
-      chatPanel.classList.toggle('collapsed');
-      chatIcon.textContent = chatPanel.classList.contains('collapsed') ? '▲' : '▼';
-    });
+    if (chatToggle && chatPanel) {
+      chatToggle.addEventListener('click', () => {
+        chatPanel.classList.toggle('collapsed');
+        if (chatIcon) {
+          chatIcon.textContent = chatPanel.classList.contains('collapsed') ? '▲' : '▼';
+        }
+      });
+    }
 
     // Live Chat Submit (FLOAT BUBBLE OVER AVATAR!)
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = chatInput.value.trim();
-      if (!text || !this.socket) return;
+    if (chatForm && chatInput) {
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || !this.socket) return;
 
-      this.socket.emit('chat', { text });
-      chatInput.value = '';
-    });
+        this.socket.emit('chat', { text });
+        chatInput.value = '';
+      });
+    }
 
     // Quick Canned Chat Presets (1-tap chat bubble)
     document.querySelectorAll('.preset-chip').forEach(btn => {
@@ -352,12 +358,12 @@ class ChuaOnlineApp {
     });
 
     // Action Toolbar buttons - Kết nối trực tiếp vào RitualStateMachine:
-    document.getElementById('act-sit').addEventListener('click', () => this.fsm.startMeditation());
-    document.getElementById('act-bow').addEventListener('click', () => this.fsm.startBowing());
-    document.getElementById('act-woodfish').addEventListener('click', () => this.fsm.startWoodfish());
-    document.getElementById('act-bell').addEventListener('click', () => this.fsm.startBell());
-    document.getElementById('act-incense').addEventListener('click', () => this.fsm.startIncense());
-    document.getElementById('act-fortune').addEventListener('click', () => this.fsm.startFortune());
+    document.getElementById('act-sit')?.addEventListener('click', () => this.fsm.startMeditation());
+    document.getElementById('act-bow')?.addEventListener('click', () => this.fsm.startBowing());
+    document.getElementById('act-woodfish')?.addEventListener('click', () => this.fsm.startWoodfish());
+    document.getElementById('act-bell')?.addEventListener('click', () => this.fsm.startBell());
+    document.getElementById('act-incense')?.addEventListener('click', () => this.fsm.startIncense());
+    document.getElementById('act-fortune')?.addEventListener('click', () => this.fsm.startFortune());
 
     // Hotkeys [1..6] and [Enter]
     window.addEventListener('keydown', (e) => {
@@ -395,8 +401,9 @@ class ChuaOnlineApp {
     });
 
     // Close Fortune Modal
-    document.getElementById('btn-close-fortune').addEventListener('click', () => {
-      document.getElementById('fortune-modal').style.display = 'none';
+    document.getElementById('btn-close-fortune')?.addEventListener('click', () => {
+      const modal = document.getElementById('fortune-modal');
+      if (modal) modal.style.display = 'none';
     });
 
     // Hủy bỏ tự động chạy / các nghi thức đang lặp khi người dùng chủ động điều khiển
